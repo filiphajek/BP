@@ -1,0 +1,17 @@
+using Microsoft.AspNetCore.Mvc;
+
+namespace TaskLauncher.Api.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class BaseController : ControllerBase
+{
+    protected ILogger logger;
+
+    public BaseController(ILogger logger)
+    {
+        this.logger = logger;
+    }
+
+    protected string GetToken() => HttpContext.Request.Headers.Authorization.ToString().Split(' ').Last();
+}

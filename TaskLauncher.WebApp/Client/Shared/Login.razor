@@ -1,0 +1,9 @@
+﻿<AuthorizeView>
+    <Authorized>
+        <a href="profile">@context.User.Identity.Name</a>
+        <a class="btn btn-primary" href="auth/logout">Sign out</a>
+    </Authorized>
+    <NotAuthorized>
+        <a href="auth/login">Sign in</a>
+    </NotAuthorized>
+</AuthorizeView>
