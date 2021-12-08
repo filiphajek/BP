@@ -35,7 +35,7 @@ Projekt je rozdělen na čtyři části (vzniknou čtyři docker image).
 4. Aplikace spouštějící výpočty
 
 #### Schéma:
-![image info](./Images/schema.JPG)
+![image info](./Images/schema.jpg)
 
 #### Web Api
 Obsluhuje databázi a komunikuje se službou Google bucket storage pro ukládání souborů.
