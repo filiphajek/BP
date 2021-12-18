@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="api-jwt-test-project-firebase-adminsdk.json">
+    <Content Update="bpproject-335500-6b0d2d09bf0e.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
