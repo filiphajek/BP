@@ -1,4 +1,4 @@
-﻿namespace TaskLauncher.WebApp.Server.Hub;
+﻿namespace TaskLauncher.WebApp.Server.Hubs;
 
 /// <summary>
 /// In memory uloziste signalr spojeni, prevzato s oficialni dokumentace SignalR

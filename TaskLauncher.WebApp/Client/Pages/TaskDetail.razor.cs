@@ -39,6 +39,7 @@ public partial class TaskDetail
             navigationManager.NavigateTo("tasks");
             return;
         }
+
         hubConnection = new HubConnectionBuilder()
             .WithUrl(serviceAddresses.HubAddress)
             .WithAutomaticReconnect()

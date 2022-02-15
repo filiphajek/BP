@@ -1,6 +1,6 @@
 ﻿<AuthorizeView>
     <Authorized>
-        <a href="profile">@context.User.Identity.Name</a>
+        <a href="profile">@context.User.Claims.FirstOrDefault(i => i.Type == "name").Value</a>
         <a class="btn btn-primary" href="auth/logout">Sign out</a>
     </Authorized>
     <NotAuthorized>

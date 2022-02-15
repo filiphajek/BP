@@ -4,8 +4,12 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using ProxyKit;
 using TaskLauncher.Common.Configuration;
-using TaskLauncher.WebApp.Server.Hub;
+using TaskLauncher.WebApp.Server.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using IdentityModel;
+using Microsoft.IdentityModel.Tokens;
+using Ocelot.DependencyInjection;
+using Blazor.HttpProxy.Extension;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,7 +38,7 @@ builder.Services.AddAuthentication(options =>
     options.Audience = "https://wutshot-test-api.com";
 })
 //cookie konfigurace
-.AddCookie(options =>
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
     options.Cookie.Name = "__Host-BlazorServer";
     options.Cookie.SameSite = SameSiteMode.Lax;
@@ -42,21 +46,30 @@ builder.Services.AddAuthentication(options =>
 //openid konfigurace, v budoucnu bude tato konfigurace zmenena, vyuzije se novy balicek od Auth0
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
-    options.Authority = $"https://{builder.Configuration["Auth0:Domain"]}";
-    options.ClientId = builder.Configuration["Auth0:ClientId"];
-    options.ClientSecret = builder.Configuration["Auth0:ClientSecret"];
+    //options.Authority = $"https://{builder.Configuration["Auth0:Domain"]}";
+    options.Authority = "https://localhost:7034";
+    //options.ClientId = builder.Configuration["Auth0:ClientId"];
+    options.ClientId = "gateway";
+    //options.ClientSecret = builder.Configuration["Auth0:ClientSecret"];
+    options.ClientSecret = "secret";
     options.ResponseType = OpenIdConnectResponseType.Code;
     options.Scope.Clear();
     options.Scope.Add("openid");
     options.Scope.Add("profile");
-    options.Scope.Add("email");
+    //options.Scope.Add("email");
     options.CallbackPath = new PathString("/signin-oidc");
     options.ClaimsIssuer = "Auth0";
     options.SaveTokens = true;
     options.UsePkce = true;
     options.GetClaimsFromUserInfoEndpoint = true;
-    options.TokenValidationParameters.NameClaimType = "name";
 
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        NameClaimType = JwtClaimTypes.GivenName,
+        RoleClaimType = JwtClaimTypes.Role
+    };
+
+    /*options.TokenValidationParameters.NameClaimType = "name";
     options.Events = new OpenIdConnectEvents
     {
         //logout presmetovani
@@ -86,7 +99,8 @@ builder.Services.AddAuthentication(options =>
             context.ProtocolMessage.SetParameter("audience", builder.Configuration["Auth0:Audience"]);
             return Task.FromResult(0);
         }
-    };
+    };*/
+
 });
 
 //autorizacni pravidlo pro signalr endpoint
@@ -101,22 +115,10 @@ builder.Services.AddAuthorization(policies =>
 });
 
 //pridani proxy z balicku ProxyKit
-builder.Services.AddAccessTokenManagement();
+/*builder.Services.AddAccessTokenManagement();
 builder.Services.AddProxy((clientBuilder) =>
 {
     clientBuilder.AddUserAccessTokenHandler();
-});
-
-//proxikit alternativa:
-//builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
-/*app.MapReverseProxy(opt =>
-{
-    opt.Use(async (context, next) =>
-    {
-        var token =  await context.GetTokenAsync("access_token");
-        context.Request.Headers.Add("Authorization", $"Bearer {token}");
-        await next().ConfigureAwait(false);
-    });
 });*/
 
 builder.Services.Configure<RouteOptions>(options =>
@@ -127,6 +129,8 @@ builder.Services.Configure<RouteOptions>(options =>
 //pridani signalr s pomocnym in memory ulozistem vsech real-time spojeni
 builder.Services.AddSingleton<SignalRMemoryStorage>();
 builder.Services.AddSignalR();
+
+builder.Services.AddOcelot();
 
 var app = builder.Build();
 
@@ -154,7 +158,7 @@ app.UseAuthorization();
 string testAccessToken = "";
 
 //presmerovani http dotazu na TaskLauncher.Api
-app.Map("/proxy", api =>
+/*app.Map("/proxy", api =>
 {
     api.RunProxy(async context =>
     {
@@ -172,7 +176,7 @@ app.Map("/proxy", api =>
 
         return await forwardContext.Send();
     });
-});
+});*/
 
 app.MapRazorPages();
 app.MapControllers();
@@ -184,4 +188,6 @@ app.UseEndpoints(routes =>
     routes.MapHub<LauncherHub>("/LauncherHub");
 });
 
+app.UseOcelotWhenRouteMatch();
 app.Run();
+

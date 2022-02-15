@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
 
-namespace TaskLauncher.WebApp.Server.Hub;
+namespace TaskLauncher.WebApp.Server.Hubs;
 
 public interface ILauncherHub
 {

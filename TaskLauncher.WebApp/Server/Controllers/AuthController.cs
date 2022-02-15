@@ -22,10 +22,17 @@ public class AuthController : ControllerBase
         this.logger = logger;
     }
 
+    [Authorize(AuthenticationSchemes = OpenIdConnectDefaults.AuthenticationScheme)]
+    [HttpGet("login1")]
+    public IActionResult Login1()
+    {
+        return Ok();
+    }
+
     [HttpGet("login")]
     public IActionResult Login()
     {
-        return Challenge(new AuthenticationProperties { RedirectUri = "/" });
+        return Challenge(new AuthenticationProperties { RedirectUri = "/" }, OpenIdConnectDefaults.AuthenticationScheme);
     }
 
     [HttpGet("logout")]
