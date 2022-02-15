@@ -93,6 +93,13 @@ public class TaskController : BaseController
         return Ok();
     }
 
+    [AllowAnonymous]
+    [HttpGet("test")]
+    public IActionResult GetTasksTest()
+    {
+        return Ok(new List<TaskResponse> { new TaskResponse { Name = "TEST", Description = "test"} });
+    }
+
     /// <summary>
     /// Vraci vsechny uzivatelske tasky
     /// </summary>

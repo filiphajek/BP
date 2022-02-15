@@ -2,7 +2,7 @@
   "Routes": [
     //Movie API -- https://localhost:5001/proxy/task
     {
-      "DownstreamPathTemplate": "/api/task",
+      "DownstreamPathTemplate": "/api/task/test",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -10,12 +10,12 @@
           "Port": "7237"
         }
       ],
-      "UpstreamPathTemplate": "/proxy/task",
-      //"UpstreamHttpMethod": [ "GET", "POST", "PUT" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "OpenIdConnect",
-        "AllowedScopes": []
-      }
+      "UpstreamPathTemplate": "/api/task/test",
+      //"UpstreamHttpMethod": [ "GET", "POST", "PUT" ]
+      //"AuthenticationOptions": {
+      //  "AuthenticationProviderKey": "OpenIdConnect",
+      //  "AllowedScopes": []
+      //}
     }
   ]
 }

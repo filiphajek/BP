@@ -9,9 +9,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using IdentityModel;
 using Microsoft.IdentityModel.Tokens;
 using Ocelot.DependencyInjection;
-using Blazor.HttpProxy.Extension;
+using TaskLauncher.WebApp.Server;
+//using Blazor.HttpProxy.Extension;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddJsonFile("ocelot.json");
 
 //vycteni konfigurace z appsettings.json
 var serviceAddresses = new ServiceAddresses();
@@ -46,30 +49,31 @@ builder.Services.AddAuthentication(options =>
 //openid konfigurace, v budoucnu bude tato konfigurace zmenena, vyuzije se novy balicek od Auth0
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
-    //options.Authority = $"https://{builder.Configuration["Auth0:Domain"]}";
-    options.Authority = "https://localhost:7034";
-    //options.ClientId = builder.Configuration["Auth0:ClientId"];
-    options.ClientId = "gateway";
-    //options.ClientSecret = builder.Configuration["Auth0:ClientSecret"];
-    options.ClientSecret = "secret";
-    options.ResponseType = OpenIdConnectResponseType.Code;
+    //identityserver
+    //options.Authority = "https://localhost:7034";
+    //options.ClientId = "gateway";
+    //options.ClientSecret = "secret";
+    //options.ResponseType = OpenIdConnectResponseType.Code;
+    /*options.TokenValidationParameters = new TokenValidationParameters
+    {
+        NameClaimType = JwtClaimTypes.GivenName,
+        RoleClaimType = JwtClaimTypes.Role
+    };*/
+
+    options.Authority = $"https://{builder.Configuration["Auth0:Domain"]}";
+    options.ClientId = builder.Configuration["Auth0:ClientId"];
+    options.ClientSecret = builder.Configuration["Auth0:ClientSecret"];
     options.Scope.Clear();
     options.Scope.Add("openid");
     options.Scope.Add("profile");
-    //options.Scope.Add("email");
+    options.Scope.Add("email");
     options.CallbackPath = new PathString("/signin-oidc");
     options.ClaimsIssuer = "Auth0";
     options.SaveTokens = true;
     options.UsePkce = true;
     options.GetClaimsFromUserInfoEndpoint = true;
-
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        NameClaimType = JwtClaimTypes.GivenName,
-        RoleClaimType = JwtClaimTypes.Role
-    };
-
-    /*options.TokenValidationParameters.NameClaimType = "name";
+    
+    options.TokenValidationParameters.NameClaimType = "name";
     options.Events = new OpenIdConnectEvents
     {
         //logout presmetovani
@@ -99,8 +103,7 @@ builder.Services.AddAuthentication(options =>
             context.ProtocolMessage.SetParameter("audience", builder.Configuration["Auth0:Audience"]);
             return Task.FromResult(0);
         }
-    };*/
-
+    };
 });
 
 //autorizacni pravidlo pro signalr endpoint
@@ -180,6 +183,9 @@ string testAccessToken = "";
 
 app.MapRazorPages();
 app.MapControllers();
+
+app.UseOcelotWhenRouteMatch();
+
 app.MapFallbackToFile("index.html");
 
 //pridani signalr endpointu
@@ -188,6 +194,5 @@ app.UseEndpoints(routes =>
     routes.MapHub<LauncherHub>("/LauncherHub");
 });
 
-app.UseOcelotWhenRouteMatch();
 app.Run();
 
