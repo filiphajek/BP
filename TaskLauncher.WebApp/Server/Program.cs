@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using ProxyKit;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.WebApp.Server.Hub;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -37,7 +36,7 @@ builder.Services.AddAuthentication(options =>
 .AddCookie(options =>
 {
     options.Cookie.Name = "__Host-BlazorServer";
-    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SameSite = SameSiteMode.Strict;
 })
 //openid konfigurace, v budoucnu bude tato konfigurace zmenena, vyuzije se novy balicek od Auth0
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
@@ -102,13 +101,9 @@ builder.Services.AddAuthorization(policies =>
 
 //pridani proxy z balicku ProxyKit
 builder.Services.AddAccessTokenManagement();
-builder.Services.AddProxy((clientBuilder) =>
-{
-    clientBuilder.AddUserAccessTokenHandler();
-});
 
 //proxikit alternativa:
-//builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 /*app.MapReverseProxy(opt =>
 {
     opt.Use(async (context, next) =>
@@ -135,14 +130,8 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
     app.UseWebAssemblyDebugging();
 }
-else
-{
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
-}
 
 app.UseHttpsRedirection();
-
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
@@ -154,34 +143,20 @@ app.UseAuthorization();
 string testAccessToken = "";
 
 //presmerovani http dotazu na TaskLauncher.Api
-app.Map("/proxy", api =>
+app.MapReverseProxy(opt =>
 {
-    api.RunProxy(async context =>
+    opt.Use(async (context, next) =>
     {
-        var config = app.Services.GetRequiredService<ServiceAddresses>();
-        var forwardContext = context.ForwardTo(config.WebApiAddress);
-
-        string accessToken = testAccessToken;
-        if (string.IsNullOrEmpty(accessToken))
-        {
-            //z aktualniho cookie kontextu ziskej access token k TaskLauncher.Api
-            accessToken = await context.GetTokenAsync("access_token");
-        }
-        //pridani autorizacniho tokenu
-        forwardContext.HttpContext.Request.Headers.Add("Authorization", $"Bearer {accessToken}");
-
-        return await forwardContext.Send();
+        await Task.Delay(50);
+        await next().ConfigureAwait(false);
     });
-});
+}).AllowAnonymous();
 
-app.MapRazorPages();
-app.MapControllers();
-app.MapFallbackToFile("index.html");
-
-//pridani signalr endpointu
-app.UseEndpoints(routes =>
+app.UseEndpoints(endpoints =>
 {
-    routes.MapHub<LauncherHub>("/LauncherHub");
+    endpoints.MapControllers();
+    endpoints.MapFallbackToFile("index.html");
+    endpoints.MapHub<LauncherHub>("/LauncherHub");
 });
 
 app.Run();

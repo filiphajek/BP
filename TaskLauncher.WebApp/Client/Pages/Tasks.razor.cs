@@ -16,7 +16,7 @@ public partial class Tasks
     protected override async Task OnInitializedAsync()
     {
         loading = true;
-        var tasks = await client.GetFromJsonAsync<List<TaskResponse>>("/proxy/task");
+        var tasks = await client.GetFromJsonAsync<List<TaskResponse>>("proxy/taskos");
         taskList.AddRange(tasks);
         loading = false;
     }
