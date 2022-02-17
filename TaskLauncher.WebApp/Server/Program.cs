@@ -99,20 +99,11 @@ builder.Services.AddAuthorization(policies =>
     });
 });
 
-//pridani proxy z balicku ProxyKit
+//access token managment
 builder.Services.AddAccessTokenManagement();
 
-//proxikit alternativa:
+//pridani proxy
 builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
-/*app.MapReverseProxy(opt =>
-{
-    opt.Use(async (context, next) =>
-    {
-        var token =  await context.GetTokenAsync("access_token");
-        context.Request.Headers.Add("Authorization", $"Bearer {token}");
-        await next().ConfigureAwait(false);
-    });
-});*/
 
 builder.Services.Configure<RouteOptions>(options =>
 {
@@ -139,16 +130,19 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-//string testAccessToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImI1Wk1YcmFOOE82YUlxTUJtZnhDViJ9.eyJpc3MiOiJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vIiwic3ViIjoiYXV0aDB8NjE4YWM3NzcxMGFjYWUwMDZhZDA3ZjFiIiwiYXVkIjpbImh0dHBzOi8vd3V0c2hvdC10ZXN0LWFwaS5jb20iLCJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNjM4NDgzMzA0LCJleHAiOjE2Mzg1Njk3MDQsImF6cCI6Ijd3bjBsRG5COWhWNjJtODZ6aDhYYjM3NEtoSHhPaXJKIiwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCJ9.MuYAb1WSh7Gts9FrJ8cau13TE3V8ocWlDdRYiVumNbwrLG_asb3xLLEQr9W9KfDuVZbdNwi-9pIzW5aeBwS_RzutNnm533p2GSXi1OwRGeXu9Bylh3yHB_ltbYPpdQo7DMPwmk9ptQbc720BLWqixDGHSaYgIps4p8Ik9y7dnJpNpYg2U-H3WOwreUdBe9j-MO6i6sdyoXyqv7vUondb2bxHNieVBGeR7w244LSHs-Kr3MRRhtjGMUOttXUK4a7XytNLjMgGHwU_oZ8OXXwIJzC2Z-dr7uVC-LlRtwWqMie3zrTVb41JKzth_9gyB-9PTOukodzQQVI6qIlAFXliTA";
-string testAccessToken = "";
-
-//presmerovani http dotazu na TaskLauncher.Api
+//presmerovani http dotazu
 app.MapReverseProxy(opt =>
 {
     opt.Use(async (context, next) =>
     {
-        await Task.Delay(50);
-        await next().ConfigureAwait(false);
+        var cache = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImI1Wk1YcmFOOE82YUlxTUJtZnhDViJ9.eyJpc3MiOiJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vIiwic3ViIjoiYXV0aDB8NjFiMGUxNjE2NzhhMGMwMDY4OTY0NGUwIiwiYXVkIjpbImh0dHBzOi8vd3V0c2hvdC10ZXN0LWFwaS5jb20iLCJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNjQ1MTEzMjgzLCJleHAiOjE2NDUxOTk2ODMsImF6cCI6Ijd3bjBsRG5COWhWNjJtODZ6aDhYYjM3NEtoSHhPaXJKIiwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCJ9.j0zD-yhn7Ol1WZRhzZuCOeMFfZswTUNX60S6iZBefurJfgtfz5ux_LEN2bdiictsESlu-EwXl-JykjLa3CZgA_m5Z3wYQxuTBYqB5i8cfyvE2eYM77iLLZ8jgImknAaw2tuB30Rb5iX2vEDbgKP4vnhUZtwb6zFvVOHFMccJFGSnogVuOb31fydUtc0VCCca3NmrYOiKDZSGWiDz-nvLUMpPC39yRNdyCDSYoxrkIwgHSph8DmughJTHohHInexpixtUr1BfBp2RK-dYFD4STm1VuBk8mlH3NaQVAqFBMOxylUJ2ByHKGSze0gXZBSluZS-Z57a5kspEInVRL7jkkw";
+
+        if(string.IsNullOrEmpty(cache))
+            cache = await context.GetTokenAsync("access_token");
+
+        context.Request.Headers.Add("Authorization", $"Bearer {cache}");
+        await next();
+
     });
 }).AllowAnonymous();
 

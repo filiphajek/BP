@@ -33,7 +33,7 @@ public partial class TaskDetail
 
     protected override async Task OnParametersSetAsync()
     {
-        Task = await client.GetFromJsonAsync<TaskDetailResponse>("proxy/task/" + Id.ToString());
+        Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/task/" + Id.ToString());
         if (Task is null)
         {
             navigationManager.NavigateTo("tasks");
@@ -75,7 +75,7 @@ public partial class TaskDetail
 
     private async Task RemoveTask()
     {
-        var tmp = await client.DeleteAsync("proxy/task/" + Id.ToString());
+        var tmp = await client.DeleteAsync("api/task/" + Id.ToString());
         if(tmp.IsSuccessStatusCode)
             navigationManager.NavigateTo("tasks", true);
     }
@@ -84,7 +84,7 @@ public partial class TaskDetail
     {
         if(Task.Status == TaskState.Finished)
         {
-            navigationManager.NavigateTo("proxy/file/" + Id.ToString(), true);
+            navigationManager.NavigateTo("api/file/" + Id.ToString(), true);
         }
     }
 }

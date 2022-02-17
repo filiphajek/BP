@@ -37,7 +37,7 @@ public partial class AddTask
 
         using (var stream = file.OpenReadStream())
         {
-            var response = await client.SendMultipartFormDataAsync("proxy/task", stream, Model, file.Name);
+            var response = await client.SendMultipartFormDataAsync("api/task", stream, Model, file.Name);
             if(response.IsSuccessStatusCode)
             {
                 navigationManager.NavigateTo("/tasks", true);
