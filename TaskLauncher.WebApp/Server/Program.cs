@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -8,6 +7,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Yarp.ReverseProxy.Configuration;
 using TaskLauncher.WebApp.Server.Services;
 using TaskLauncher.WebApp.Server.Auth0;
+using TaskLauncher.WebApp.Server.Proxy;
+using TaskLauncher.WebApp.Server.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,9 @@ builder.Services.AddRazorPages();
 var auth0config = new Auth0ApiConfiguration();
 builder.Configuration.Bind(nameof(Auth0ApiConfiguration), auth0config);
 builder.Services.AddSingleton(auth0config);
+
+//TODO udelat nejaky check teto konfigurace .. aby routeId byla stejna
+builder.Services.Configure<ReverseProxyHandlers>(builder.Configuration.GetSection("ReverseProxyExtensions"));
 
 //cache
 builder.Services.AddDistributedMemoryCache();
@@ -119,6 +123,7 @@ builder.Services.AddAccessTokenManagement();
 //pridani proxy
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+builder.Services.AddProxyMiddlewares(builder.Configuration);
 
 builder.Services.Configure<RouteOptions>(options =>
 {
@@ -154,25 +159,9 @@ app.MapReverseProxy(opt =>
     var scope = opt.ApplicationServices.CreateScope();
     var managementTokenService = scope.ServiceProvider.GetRequiredService<ManagementTokenService>();
 
-    opt.Use(async (context, next) =>
-    {
-        //auth
-        var accessToken = await managementTokenService.GetApiToken(new(), "managment_api");
-        context.Request.Headers.Authorization = $"Bearer {accessToken}";
-        await next();
-        
-        //todo api - vytvorit na to middleware
-        /*
-        var cache = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImI1Wk1YcmFOOE82YUlxTUJtZnhDViJ9.eyJpc3MiOiJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vIiwic3ViIjoiYXV0aDB8NjFiMGUxNjE2NzhhMGMwMDY4OTY0NGUwIiwiYXVkIjpbImh0dHBzOi8vd3V0c2hvdC10ZXN0LWFwaS5jb20iLCJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNjQ1MjA2OTIwLCJleHAiOjE2NDUyOTMzMjAsImF6cCI6Ijd3bjBsRG5COWhWNjJtODZ6aDhYYjM3NEtoSHhPaXJKIiwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCJ9.DtwizuwiG8CaHPeiQLBs5hB3DJITdVYUWDS7_i5yQ4P7Q6spHDmjS2dtOaEGdKgaMUAZ6NCsjQzNSSSo7KZ4GrlRo4vitinqO8CgqhdnD8qQFs5zmetUT6EWH2IvvxMTycRrQe3nhcPDR51m_jboosm4PYJESfN1O4wy0J2B7MhNe7k-u3_V7Qd8Rg6IadVYxujkJoDyBoCtPhX3Etf2ItMAgg2UxvSRBO4xYgHIRr-fQS0pB0l_k83azzWto2eTlJJlsRQ1Il2iLRDhYg4-IMx7pqck9clBl2NyE3xP_E0bwcjBosUDX3j-P3eYNjuNJiFrwrWDKxNzjuu5A6nF9g";
+    opt.UseProxyMiddlewares<Program>();
 
-        if(string.IsNullOrEmpty(cache))
-            cache = await context.GetTokenAsync("access_token");
-
-        context.Request.Headers.Add("Authorization", $"Bearer {cache}");
-        await next();
-        */
-    });
-}).RequireAuthorization();
+}).AllowAnonymous(); // for testing
 
 app.UseEndpoints(endpoints =>
 {
