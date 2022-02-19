@@ -5,6 +5,9 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.WebApp.Server.Hub;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Yarp.ReverseProxy.Configuration;
+using TaskLauncher.WebApp.Server.Services;
+using TaskLauncher.WebApp.Server.Auth0;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +19,17 @@ builder.Services.AddSingleton(serviceAddresses);
 //pridani kontroleru s error stranky
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+
+//config
+//builder.Services.AddOptions();
+var auth0config = new Auth0ApiConfiguration();
+builder.Configuration.Bind(nameof(Auth0ApiConfiguration), auth0config);
+builder.Services.AddSingleton(auth0config);
+
+//cache
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSingleton<Cache<AccessToken>>();
+builder.Services.AddScoped<ManagementTokenService>();
 
 //httpclient
 builder.Services.AddHttpClient();
@@ -41,9 +55,9 @@ builder.Services.AddAuthentication(options =>
 //openid konfigurace, v budoucnu bude tato konfigurace zmenena, vyuzije se novy balicek od Auth0
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
-    options.Authority = $"https://{builder.Configuration["Auth0:Domain"]}";
-    options.ClientId = builder.Configuration["Auth0:ClientId"];
-    options.ClientSecret = builder.Configuration["Auth0:ClientSecret"];
+    options.Authority = $"https://{auth0config.Domain}";
+    options.ClientId = auth0config.ClientId;
+    options.ClientSecret = auth0config.ClientSecret;
     options.ResponseType = OpenIdConnectResponseType.Code;
     options.Scope.Clear();
     options.Scope.Add("openid");
@@ -61,7 +75,7 @@ builder.Services.AddAuthentication(options =>
         //logout presmetovani
         OnRedirectToIdentityProviderForSignOut = (context) =>
         {
-            var logoutUri = $"https://{builder.Configuration["Auth0:Domain"]}/v2/logout?client_id={builder.Configuration["Auth0:ClientId"]}";
+            var logoutUri = $"https://{auth0config.Domain}/v2/logout?client_id={auth0config.ClientId}";
 
             var postLogoutUri = context.Properties.RedirectUri;
             if (!string.IsNullOrEmpty(postLogoutUri))
@@ -82,7 +96,7 @@ builder.Services.AddAuthentication(options =>
         OnRedirectToIdentityProvider = context =>
         {
             //pridani audience pro ziskani autorizacniho tokenu k web api
-            context.ProtocolMessage.SetParameter("audience", builder.Configuration["Auth0:Audience"]);
+            context.ProtocolMessage.SetParameter("audience", auth0config.Audience);
             return Task.FromResult(0);
         }
     };
@@ -99,11 +113,12 @@ builder.Services.AddAuthorization(policies =>
     });
 });
 
-//access token managment
+//access token management
 builder.Services.AddAccessTokenManagement();
 
 //pridani proxy
-builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
 builder.Services.Configure<RouteOptions>(options =>
 {
@@ -133,18 +148,31 @@ app.UseAuthorization();
 //presmerovani http dotazu
 app.MapReverseProxy(opt =>
 {
+    var configProvider = opt.ApplicationServices.GetRequiredService<IProxyConfigProvider>();
+    var config = configProvider.GetConfig();
+
+    var scope = opt.ApplicationServices.CreateScope();
+    var managementTokenService = scope.ServiceProvider.GetRequiredService<ManagementTokenService>();
+
     opt.Use(async (context, next) =>
     {
-        var cache = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImI1Wk1YcmFOOE82YUlxTUJtZnhDViJ9.eyJpc3MiOiJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vIiwic3ViIjoiYXV0aDB8NjFiMGUxNjE2NzhhMGMwMDY4OTY0NGUwIiwiYXVkIjpbImh0dHBzOi8vd3V0c2hvdC10ZXN0LWFwaS5jb20iLCJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNjQ1MTEzMjgzLCJleHAiOjE2NDUxOTk2ODMsImF6cCI6Ijd3bjBsRG5COWhWNjJtODZ6aDhYYjM3NEtoSHhPaXJKIiwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCJ9.j0zD-yhn7Ol1WZRhzZuCOeMFfZswTUNX60S6iZBefurJfgtfz5ux_LEN2bdiictsESlu-EwXl-JykjLa3CZgA_m5Z3wYQxuTBYqB5i8cfyvE2eYM77iLLZ8jgImknAaw2tuB30Rb5iX2vEDbgKP4vnhUZtwb6zFvVOHFMccJFGSnogVuOb31fydUtc0VCCca3NmrYOiKDZSGWiDz-nvLUMpPC39yRNdyCDSYoxrkIwgHSph8DmughJTHohHInexpixtUr1BfBp2RK-dYFD4STm1VuBk8mlH3NaQVAqFBMOxylUJ2ByHKGSze0gXZBSluZS-Z57a5kspEInVRL7jkkw";
+        //auth
+        var accessToken = await managementTokenService.GetApiToken(new(), "managment_api");
+        context.Request.Headers.Authorization = $"Bearer {accessToken}";
+        await next();
+        
+        //todo api - vytvorit na to middleware
+        /*
+        var cache = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImI1Wk1YcmFOOE82YUlxTUJtZnhDViJ9.eyJpc3MiOiJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vIiwic3ViIjoiYXV0aDB8NjFiMGUxNjE2NzhhMGMwMDY4OTY0NGUwIiwiYXVkIjpbImh0dHBzOi8vd3V0c2hvdC10ZXN0LWFwaS5jb20iLCJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNjQ1MjA2OTIwLCJleHAiOjE2NDUyOTMzMjAsImF6cCI6Ijd3bjBsRG5COWhWNjJtODZ6aDhYYjM3NEtoSHhPaXJKIiwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCJ9.DtwizuwiG8CaHPeiQLBs5hB3DJITdVYUWDS7_i5yQ4P7Q6spHDmjS2dtOaEGdKgaMUAZ6NCsjQzNSSSo7KZ4GrlRo4vitinqO8CgqhdnD8qQFs5zmetUT6EWH2IvvxMTycRrQe3nhcPDR51m_jboosm4PYJESfN1O4wy0J2B7MhNe7k-u3_V7Qd8Rg6IadVYxujkJoDyBoCtPhX3Etf2ItMAgg2UxvSRBO4xYgHIRr-fQS0pB0l_k83azzWto2eTlJJlsRQ1Il2iLRDhYg4-IMx7pqck9clBl2NyE3xP_E0bwcjBosUDX3j-P3eYNjuNJiFrwrWDKxNzjuu5A6nF9g";
 
         if(string.IsNullOrEmpty(cache))
             cache = await context.GetTokenAsync("access_token");
 
         context.Request.Headers.Add("Authorization", $"Bearer {cache}");
         await next();
-
+        */
     });
-}).AllowAnonymous();
+}).RequireAuthorization();
 
 app.UseEndpoints(endpoints =>
 {
