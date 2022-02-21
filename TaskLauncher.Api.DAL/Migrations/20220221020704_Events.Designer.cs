@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TaskLauncher.Api.DAL;
 
@@ -11,9 +12,10 @@ using TaskLauncher.Api.DAL;
 namespace TaskLauncher.Api.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220221020704_Events")]
+    partial class Events
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -46,32 +48,6 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.HasIndex("TaskId");
 
                     b.ToTable("Events");
-                });
-
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.PaymentEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<double>("Price")
-                        .HasColumnType("float");
-
-                    b.Property<Guid>("TaskId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("Time")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TaskId");
-
-                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.TaskEntity", b =>
@@ -107,42 +83,10 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.ToTable("Tasks");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.TokenBalanceEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<double>("CurrentAmount")
-                        .HasColumnType("float");
-
-                    b.Property<DateTime>("LastAdded")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TokenBalances");
-                });
-
             modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.EventEntity", b =>
                 {
                     b.HasOne("TaskLauncher.Api.DAL.Entities.TaskEntity", "Task")
                         .WithMany("Events")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Task");
-                });
-
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.PaymentEntity", b =>
-                {
-                    b.HasOne("TaskLauncher.Api.DAL.Entities.TaskEntity", "Task")
-                        .WithMany()
                         .HasForeignKey("TaskId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

@@ -6,7 +6,6 @@ namespace TaskLauncher.Api.DAL.Repositories;
 
 public interface ITaskRepository : IBaseRepository<TaskEntity>
 {
-    Task AddFile(TaskEntity task, FileEntity file);
 }
 
 public class TaskRepository : AppRepository<TaskEntity>, ITaskRepository
@@ -16,12 +15,5 @@ public class TaskRepository : AppRepository<TaskEntity>, ITaskRepository
     }
 
     public override async Task<TaskEntity?> GetAsync(TaskEntity entity) 
-        => await Context.Tasks.Include(i => i.Files).AsNoTracking().SingleOrDefaultAsync(i => i.Id == entity.Id);
-
-    public async Task AddFile(TaskEntity task, FileEntity file)
-    {
-        Context.Tasks.Attach(task);
-        await Context.AddAsync(file);
-        await Context.SaveChangesAsync();
-    }
+        => await Context.Tasks.Include(i => i.Events).AsNoTracking().SingleOrDefaultAsync(i => i.Id == entity.Id);
 }

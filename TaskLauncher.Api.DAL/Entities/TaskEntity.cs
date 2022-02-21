@@ -7,8 +7,8 @@ public record TaskEntity : BaseEntity, IUserKeyProtection
     public string UserId { get; set; }
     public string Name { get; set; }
     public string? Description { get; set; }
-    public DateTime? Start { get; set; }
-    public DateTime? End { get; set; }
-    public TaskState Status { get; set; } = TaskState.Created;
-    public ICollection<FileEntity> Files { get; set; }
+    public TaskState ActualStatus { get; set; } = TaskState.Created;
+    public string TaskFile { get; set; }
+    public string ResultFile { get; set; }
+    public ICollection<EventEntity> Events { get; set; }
 }

@@ -7,55 +7,87 @@ using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Api.DAL.Repositories;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
-using TaskLauncher.Common.Services;
 
 namespace TaskLauncher.Api.Controllers;
 
-/// <summary>
-/// Kontroler pro uzivatelskou aplikaci, vytvari a spravuje tasky
-/// </summary>
 [Authorize(Policy = "p-user-api-auth0")]
 public class TaskController : BaseController
 {
     private readonly IMapper mapper;
     private readonly ITaskRepository taskRepository;
-    private readonly IFileStorageService fileStorageService;
-    private readonly IFileRepository fileRepository;
+    private readonly IEventRepository eventRepository;
 
-    public TaskController(IMapper mapper,
-        ITaskRepository taskRepository,
-        IFileStorageService fileStorageService, 
-        IFileRepository fileRepository,
-        ILogger<TaskController> logger) : base(logger)
+    public TaskController(IMapper mapper, ITaskRepository taskRepository, IEventRepository eventRepository, ILogger<TaskController> logger) 
+        : base(logger)
     {
         this.mapper = mapper;
         this.taskRepository = taskRepository;
-        this.fileStorageService = fileStorageService;
-        this.fileRepository = fileRepository;
+        this.eventRepository = eventRepository;
+    }
+
+    /// <summary>
+    /// Vraci vsechny tasky
+    /// TODO PAGING
+    /// </summary>
+    [HttpGet]
+    public async Task<ActionResult<List<TaskResponse>>> GetAllTasksAsync()
+    {
+        var list = await taskRepository.GetAllAsync();
+        return Ok(list.Select(mapper.Map<TaskResponse>));
+    }
+
+    /// <summary>
+    /// Vraci detail tasku
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<TaskDetailResponse>> GetTaskDetailAsync(Guid id)
+    {
+        var task = await taskRepository.GetAsync(new() { Id = id });
+        if (task is null)
+            return NotFound();
+        return Ok(mapper.Map<TaskDetailResponse>(task));
     }
 
     /// <summary>
     /// Vytvoreni noveho tasku
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> CreateTaskAsync([FromForm] TaskCreateRequest request, IFormFile file)
+    public async Task<ActionResult<TaskResponse>> CreateTaskAsync([FromBody] TaskCreateRequest request)
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
 
-        var fileEntity = new FileEntity { Name = "task", UserId = userId };
-        TaskEntity task = new() { UserId = userId, Files = new List<FileEntity> { fileEntity } };
+        var eventEntity = new EventEntity { Status = TaskState.Created, Time = DateTime.Now, UserId = userId };
+        TaskEntity task = new()
+        {
+            ActualStatus = TaskState.Created,
+            UserId = userId,
+            Events = new List<EventEntity> { eventEntity }
+        };
         var result = await taskRepository.AddAsync(mapper.Map(request, task));
 
-        using (var stream = file.OpenReadStream())
-        {
-            await fileStorageService.UploadFileAsync($"{userId}/{task.Id}/task", stream);
-        }
-        return Ok(mapper.Map<TaskDetailResponse>(result));
+        //TODO rabbitMQ message (info o souboru atd .. worker aby si to stahl tak bude mit credentials na google) + polly
+        //az bude worker uploadovat soubor tak rabbitmq message a pred tim to da na google
+
+        return Ok(mapper.Map<TaskResponse>(result));
+    }
+    
+    /// <summary>
+    /// Aktualizace informaci o tasku
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<TaskResponse>> UpdateTaskAsync([FromRoute] Guid id, [FromBody]TaskUpdateRequest request)
+    {
+        var result = await taskRepository.GetAsync(new() { Id = id });
+        if (result is null)
+            return NotFound();
+        var tmp = mapper.Map(request, result);
+        await taskRepository.UpdateAsync(tmp);
+        return Ok(tmp);
     }
 
     /// <summary>
-    /// Smazani tasku spolecne s jeho soubory
+    /// Smazani tasku
     /// </summary>
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> RemoveTaskAsync(Guid id)
@@ -66,52 +98,41 @@ public class TaskController : BaseController
         var task = await taskRepository.GetAsync(new() { Id = id });
         if (task is null)
             return BadRequest();
-        
-        if(task.Status == TaskState.InQueue || task.Status == TaskState.Running)
+
+        if (task.ActualStatus == TaskState.InQueue || task.ActualStatus == TaskState.Running)
             return BadRequest();
 
-        await fileStorageService.RemoveFileAsync($"{userId}/{task.Id}/task");
-        await taskRepository.RemoveAsync(task);
-        //taskRepository.ClearTrackedEntries();
-        //await fileRepository.RemoveAsync(task.File);
-        return Ok();
-    }
+        var eventEntity = new EventEntity { Status = TaskState.Deleted, Time = DateTime.Now, UserId = userId, Task = task };
 
-    /// <summary>
-    /// Akualizace udaju o tasku (jmeno, popis)
-    /// </summary>
-    [HttpPut]
-    public async Task<IActionResult> UpdateTaskAsync([FromBody] TaskUpdateRequest request)
-    {
-        var task = await taskRepository.GetAsync(new() { Id = request.Id });
-        if (task is null)
-            return NotFound();
-
-        task.Name = request.Name;
-        task.Description = request.Description;
+        await eventRepository.AddAsync(eventEntity);
+        task.ActualStatus = TaskState.Deleted; // uplne smazat to muze pouze admin
         await taskRepository.UpdateAsync(task);
         return Ok();
     }
 
     /// <summary>
-    /// Vraci vsechny uzivatelske tasky
+    /// Je soubor dostupny
+    /// Soubor se mohl smazat nebo se jeste nedokoncil task
     /// </summary>
-    [HttpGet]
-    public async Task<IActionResult> GetAllTasksAsync()
-    {
-        var list = await taskRepository.GetAllAsync();
-        return Ok(list.Select(mapper.Map<TaskResponse>));
-    }
-
-    /// <summary>
-    /// Vraci detail tasku
-    /// </summary>
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetTaskDetailAsync(Guid id)
+    [HttpGet("{id:guid}/{file}")]
+    public async Task<IActionResult> FileAvailableAsync([FromRoute] Guid id, string file)
     {
         var task = await taskRepository.GetAsync(new() { Id = id });
         if (task is null)
-            return NotFound();
-        return Ok(mapper.Map<TaskDetailResponse>(task));
+            return BadRequest();
+
+        if (file == "result")
+        {
+            if (!string.IsNullOrEmpty(task.ResultFile))
+                return Ok();
+            return BadRequest();
+        }
+        if (file == "task")
+        {
+            if (!string.IsNullOrEmpty(task.TaskFile))
+                return Ok();
+            return BadRequest();
+        }
+        return BadRequest();
     }
 }

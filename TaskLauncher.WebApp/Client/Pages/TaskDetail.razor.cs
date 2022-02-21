@@ -53,8 +53,8 @@ public partial class TaskDetail
     private void StatusChanged(TaskModel model)
     {
         Console.WriteLine($"status changed: {model.State}");
-        Task.Status = model.State;
-        if (model.State == TaskState.InQueue)
+        Task.ActualStatus = model.State;
+        /*if (model.State == TaskState.InQueue)
         {
             Task.Start = model.Time;
             Task.End = null;
@@ -63,7 +63,7 @@ public partial class TaskDetail
         {
             Task.End = model.Time;
             isRunning = false;
-        }
+        }*/
         StateHasChanged();
     }
 
@@ -82,7 +82,7 @@ public partial class TaskDetail
 
     private void DownloadResultFile()
     {
-        if(Task.Status == TaskState.Finished)
+        if(Task.ActualStatus == TaskState.Finished)
         {
             navigationManager.NavigateTo("api/file/" + Id.ToString(), true);
         }

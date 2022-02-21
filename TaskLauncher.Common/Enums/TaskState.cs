@@ -6,5 +6,6 @@ public enum TaskState
     InQueue,
     Prepared,
     Running,
-    Finished
+    Finished,
+    Deleted
 }

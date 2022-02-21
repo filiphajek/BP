@@ -1,4 +1,5 @@
-﻿using TaskLauncher.WebApp.Server.Services;
+﻿using Microsoft.Extensions.Options;
+using TaskLauncher.WebApp.Server.Services;
 
 namespace TaskLauncher.WebApp.Server.Auth0;
 
@@ -16,11 +17,11 @@ public class ManagementTokenService
         public string scope { get; set; }
     }
 
-    public ManagementTokenService(ILogger<ManagementTokenService> logger, Auth0ApiConfiguration config, Cache<AccessToken> cache)
+    public ManagementTokenService(ILogger<ManagementTokenService> logger, IOptions<Auth0ApiConfiguration> config, Cache<AccessToken> cache)
     {
         this.logger = logger;
         this.cache = cache;
-        this.config = config;
+        this.config = config.Value;
     }
 
     public async Task<string> GetApiToken(HttpClient client, string api_name)

@@ -7,19 +7,9 @@
         <h1>@Task.Name</h1>
         <p>@Task.Description</p>
 
-        @if (Task.Start is not null)
-        {
-            <p>Start: @Task.Start</p>
-
-            @if (Task.End is not null)
-            {
-                <p>End: @Task.End</p>
-            }
-        }
-
         <span>
-            Status: @Task.Status &nbsp;
-            @if (Task.Status != TaskState.Finished && Task.Status != TaskState.Created)
+            Status: @Task.ActualStatus &nbsp;
+            @if (Task.ActualStatus != TaskState.Finished && Task.ActualStatus != TaskState.Created)
             {
                  <span>
                      <span class="spinner-border spinner-border-sm mr-1"></span>

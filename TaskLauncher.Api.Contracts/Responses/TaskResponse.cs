@@ -2,24 +2,32 @@
 
 namespace TaskLauncher.Api.Contracts.Responses;
 
+public record TokenBalanceResponse
+{
+    public double CurrentAmount { get; set; }
+    public DateTime LastAdded { get; set; }
+}
+
 public record TaskResponse
 {
+    public string TaskFile { get; set; }
+    public string? ResultFile { get; set; }
     public Guid Id { get; set; }
     public string UserId { get; set; }
     public string Name { get; set; }
     public string? Description { get; set; }
-    public DateTime? Start { get; set; }
-    public DateTime? End { get; set; }
-    public TaskState Status { get; set; } = TaskState.Created;
+    public TaskState ActualStatus { get; set; } = TaskState.Created;
 }
 
 public record TaskDetailResponse : TaskResponse
 {
-    public List<FileResponse> Files { get; set; }
+    public List<EventResponse> Events { get; set; }
 }
 
-public record FileResponse
+public record EventResponse
 {
-    public Guid Id { get; set; }
-    public string Name { get; set; }
+    public string UserId { get; set; }
+    public TaskState Status { get; set; }
+    public DateTime Time { get; set; }
+    public Guid TaskId { get; set; }
 }

@@ -17,11 +17,11 @@ public partial class Tasks
     protected override async Task OnInitializedAsync()
     {
         //test
-        SpaManagementApiClient apiClient = new("localhost:5001/auth0");
+        SpaManagementApiClient apiClient = new("localhost:5001/auth0api");
         var clients = (await apiClient.Users.GetAllAsync(new())).ToList();
 
         loading = true;
-        var tasks = await client.GetFromJsonAsync<List<TaskResponse>>("api/task");
+        var tasks = await client.GetFromJsonAsync<List<TaskResponse>>("bff/api/task");
         taskList.AddRange(tasks);
         loading = false;
     }

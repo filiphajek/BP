@@ -9,6 +9,7 @@ using TaskLauncher.WebApp.Server.Services;
 using TaskLauncher.WebApp.Server.Auth0;
 using TaskLauncher.WebApp.Server.Proxy;
 using TaskLauncher.WebApp.Server.Extensions;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,14 +22,10 @@ builder.Services.AddSingleton(serviceAddresses);
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-//config
-//builder.Services.AddOptions();
+//auth config
+builder.Services.Configure<Auth0ApiConfiguration>(builder.Configuration.GetSection(nameof(Auth0ApiConfiguration)));
 var auth0config = new Auth0ApiConfiguration();
 builder.Configuration.Bind(nameof(Auth0ApiConfiguration), auth0config);
-builder.Services.AddSingleton(auth0config);
-
-//TODO udelat nejaky check teto konfigurace .. aby routeId byla stejna
-builder.Services.Configure<ReverseProxyHandlers>(builder.Configuration.GetSection("ReverseProxyExtensions"));
 
 //cache
 builder.Services.AddDistributedMemoryCache();
@@ -124,6 +121,8 @@ builder.Services.AddAccessTokenManagement();
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 builder.Services.AddProxyMiddlewares(builder.Configuration);
+//TODO udelat nejaky check teto konfigurace .. aby routeId byla stejna
+builder.Services.Configure<ReverseProxyHandlers>(builder.Configuration.GetSection("ReverseProxyExtensions"));
 
 builder.Services.Configure<RouteOptions>(options =>
 {
@@ -153,15 +152,8 @@ app.UseAuthorization();
 //presmerovani http dotazu
 app.MapReverseProxy(opt =>
 {
-    var configProvider = opt.ApplicationServices.GetRequiredService<IProxyConfigProvider>();
-    var config = configProvider.GetConfig();
-
-    var scope = opt.ApplicationServices.CreateScope();
-    var managementTokenService = scope.ServiceProvider.GetRequiredService<ManagementTokenService>();
-
     opt.UseProxyMiddlewares<Program>();
-
-}).AllowAnonymous(); // for testing
+}).AllowAnonymous(); // pro testing jinak RequireAuthorization
 
 app.UseEndpoints(endpoints =>
 {

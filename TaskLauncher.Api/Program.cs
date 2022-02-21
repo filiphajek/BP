@@ -2,8 +2,10 @@ using FluentValidation.AspNetCore;
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
+using TaskLauncher.Api.Authorization;
 using TaskLauncher.Api.DAL;
 using TaskLauncher.Api.DAL.Installers;
 using TaskLauncher.Api.Filters;
@@ -78,6 +80,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddAuthorizationHandlers<Program>();
+
 //autentiace/autorizace pres jwt bearer
 builder.Services.AddAuthentication(options =>
 {
@@ -90,6 +94,11 @@ builder.Services.AddAuthentication(options =>
 });
 builder.Services.AddAuthorization(policies =>
 {
+    policies.AddPolicy("updateToken", p =>
+    {
+        p.Requirements.Add(new AdminHandlerRequirement());
+    });
+
     policies.AddPolicy("p-user-api-auth0", p =>
     {
         //p.Requirements.Add(new UserApiScopeHandlerRequirement());

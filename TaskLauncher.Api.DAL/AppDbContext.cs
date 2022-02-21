@@ -23,13 +23,15 @@ public class AppDbContext : DbContext
         accessor.HttpContext?.User.TryGetAuth0Id(out userId);
     }
 
-    public DbSet<FileEntity> Files { get; set; }
+    public DbSet<EventEntity> Events { get; set; }
     public DbSet<TaskEntity> Tasks { get; set; }
+    public DbSet<PaymentEntity> Payments { get; set; }
+    public DbSet<TokenBalanceEntity> TokenBalances { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         //konfigurace global query filteru
-        modelBuilder.Entity<FileEntity>().HasQueryFilter(i => string.IsNullOrEmpty(userId) || i.UserId == userId);
+        modelBuilder.Entity<EventEntity>().HasQueryFilter(i => string.IsNullOrEmpty(userId) || i.UserId == userId);
         modelBuilder.Entity<TaskEntity>().HasQueryFilter(i => string.IsNullOrEmpty(userId) || i.UserId == userId);
 
         base.OnModelCreating(modelBuilder);
