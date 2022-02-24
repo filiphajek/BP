@@ -10,6 +10,8 @@ using TaskLauncher.WebApp.Server.Auth0;
 using TaskLauncher.WebApp.Server.Proxy;
 using TaskLauncher.WebApp.Server.Extensions;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Auth0.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,72 +37,35 @@ builder.Services.AddScoped<ManagementTokenService>();
 //httpclient
 builder.Services.AddHttpClient();
 
-//defaultni cookie autentizace
+//auth0 autentizace
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
-//pro signalR se lze prihlasit pres JWT bearer
 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 {
     options.Authority = "https://dev-8nhuxay1.us.auth0.com/";
     options.Audience = "https://wutshot-test-api.com";
 })
-//cookie konfigurace
 .AddCookie(options =>
 {
     options.Cookie.Name = "__Host-BlazorServer";
     options.Cookie.SameSite = SameSiteMode.Strict;
 })
-//openid konfigurace, v budoucnu bude tato konfigurace zmenena, vyuzije se novy balicek od Auth0
-.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
+//TODO chybi oidc config
+.AddAuth0WebAppAuthentication(options =>
 {
-    options.Authority = $"https://{auth0config.Domain}";
-    options.ClientId = auth0config.ClientId;
+    options.Domain = auth0config.Domain;
     options.ClientSecret = auth0config.ClientSecret;
-    options.ResponseType = OpenIdConnectResponseType.Code;
-    options.Scope.Clear();
-    options.Scope.Add("openid");
-    options.Scope.Add("profile");
-    options.Scope.Add("email");
-    options.CallbackPath = new PathString("/signin-oidc");
-    options.ClaimsIssuer = "Auth0";
-    options.SaveTokens = true;
-    options.UsePkce = true;
-    options.GetClaimsFromUserInfoEndpoint = true;
-    options.TokenValidationParameters.NameClaimType = "name";
-
-    options.Events = new OpenIdConnectEvents
-    {
-        //logout presmetovani
-        OnRedirectToIdentityProviderForSignOut = (context) =>
-        {
-            var logoutUri = $"https://{auth0config.Domain}/v2/logout?client_id={auth0config.ClientId}";
-
-            var postLogoutUri = context.Properties.RedirectUri;
-            if (!string.IsNullOrEmpty(postLogoutUri))
-            {
-                if (postLogoutUri.StartsWith("/"))
-                {
-                    var request = context.Request;
-                    postLogoutUri = request.Scheme + "://" + request.Host + request.PathBase + postLogoutUri;
-                }
-                logoutUri += $"&returnTo={ Uri.EscapeDataString(postLogoutUri)}";
-            }
-
-            context.Response.Redirect(logoutUri);
-            context.HandleResponse();
-
-            return Task.CompletedTask;
-        },
-        OnRedirectToIdentityProvider = context =>
-        {
-            //pridani audience pro ziskani autorizacniho tokenu k web api
-            context.ProtocolMessage.SetParameter("audience", auth0config.Audience);
-            return Task.FromResult(0);
-        }
-    };
+    options.ClientId = auth0config.ClientId;
+    options.Scope = "openid profile email";
+    options.SkipCookieMiddleware = true;
+}).WithAccessToken(options =>
+{
+    options.Audience = auth0config.Audience;
+    options.UseRefreshTokens = true;
 });
 
 //autorizacni pravidlo pro signalr endpoint
@@ -153,7 +118,7 @@ app.UseAuthorization();
 app.MapReverseProxy(opt =>
 {
     opt.UseProxyMiddlewares<Program>();
-}).AllowAnonymous(); // pro testing jinak RequireAuthorization
+}).RequireAuthorization();
 
 app.UseEndpoints(endpoints =>
 {
