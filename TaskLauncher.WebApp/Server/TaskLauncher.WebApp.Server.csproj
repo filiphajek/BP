@@ -10,10 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+	  <PackageReference Include="Mapster" Version="7.2.0" />
+	  <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
 	<PackageReference Include="Auth0.AspNetCore.Authentication" Version="1.0.1" />
 	<PackageReference Include="Auth0.ManagementApi" Version="7.14.0" />
 	<PackageReference Include="IdentityModel" Version="6.0.0" />
 	<PackageReference Include="IdentityModel.AspNetCore" Version="4.1.3" />
+	  <PackageReference Include="Mapster.DependencyInjection" Version="1.0.0" />
 	<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="6.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="6.0.2" />
@@ -23,6 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\TaskLauncher.Api.DAL\TaskLauncher.Api.DAL.csproj" />
+    <ProjectReference Include="..\..\TaskLauncher.Api\TaskLauncher.Api.csproj" />
     <ProjectReference Include="..\Client\TaskLauncher.WebApp.Client.csproj" />
   </ItemGroup>
 

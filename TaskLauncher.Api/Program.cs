@@ -96,12 +96,13 @@ builder.Services.AddAuthorization(policies =>
 {
     policies.AddPolicy("updateToken", p =>
     {
+        p.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
         p.Requirements.Add(new AdminHandlerRequirement());
     });
 
-    policies.AddPolicy("p-user-api-auth0", p =>
+    policies.AddPolicy("user", p =>
     {
-        //p.Requirements.Add(new UserApiScopeHandlerRequirement());
+        p.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
         p.RequireClaim("azp", "7wn0lDnB9hV62m86zh8Xb374KhHxOirJ");
     });
 

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Common.Models;
 using TaskLauncher.WebApp.Server.Auth0;
 
@@ -43,6 +44,7 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Logout endpoint
     /// </summary>
+    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     [HttpGet("logout")]
     public async Task Logout()
     {
@@ -127,7 +129,6 @@ public class AuthController : ControllerBase
     [HttpGet("/refresh")]
     public async Task<IActionResult> RefreshTokenAsync(string token)
     {
-        var access = HttpContext.Request.Headers.Authorization.ToString().Split(" ").Last();
         var client = clientFactory.CreateClient();
         var response = await client.PostAsJsonAsync($"https://{config.Domain}/oauth/token", new
         {

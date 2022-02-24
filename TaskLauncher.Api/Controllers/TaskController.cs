@@ -10,14 +10,14 @@ using TaskLauncher.Common.Extensions;
 
 namespace TaskLauncher.Api.Controllers;
 
-[Authorize(Policy = "p-user-api-auth0")]
-public class TaskController : BaseController
+[Authorize]
+public class TasksController : BaseController
 {
     private readonly IMapper mapper;
     private readonly ITaskRepository taskRepository;
     private readonly IEventRepository eventRepository;
 
-    public TaskController(IMapper mapper, ITaskRepository taskRepository, IEventRepository eventRepository, ILogger<TaskController> logger) 
+    public TasksController(IMapper mapper, ITaskRepository taskRepository, IEventRepository eventRepository, ILogger<TasksController> logger) 
         : base(logger)
     {
         this.mapper = mapper;

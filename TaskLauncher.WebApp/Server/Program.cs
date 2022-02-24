@@ -1,17 +1,18 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.WebApp.Server.Hub;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Yarp.ReverseProxy.Configuration;
 using TaskLauncher.WebApp.Server.Services;
 using TaskLauncher.WebApp.Server.Auth0;
 using TaskLauncher.WebApp.Server.Proxy;
 using TaskLauncher.WebApp.Server.Extensions;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Auth0.AspNetCore.Authentication;
+using TaskLauncher.Api.Controllers;
+using Microsoft.OpenApi.Models;
+using MapsterMapper;
+using Mapster;
+using TaskLauncher.Common.Installers;
+using TaskLauncher.Api.DAL.Installers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,8 +22,15 @@ builder.Configuration.Bind(nameof(ServiceAddresses), serviceAddresses);
 builder.Services.AddSingleton(serviceAddresses);
 
 //pridani kontroleru s error stranky
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddApplicationPart(typeof(TasksController).Assembly);
 builder.Services.AddRazorPages();
+
+var config = new TypeAdapterConfig();
+config.Scan(typeof(Program).Assembly);
+builder.Services.AddSingleton(config);
+builder.Services.AddScoped<IMapper, ServiceMapper>();
+builder.Services.InstallServicesInAssemblyOf<RepositoryInstaller>(builder.Configuration);
 
 //auth config
 builder.Services.Configure<Auth0ApiConfiguration>(builder.Configuration.GetSection(nameof(Auth0ApiConfiguration)));
@@ -44,7 +52,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+.AddJwtBearer(options =>
 {
     options.Authority = "https://dev-8nhuxay1.us.auth0.com/";
     options.Audience = "https://wutshot-test-api.com";
@@ -62,7 +70,8 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = auth0config.ClientId;
     options.Scope = "openid profile email";
     options.SkipCookieMiddleware = true;
-}).WithAccessToken(options =>
+})
+.WithAccessToken(options =>
 {
     options.Audience = auth0config.Audience;
     options.UseRefreshTokens = true;
@@ -94,9 +103,33 @@ builder.Services.Configure<RouteOptions>(options =>
     options.LowercaseUrls = true;
 });
 
-//pridani signalr s pomocnym in memory ulozistem vsech real-time spojeni
+//pridani signalr s pomonym in memory ulozistem vsech real-time spojeni
 builder.Services.AddSingleton<SignalRMemoryStorage>();
 builder.Services.AddSignalR();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskLauncher", Version = "v1" });
+    var securitySchema = new OpenApiSecurityScheme
+    {
+        Description = "Using the Authorization header with the Bearer scheme.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        Reference = new OpenApiReference
+        {
+            Type = ReferenceType.SecurityScheme,
+            Id = "Bearer"
+        }
+    };
+    c.AddSecurityDefinition("Bearer", securitySchema);
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        { securitySchema, new[] { "Bearer" } }
+    });
+});
 
 var app = builder.Build();
 
@@ -104,6 +137,8 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
     app.UseWebAssemblyDebugging();
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskLauncherDocumentation"));
 }
 
 app.UseHttpsRedirection();

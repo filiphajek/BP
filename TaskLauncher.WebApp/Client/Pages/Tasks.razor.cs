@@ -21,7 +21,7 @@ public partial class Tasks
         var clients = (await apiClient.Users.GetAllAsync(new())).ToList();
 
         loading = true;
-        var tasks = await client.GetFromJsonAsync<List<TaskResponse>>("bff/api/task");
+        var tasks = await client.GetFromJsonAsync<List<TaskResponse>>("api/tasks");
         taskList.AddRange(tasks);
         loading = false;
     }
