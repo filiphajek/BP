@@ -1,28 +1,41 @@
 ﻿using MapsterMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RawRabbit;
+using RawRabbit.Context;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Api.DAL.Repositories;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
+using TaskLauncher.Common.Messages;
+using TaskLauncher.Common.Services;
 
 namespace TaskLauncher.Api.Controllers;
 
-[Authorize]
+[Authorize(AuthenticationSchemes = "Cookies, Bearer")] // TODO toto dat do policies aby to bylo prenositelne
 public class TasksController : BaseController
 {
     private readonly IMapper mapper;
     private readonly ITaskRepository taskRepository;
     private readonly IEventRepository eventRepository;
+    private readonly IFileStorageService fileStorageService;
+    private readonly IBusClient<MessageContext> busClient;
 
-    public TasksController(IMapper mapper, ITaskRepository taskRepository, IEventRepository eventRepository, ILogger<TasksController> logger) 
+    public TasksController(IMapper mapper, 
+        ITaskRepository taskRepository, 
+        IEventRepository eventRepository, 
+        ILogger<TasksController> logger, 
+        IFileStorageService fileStorageService,
+        IBusClient<MessageContext> busClient)
         : base(logger)
     {
         this.mapper = mapper;
         this.taskRepository = taskRepository;
         this.eventRepository = eventRepository;
+        this.fileStorageService = fileStorageService;
+        this.busClient = busClient;
     }
 
     /// <summary>
@@ -33,7 +46,7 @@ public class TasksController : BaseController
     public async Task<ActionResult<List<TaskResponse>>> GetAllTasksAsync()
     {
         var list = await taskRepository.GetAllAsync();
-        return Ok(list.Select(mapper.Map<TaskResponse>));
+        return Ok(list.Where(i => i.ActualStatus != TaskState.Deleted).Select(mapper.Map<TaskResponse>));
     }
 
     /// <summary>
@@ -52,22 +65,36 @@ public class TasksController : BaseController
     /// Vytvoreni noveho tasku
     /// </summary>
     [HttpPost]
-    public async Task<ActionResult<TaskResponse>> CreateTaskAsync([FromBody] TaskCreateRequest request)
+    public async Task<ActionResult<TaskResponse>> CreateTaskAsync([FromForm] TaskCreateRequest request, IFormFile file)
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
+
+        var fileId = file.Name + DateTime.Now.Ticks.ToString();
+        using (var stream = file.OpenReadStream())
+        {
+            await fileStorageService.UploadFileAsync($"{userId}/{fileId}/task", stream); // todo udelat pro to builder, nebo cestu ulozit do db
+        }
 
         var eventEntity = new EventEntity { Status = TaskState.Created, Time = DateTime.Now, UserId = userId };
         TaskEntity task = new()
         {
             ActualStatus = TaskState.Created,
             UserId = userId,
+            TaskFile = fileId,
             Events = new List<EventEntity> { eventEntity }
         };
         var result = await taskRepository.AddAsync(mapper.Map(request, task));
 
-        //TODO rabbitMQ message (info o souboru atd .. worker aby si to stahl tak bude mit credentials na google) + polly
-        //az bude worker uploadovat soubor tak rabbitmq message a pred tim to da na google
+        //TODO konfigurovat jako auth handlery
+        await busClient.PublishAsync(new TaskCreatedMessage { Value = "First message" }, configuration: config =>
+        {
+            config.WithRoutingKey("hello-que.#");
+            config.WithExchange(exchange =>
+            {
+                exchange.WithName("hello-exchange");
+            });
+        });
 
         return Ok(mapper.Map<TaskResponse>(result));
     }

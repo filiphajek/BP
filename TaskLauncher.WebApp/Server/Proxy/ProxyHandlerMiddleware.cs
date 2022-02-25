@@ -14,6 +14,9 @@ public abstract class ProxyHandlerMiddleware : ProxyMiddleware, IMiddleware
 
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
+        //ukonceni requestu pri chybe:
+        //context.Response.StatusCode = 402;
+        //return;
         var proxyContext = context.GetReverseProxyFeature();
         if (options.Handlers.TryGetValue(proxyContext.Route.Config.RouteId, out var handler))
         {

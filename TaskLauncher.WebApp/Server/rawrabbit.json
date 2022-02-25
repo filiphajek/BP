@@ -1,0 +1,17 @@
+{
+  "Username": "guest",
+  "Password": "guest",
+  "VirtualHost": "/",
+  "Port": 5672,
+  "Hostnames": [ "localhost" ],
+  "Exchange": {
+    "Durable": true,
+    "AutoDelete": false,
+    "Type": "Topic"
+  },
+  "Queue": {
+    "Durable": true,
+    "AutoDelete": false,
+    "Exclusive": false
+  }
+}

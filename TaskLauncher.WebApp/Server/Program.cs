@@ -13,8 +13,12 @@ using MapsterMapper;
 using Mapster;
 using TaskLauncher.Common.Installers;
 using TaskLauncher.Api.DAL.Installers;
+using TaskLauncher.Common.Services;
+using RawRabbit.vNext;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
 
 //vycteni konfigurace z appsettings.json
 var serviceAddresses = new ServiceAddresses();
@@ -41,6 +45,16 @@ builder.Configuration.Bind(nameof(Auth0ApiConfiguration), auth0config);
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSingleton<Cache<AccessToken>>();
 builder.Services.AddScoped<ManagementTokenService>();
+
+//pristup do google bucket storage
+builder.Services.AddSingleton(services =>
+{
+    var config = services.GetRequiredService<IConfiguration>();
+    var tmp = new StorageConfiguration();
+    config.Bind(nameof(StorageConfiguration), tmp);
+    return tmp;
+});
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 //httpclient
 builder.Services.AddHttpClient();
