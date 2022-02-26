@@ -8,6 +8,7 @@ public interface IFileStorageService
     Task DownloadFileAsync(string path, Stream stream);
     Task UploadFileAsync(string path, Stream stream);
     Task RemoveFileAsync(string path);
+    Task RemoveFilesIfOlderThanAsync(int days);
 }
 
 /// <summary>
@@ -38,5 +39,21 @@ public class FileStorageService : IFileStorageService
     public async Task RemoveFileAsync(string path)
     {
         await storageClient.DeleteObjectAsync(configuration.BucketName, path);
+    }
+
+    public async Task RemoveFilesIfOlderThanAsync(int days)
+    {
+        await foreach (var item in storageClient.ListObjectsAsync(configuration.BucketName))
+        {
+            Console.WriteLine(item.Name);
+            if (!item.TimeCreated.HasValue)
+                continue;
+
+            var tmp = DateTime.Now - item.TimeCreated.Value;
+            if (tmp.Days > days)
+            {
+                await storageClient.DeleteObjectAsync(item);
+            }
+        }
     }
 }
