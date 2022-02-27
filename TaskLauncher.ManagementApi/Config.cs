@@ -1,4 +1,4 @@
-﻿namespace TaskLauncher.ConfigApi;
+﻿namespace TaskLauncher.ManagementApi;
 
 public class Config
 {

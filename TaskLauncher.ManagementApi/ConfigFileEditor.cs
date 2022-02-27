@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using System.Xml.Linq;
 
-namespace TaskLauncher.ConfigApi;
+namespace TaskLauncher.ManagementApi;
 
 public class ConfigFileEditor : IConfigFileEditor
 {

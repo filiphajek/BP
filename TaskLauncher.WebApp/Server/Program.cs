@@ -47,13 +47,7 @@ builder.Services.AddSingleton<Cache<AccessToken>>();
 builder.Services.AddScoped<ManagementTokenService>();
 
 //pristup do google bucket storage
-builder.Services.AddSingleton(services =>
-{
-    var config = services.GetRequiredService<IConfiguration>();
-    var tmp = new StorageConfiguration();
-    config.Bind(nameof(StorageConfiguration), tmp);
-    return tmp;
-});
+builder.Services.Configure<StorageConfiguration>(builder.Configuration.GetSection(nameof(StorageConfiguration)));
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 //httpclient

@@ -117,13 +117,7 @@ builder.Services.AddAuthorization(policies =>
 builder.Services.InstallServicesInAssemblyOf<RepositoryInstaller>(builder.Configuration);
 
 //pristup do google bucket storage
-builder.Services.AddSingleton(services =>
-{
-    var config = services.GetRequiredService<IConfiguration>();
-    var tmp = new StorageConfiguration();
-    config.Bind(nameof(StorageConfiguration), tmp);
-    return tmp;
-});
+builder.Services.Configure<StorageConfiguration>(builder.Configuration.GetSection(nameof(StorageConfiguration)));
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 var app = builder.Build();

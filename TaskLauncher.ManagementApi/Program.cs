@@ -3,14 +3,13 @@ using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
-using RawRabbit;
-using RawRabbit.Context;
 using RawRabbit.vNext;
 using System.Xml.Linq;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Services;
-using TaskLauncher.ConfigApi;
+using TaskLauncher.Common.TypedRawRabbit;
+using TaskLauncher.ManagementApi;
 
 // TODO rate limiting https://www.youtube.com/watch?v=GQAgh_z1rHY&ab_channel=NickChapsas
 
@@ -20,17 +19,25 @@ static void ConfigInit(string path)
         return;
 
     var root = new XElement("Values");
+    root.Add(new XElement("autofileremove", "200"));
     root.Save(path);
 }
 
 var builder = WebApplication.CreateBuilder(args);
 
+//raw rabbit
 builder.Services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
+builder.Services.InstallTypedRawRabbit<Program>();
 
-builder.Services.Configure<StorageConfig>(builder.Configuration.GetSection("Storage"));
+//konfigurace
+builder.Services.Configure<StorageConfig>(builder.Configuration.GetSection("ConfigStorage"));
+builder.Services.Configure<ConfigValueChanged>(builder.Configuration.GetSection("PublishMessage"));
+builder.Services.Configure<StorageConfiguration>(builder.Configuration.GetSection(nameof(StorageConfiguration)));
+
 builder.Services.AddSingleton<IConfigFileEditor, ConfigFileEditor>();
-ConfigInit(builder.Configuration["Storage:Path"]);
+ConfigInit(builder.Configuration["ConfigStorage:Path"]);
 
+//swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -54,6 +61,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+//autorizace
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
@@ -84,15 +92,8 @@ builder.Services.AddHangfire(configuration => configuration
     }));
 builder.Services.AddHangfireServer();
 
-builder.Services.AddSingleton(services =>
-{
-    var config = services.GetRequiredService<IConfiguration>();
-    var tmp = new StorageConfiguration();
-    config.Bind(nameof(StorageConfiguration), tmp);
-    return tmp;
-});
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
-builder.Services.AddScoped<FileDeletionRoutine>();
+builder.Services.AddRoutines<Program>();
 
 var app = builder.Build();
 
@@ -104,21 +105,21 @@ app.UseAuthorization();
 
 app.UseHangfireDashboard("/hangfire");
 
-app.MapPost("/api/config", async (IConfigFileEditor fileEditor, IBusClient<MessageContext> busClient, AddConfigValueRequest request) =>
+app.MapPost("/api/config", async (IRecurringJobManager client, FileDeletionRoutine routine, 
+    IConfigFileEditor fileEditor, IConfigPublisher publisher, AddConfigValueRequest request) =>
 {
     fileEditor.Write(request.Name, request.Value);
-    //TODO zmenit hangfire schedule
 
-    //musi to tu byt aby ostatni aplikace dokazali zaregistrovat zmenu v konfiguraci
-    await busClient.PublishAsync(new ConfigChangedMessage { Name = request.Name, Value = request.Value }, configuration: config =>
+    if(request.Name == "autofileremove")
     {
-        config.WithRoutingKey("config-hello-que.#");
-        config.WithExchange(exchange =>
-        {
-            exchange.WithName("config-hello-exchange");
-        });
-    });
-}).RequireAuthorization();
+        //zmena hangfire schedule
+        client.RemoveIfExists(nameof(FileDeletionRoutine));
+        client.AddOrUpdate(nameof(FileDeletionRoutine), () => routine.Perform(), Cron.Daily);
+    }
+
+    await publisher.PublishAsync(new ConfigChangedMessage { Name = request.Name, Value = request.Value });
+
+}).AllowAnonymous();
 
 app.MapGet("/api/config", (IConfigFileEditor fileEditor, string? name) =>
 {
@@ -128,12 +129,11 @@ app.MapGet("/api/config", (IConfigFileEditor fileEditor, string? name) =>
         return Results.Ok(new { value = val });
     }
     return Results.Ok(fileEditor.GetConfig());
-}).RequireAuthorization();
+}).AllowAnonymous();
 
 app.MapGet("/api/schedule", (IBackgroundJobClient client, FileDeletionRoutine routine) =>
 {
-    //alternativa http call
-    client.Schedule(() => routine.Handle(), TimeSpan.FromSeconds(20));
+    client.Schedule(() => routine.Perform(), TimeSpan.FromSeconds(20));
 }).AllowAnonymous();
 
 app.MapHangfireDashboard().AllowAnonymous(); //testing

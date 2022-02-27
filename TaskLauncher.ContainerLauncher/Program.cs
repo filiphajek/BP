@@ -17,7 +17,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     {
         builder.AddConfiguration(configuration);
     })
-    .ConfigureServices(services =>
+    .ConfigureServices((context, services) =>
     {
         services.AddSingleton(new HttpClientHandler()
         {
@@ -27,6 +27,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         {
             BaseAddress = sp.GetRequiredService<ServiceAddresses>().WebApiAddressUri
         });
+
 
         services.AddSingleton<IFileStorageService, FileStorageService>();
         services.AddSingleton<ITaskLauncherService, TaskLauncherService>();
@@ -42,14 +43,9 @@ IHost host = Host.CreateDefaultBuilder(args)
             return tmp;
         });
 
+        //TEST THIS
         //google bucket config
-        services.AddSingleton(services =>
-        {
-            var config = services.GetRequiredService<IConfiguration>();
-            var tmp = new StorageConfiguration();
-            config.Bind(nameof(StorageConfiguration), tmp);
-            return tmp;
-        });
+        services.Configure<StorageConfiguration>(context.Configuration.GetSection(nameof(StorageConfiguration)));
 
         //addresses to services
         services.AddSingleton(services =>

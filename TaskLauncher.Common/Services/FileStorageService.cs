@@ -1,4 +1,5 @@
 ﻿using Google.Cloud.Storage.V1;
+using Microsoft.Extensions.Options;
 using TaskLauncher.Common.Configuration;
 
 namespace TaskLauncher.Common.Services;
@@ -19,10 +20,10 @@ public class FileStorageService : IFileStorageService
     private readonly StorageClient storageClient;
     private readonly StorageConfiguration configuration;
 
-    public FileStorageService(StorageConfiguration configuration)
+    public FileStorageService(IOptions<StorageConfiguration> configuration)
     {
-        storageClient = StorageClient.Create(configuration.GoogleCredential);
-        this.configuration = configuration;
+        storageClient = StorageClient.Create(configuration.Value.GoogleCredential);
+        this.configuration = configuration.Value;
     }
 
     public async Task DownloadFileAsync(string path, Stream stream)
