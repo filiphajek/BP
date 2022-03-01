@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "bpproject-335500",
+  "private_key_id": "6b0d2d09bf0e99dc14c3e4ab513d97da1b8ddb21",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDsqvFMCfDeAkJD\nnwpK162hUerstd1CisWOvjl2lL66D5NEbFtoiUpPLqGz3biJik71KcsN3QZgoUyK\n+U7eTqnxLj7kwBx0adhPCtBC0scx2HMeLD+9qFw9YmH6hCfgivrNu3PdsN5Bi3iA\np74YVJY1b6PgMvrEqvvXmx19qnkmMmZwtPKGwDQhnP7Y+rIigXS7klASSyxZotf/\ndA6D8ylroitGbvb7cusajKvsSgIq2y8+GtRFSk/25Wg9hWMgZHBTl9nwuAVfk1Gh\nhbljl8bBVK+2YsIjbEvbWLsSoyoa8k+9zhI4Qovo/ajJp5T0XzRdjbZ7nD4uTQtD\nk+CAvG4RAgMBAAECggEAFek3oM4UzkEQSHlrdwVjzlkqslKeEwCNDMugv1FDHS++\n9yk/Bz0as50CHIhtAtLav4jogzaQ1hZo4z70pdFLm4goC36bw81e2OaL5HvmND+x\nXLxFBHaXX5mBr7NXi8riMHTn48DxusjCVcrx5wfBxl25ItMlc1rPKSVzxAQp5ja7\nvQ0NssR9dWLkl+bgBEStuD62PlhgNOPb895U8sJfJrYUqnz70AKpnGaDU0ZVZEWS\nHt4QqNVhVZqQ2c34xrr5F+pcgVBXEfu8OD5PipSJ6q3fHR5Ej1cPZkudl6nqX316\nSBazVdVZ/pJadQw1RnuK8TJ78/jycWAX0yOUD2unyQKBgQD8H3Ug7Kv0DP1LEUSB\n1oHnt45hpo8i9g5kUj+k0B28S25218mxfql2S+CV+7nmargm/7QrBCw1Bd4tHbAr\nUr8UNxohS+rs7rUPCtMt5J6UY/yK6vdyg4QFXnCujUNPwD0WbsNXxMtLu/DdUWUQ\n4tXCAXjbba28xsBxlYaZ+E33rQKBgQDwTqRk3AnRwPE31CN4KjceQ9ADubNHlwJY\n+wQRjz1evBzc7wIqYRwrKJQBcX634KsghyHYSBlEZVWwXDz8Xgmdjkjr24J2c77W\n78jaOxqtHPJ4QDYvDEBXTroFrJIJ7gcQnJzXquXy3MPX9nhhpyLm9+DpNi/itO2H\nKz1YS7qsdQKBgHiwZlVYdgfhn+6rWWv9zzmo+JNuM968gq8rYCP5LALS6RIiwf4h\nb+Wc9OlXEupl87lXdluRJ8hKAsz+BTL37Vgz+GIwAUliC3Ij8GtroS3Pnziwubsr\nkaswRiiInswybgurAf+lyNt8IBURvZuTulegdMY1fpF7Yuv8c+6ImmoRAoGBAOT3\nSZQARCrjV/MF4jXgo1vm6RBjo/qWW9pEcf/5J1RYkHfCE6IlnR1SMJOffEnfe64m\nk4zsRYbxts+vUzxyrV6976UrJgePCUrqdcnZfvVrG2yQYhA58CRAEubNIujrLzgY\nwSiM4USiLMhdQx5ojczcaiRLSR0NnzSncm/q2BbxAoGAUJBmeO3y5KlwcTUGToe7\n1MkDQo2O5cpKaSObouke75+eYHpTXBuYRvhWE0DdoEyCu7qzd3KLHejUAnsQbNLT\neycubKJQAnQmd67Nry1+BvB/hwvrFByRUSmBcZaDvFLLrdY/V6Q6LTzRXgy1Q5mY\nCMWIPp0tAt5h/98EfeCmNs4=\n-----END PRIVATE KEY-----\n",
+  "client_email": "bp-bucket-storage-service-acco@bpproject-335500.iam.gserviceaccount.com",
+  "client_id": "115520286116899134343",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bp-bucket-storage-service-acco%40bpproject-335500.iam.gserviceaccount.com"
+}

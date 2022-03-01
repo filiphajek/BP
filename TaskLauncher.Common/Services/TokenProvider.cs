@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
 using TaskLauncher.Common.Configuration;
 
 namespace TaskLauncher.Common.Services;
@@ -22,9 +23,9 @@ public class TokenProvider
 
     private readonly Auth0Configuration configuration;
 
-    public TokenProvider(Auth0Configuration configuration)
+    public TokenProvider(IOptions<Auth0Configuration> configuration)
     {
-        this.configuration = configuration;
+        this.configuration = configuration.Value;
     }
 
     //string testToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImI1Wk1YcmFOOE82YUlxTUJtZnhDViJ9.eyJpc3MiOiJodHRwczovL2Rldi04bmh1eGF5MS51cy5hdXRoMC5jb20vIiwic3ViIjoiMU1CaE5CUHFmU3M4RllsYUhvRkxlMnVSd2E1QlY1UWFAY2xpZW50cyIsImF1ZCI6Imh0dHBzOi8vd3V0c2hvdC10ZXN0LWFwaS5jb20iLCJpYXQiOjE2Mzg3NTQ5NTYsImV4cCI6MTYzODg0MTM1NiwiYXpwIjoiMU1CaE5CUHFmU3M4RllsYUhvRkxlMnVSd2E1QlY1UWEiLCJndHkiOiJjbGllbnQtY3JlZGVudGlhbHMifQ.Wg859OZuFmVUQ26SqOjM9EbiKmYM12z110qOj6grhAV6F__XP4KG5vkrO-3aGJ6d-5WGbzDZNWq_mXQuMBIhRE7P8XuC7QdafocYN6D0xy6giKWG3Yd4WFOjIbzyxDz55-2uOKrmD7go9aBqy11lqnuN4TqKF7tEM614dl59PgW0rj5GKOJ3gxzKLWYMtUcdsTKaag508uzYTDKrbOMqQ0EcrX51cKTUjOlQ540nMeKSGhUwLDwUlLgg18ZfYWxFV8J4T4I8feSTvwF5GUNEOufrMsE_USPIDpN0V12eUHBBnsvpR3LukVB8m0cvokSVhAp8a1fN9OBlpUOY5dsikQ";

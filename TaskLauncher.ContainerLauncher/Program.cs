@@ -1,21 +1,18 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using RawRabbit.Context;
+using RawRabbit.Extensions.Client;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Services;
-using Microsoft.Extensions.Configuration;
 using TaskLauncher.ContainerLauncher;
+using TaskLauncher.ContainerLauncher.Queue;
 using TaskLauncher.ContainerLauncher.Workers;
 
-var configuration = new ConfigurationBuilder()
-    .AddEnvironmentVariables()
-    .AddCommandLine(args)
-    .AddJsonFile("appsettings.json")
-    .Build();
-
-IHost host = Host.CreateDefaultBuilder(args)
+await Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(builder =>
     {
-        builder.AddConfiguration(configuration);
+        builder.AddJsonFile("rawrabbit.json");
     })
     .ConfigureServices((context, services) =>
     {
@@ -28,45 +25,26 @@ IHost host = Host.CreateDefaultBuilder(args)
             BaseAddress = sp.GetRequiredService<ServiceAddresses>().WebApiAddressUri
         });
 
-
         services.AddSingleton<IFileStorageService, FileStorageService>();
         services.AddSingleton<ITaskLauncherService, TaskLauncherService>();
         services.AddSingleton<SignalRClient>();
         services.AddSingleton<TokenProvider>();
 
         //auth0 config
-        services.AddSingleton(services =>
-        {
-            var config = services.GetRequiredService<IConfiguration>();
-            var tmp = new Auth0Configuration();
-            config.Bind(nameof(Auth0Configuration), tmp);
-            return tmp;
-        });
-
-        //TEST THIS
+        services.Configure<Auth0Configuration>(context.Configuration.GetSection(nameof(Auth0Configuration)));
         //google bucket config
         services.Configure<StorageConfiguration>(context.Configuration.GetSection(nameof(StorageConfiguration)));
-
-        //addresses to services
-        services.AddSingleton(services =>
-        {
-            var config = services.GetRequiredService<IConfiguration>();
-            var tmp = new ServiceAddresses();
-            config.Bind(nameof(ServiceAddresses), tmp);
-            return tmp;
-        }); //WebApiAddress = "https://tasklauncher.app.api"
-
+        //api addresses
+        services.Configure<ServiceAddresses>(context.Configuration.GetSection(nameof(ServiceAddresses)));
         //docker config
-        services.AddSingleton(services =>
-        {
-            var config = services.GetRequiredService<IConfiguration>();
-            var tmp = new TaskLauncherConfig();
-            config.Bind(nameof(TaskLauncherConfig), tmp);
-            return tmp;
-        });
+        services.Configure<TaskLauncherConfig>(context.Configuration.GetSection(nameof(TaskLauncherConfig)));
+        //rawrabbit
+        services.Configure<QueuesPriorityConfiguration>(context.Configuration.GetSection("RawRabbit"));
+        services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
+        services.AddRawRabbitExtensions<MessageContext>();
 
         //main worker thread
         services.AddHostedService<LauncherWorker>();
-    }).Build();
-
-await host.RunAsync();
+    })
+    .Build()
+    .RunAsync();

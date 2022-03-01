@@ -1,153 +1,194 @@
-﻿using IdentityModel.Client;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using System.Net.Http.Json;
-using TaskLauncher.Api.Contracts.Requests;
+using Microsoft.Extensions.Options;
+using RawRabbit.Common;
+using RawRabbit.Extensions.Client;
+using RoundRobin;
 using TaskLauncher.Common.Enums;
-using TaskLauncher.Common.Extensions;
-using TaskLauncher.Common.Models;
+using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Services;
-using TaskLauncher.ContainerLauncher.Extensions;
+using TaskLauncher.Common.TypedRawRabbit;
+using TaskLauncher.ContainerLauncher.Queue;
 
 namespace TaskLauncher.ContainerLauncher.Workers;
 
 public class LauncherWorker : BackgroundService
 {
-    private readonly ConcurrentQueue<TaskModel> tasks = new(); // fronta tasku
-    private TaskCompletionSource<bool> tmpCompletionSource = new();
-    private readonly ILogger<LauncherWorker> logger;
     private readonly ITaskLauncherService launcher;
-    private readonly SignalRClient signalrClient;
-    private readonly HttpClient client;
-    private readonly TokenProvider provider;
-    private readonly string folderPath;
+    private readonly ILogger<LauncherWorker> logger;
+    private readonly IBusClient busClient;
+    private readonly IDefaultSubscriber subscriber;
+    private readonly IDefaultPublisher publisher;
+    private readonly IFileStorageService fileStorageService;
+    private readonly QueuesPriorityConfiguration options;
+    private readonly HashSet<Guid> cancelledTasks = new();
+    private readonly List<ISubscription> subscriptions = new();
 
-    public LauncherWorker(ILogger<LauncherWorker> logger, ITaskLauncherService launcher, 
-        SignalRClient signalrClient, HttpClient client, TokenProvider provider, TaskLauncherConfig taskLauncherConfig)
+    private CancellationTokenSource tokenSource;
+    private RoundRobinList<MessageQueue> roundRobin;
+    private TaskCreatedMessage actualTask;
+    private double timeout = 10.0;
+
+    private void InitRoundRobin()
+    {
+        var exampleList = options.Queues.Select(i => new MessageQueue(busClient, i.Key)).ToList();
+        roundRobin = new RoundRobinList<MessageQueue>(exampleList);
+        foreach (var (Element, Priority) in exampleList.Zip(options.Queues.Values))
+        {
+            roundRobin.IncreaseWeight(Element, Priority);
+        }
+    }
+
+    public LauncherWorker(ILogger<LauncherWorker> logger, 
+        IOptions<QueuesPriorityConfiguration> options,
+        IBusClient busClient, 
+        IDefaultSubscriber subscriber, 
+        IDefaultPublisher publisher, 
+        IFileStorageService fileStorageService, 
+        ITaskLauncherService launcher)
     {
         this.logger = logger;
+        this.busClient = busClient;
+        this.subscriber = subscriber;
+        this.publisher = publisher;
+        this.fileStorageService = fileStorageService;
+        this.options = options.Value;
+        InitRoundRobin();
         this.launcher = launcher;
-        this.signalrClient = signalrClient;
-        this.client = client;
-        this.provider = provider;
-        //registrace odchyceni zpravy
-        signalrClient.RegisterOnReceivedTask("StartTask", EnqueueNewTask);
-        //pracovni adresar
-        Directory.CreateDirectory(taskLauncherConfig.Source);
-        folderPath = taskLauncherConfig.Source;
     }
 
-    /// <summary>
-    /// Ziskani poradi tasku ve fronte
-    /// </summary>
-    public int GetIndexOfTask(Guid id)
+    public override Task StartAsync(CancellationToken cancellationToken)
     {
-        var tmp = tasks.SingleOrDefault(i => i.TaskId == id);
-        return tasks.IndexOf(tmp);
-    }
-
-    /// <summary>
-    /// Zarazeni tasku do fronty, probehne akualizace stavu tasku
-    /// </summary>
-    public async Task EnqueueNewTask(TaskModel model)
-    {
-        // zamci tuto cast kodu, mohlo by se totiz stat ze fronta je prazdna, prijdou 2 zpravy -> metoda se zavola 2x
-        // a stihne se vse pridat do fronty pred podminkou, podminka by se pak nikdy nevykonala
-        lock (tasks)
+        //task byl zrusen, odstran z pameti
+        var cancelled = subscriber.SubscribeAsync<TaskCancelledMessage>((message, context) =>
         {
-            tasks.Enqueue(model);
-            logger.LogInformation($"Task '{model.TaskId}' from user '{model.UserId}' is enqueued");
-            if (tasks.Count == 1)
-                tmpCompletionSource?.TrySetResult(true);
-        }
-        await UpdateTaskAsync(model, TaskState.InQueue);
-    }
+            if (cancelledTasks.Contains(message.TaskId))
+                cancelledTasks.Remove(message.TaskId);
+            return Task.CompletedTask;
+        });
 
-    public override async Task StartAsync(CancellationToken cancellationToken)
-    {
-        //ziskani autorizacniho tokenu k web api
-        var token = await provider.Authorize();
-        client.SetBearerToken(token);
+        //task se musi zrusit, pokud ho nevykonavam tak si radeji ulozim id tasku
+        var cancel = subscriber.SubscribeAsync<CancelTaskMessage>((message, context) =>
+        {
+            if (actualTask.Id == message.TaskId)
+                tokenSource.Cancel();
+            else
+                cancelledTasks.Add(message.TaskId);
+            return Task.CompletedTask;
+        });
 
-        //pripojeni na signalr hub
-        await signalrClient.TryToConnect(cancellationToken);
-        logger.LogInformation("Connected, service starting");
-        await base.StartAsync(cancellationToken);
-    }
+        var configChanged = subscriber.SubscribeAsync<ConfigChangedMessage>((message, context) =>
+        {
+            if(message.Name == "tasktimeout")
+            {
+                double.TryParse(message.Value, out timeout);
+            }
+            return Task.CompletedTask;
+        });
 
-    public override async Task StopAsync(CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Service is stopping");
-        await signalrClient.DisposeAsync();
-        await base.StopAsync(cancellationToken);
+        subscriptions.Add(cancel);
+        subscriptions.Add(cancelled);
+        return Task.CompletedTask;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+
         while (true)
         {
-            if(tasks.IsEmpty)
+            //prijmi task
+            stoppingToken.ThrowIfCancellationRequested();
+            var currentQueue = roundRobin.Next();
+            var name = currentQueue.Queue;
+            var mess = currentQueue.GetMessage<TaskCreatedMessage>();
+            while (mess is null)
             {
-                //pokud je fronta prazdna, cekej na dalsi prichozi zpravu
-                logger.LogInformation("Task queue is empty, waiting for next one");
-                await tmpCompletionSource.Task;
-                tmpCompletionSource = new();
-                continue; // pro jistotu, muze nastat napriklad to ze frontNotEmptyCompletionSource se nastavilo na true ale fronta je porad prazdna
+                var qq = roundRobin.GetNextItem(currentQueue);
+                mess = qq.GetMessage<TaskCreatedMessage>();
+                if (name == qq.Queue)
+                {
+                    stoppingToken.ThrowIfCancellationRequested();
+                    logger.LogInformation("No events, waiting");
+                    await Task.Delay(5000, stoppingToken);
+                }
+                currentQueue = qq;
             }
 
-            bool tmp = tasks.TryDequeue(out var taskModel);
-            if (tmp && taskModel is not null)
+            actualTask = mess.Message;
+
+            //zkontroluj zda task neni zrusen
+            if (cancelledTasks.Contains(actualTask.Id))
             {
-                await TaskExecution(taskModel);
+                await publisher.PublishAsync(new TaskCancelledMessage { TaskId = mess.Message.Id });
+                tokenSource.Cancel();
+                mess.Ack();
+                continue;
             }
+
+            try
+            {
+                tokenSource.CancelAfter(TimeSpan.FromHours(timeout));
+                await TaskExecution(mess.Message, tokenSource.Token);
+            }
+            catch (OperationCanceledException ex)
+            {
+                if(actualTask.State != TaskState.Finished)
+                {
+                    await publisher.PublishAsync(new TaskCancelledMessage { TaskId = actualTask.Id });
+                    logger.LogInformation("Task cancelled '{0}', ex: {1}", actualTask.Id, ex);
+                }
+                tokenSource.Dispose();
+                tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+            }
+            mess.Ack();
         }
     }
 
-    /// <summary>
-    /// Proces spusteni kontejneru a cekani az se prace dokonci
-    /// </summary>
-    private async Task TaskExecution(TaskModel model)
+    private async Task TaskExecution(TaskCreatedMessage model, CancellationToken token)
     {
-        logger.LogInformation($"Starting execution of task '{model.TaskId}'");
-
-        //pomoci httpclienta stahni soubor
-        var file = await client.GetAsync($"launcher/task?userId={model.UserId}&id={model.TaskId}");
-        File.WriteAllText(Path.Combine(folderPath, "task.txt"), await file.Content.ReadAsStringAsync());
+        logger.LogInformation("Starting execution of task '{0}'", model.Id);
+        
+        //stazeni souboru
+        using (var file = File.Create("tmp/task.txt"))
+        {
+            await fileStorageService.DownloadFileAsync(model.TaskFilePath, file);
+        }
 
         //poslani informace o pripraveni tasku k spusteni
         await UpdateTaskAsync(model, TaskState.Prepared);
-        
+
+        //kontrola zda neni task zrusen
+        token.ThrowIfCancellationRequested();
+        if (cancelledTasks.Contains(actualTask.Id))
+        {
+            tokenSource.Cancel();
+        }
+
         //start kontejneru
-        var tmp = await launcher.StartContainer();
+        var tmp = await launcher.StartContainer(token);
 
         //poslani informace o behu kontejneru
         await UpdateTaskAsync(model, TaskState.Running);
 
         //cekani az se dokonci task
-        await launcher.WaitContainer(tmp.ContainerId);
+        await launcher.WaitContainer(tmp.ContainerId, token);
 
-        //poslat na api soubor s vysledkem
-        using (var stream = new StreamWriter(File.Open(Path.Combine(folderPath, "task.txt"), FileMode.Create)))
+        //upload souboru s vysledkem
+        using (var resultFile = File.Open("tmp/task.txt", FileMode.Open))
         {
-            await stream.WriteLineAsync("some simulated result");
-        }
-        using (var resultFile = File.Open(Path.Combine(folderPath, "task.txt"), FileMode.Open))
-        {
-            await client.SendMultipartFormDataAsync($"launcher/task?userId={model.UserId}&id={model.TaskId}", resultFile);
+            await fileStorageService.UploadFileAsync(model.ResultFilePath, resultFile);
         }
         await UpdateTaskAsync(model, TaskState.Finished);
-        logger.LogInformation($"Task '{model.TaskId}' finished");
+        logger.LogInformation("Task '{0}' finished", model.Id);
+
+        token.ThrowIfCancellationRequested();
     }
 
-    /// <summary>
-    /// Aktualiazace databaze a poslani zpravy klientovi
-    /// </summary>
-    private async Task UpdateTaskAsync(TaskModel model, TaskState state)
+    private async Task UpdateTaskAsync(TaskCreatedMessage model, TaskState state)
     {
         model.State = state;
         model.Time = DateTime.Now;
-        await client.PutAsJsonAsync("launcher/task", new TaskStatusUpdateRequest { Id = model.TaskId, State = model.State, Time = model.Time });
-        await signalrClient.Connection.InvokeTaskStatusChanged(model);
+        await publisher.PublishAsync(new UpdateTaskMessage { Id = model.Id, State = model.State, Time = model.Time });
     }
 }

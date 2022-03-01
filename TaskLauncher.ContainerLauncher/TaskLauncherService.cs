@@ -8,12 +8,12 @@ public interface ITaskLauncherService
     /// <summary>
     /// Vytvoreni a spusteni kontejneru s bind mountem
     /// </summary>
-    Task<StartContainerResult> StartContainer();
+    Task<StartContainerResult> StartContainer(CancellationToken token);
 
     /// <summary>
     /// Ceka az spusteny kontejner skonci
     /// </summary>
-    Task<long> WaitContainer(string containerId);
+    Task<long> WaitContainer(string containerId, CancellationToken token);
 }
 
 public record StartContainerResult(bool Success, string ContainerId);
@@ -34,7 +34,7 @@ public class TaskLauncherService : ITaskLauncherService
         this.config = config;
     }
 
-    public async Task<StartContainerResult> StartContainer()
+    public async Task<StartContainerResult> StartContainer(CancellationToken token)
     {
         var container = await client.Containers.CreateContainerAsync(new CreateContainerParameters()
         {
@@ -45,10 +45,10 @@ public class TaskLauncherService : ITaskLauncherService
             }
         });
 
-        var result = await client.Containers.StartContainerAsync(container.ID, new ContainerStartParameters());
+        var result = await client.Containers.StartContainerAsync(container.ID, new ContainerStartParameters(), token);
         return new StartContainerResult(result, container.ID);
     }
 
-    public async Task<long> WaitContainer(string containerId)
-        => (await client.Containers.WaitContainerAsync(containerId)).StatusCode;
+    public async Task<long> WaitContainer(string containerId, CancellationToken token) 
+        => (await client.Containers.WaitContainerAsync(containerId, token)).StatusCode;
 }

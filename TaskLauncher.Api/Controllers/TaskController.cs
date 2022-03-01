@@ -86,8 +86,7 @@ public class TasksController : BaseController
         };
         var result = await taskRepository.AddAsync(mapper.Map(request, task));
 
-        //TODO konfigurovat jako auth handlery
-        await busClient.PublishAsync(new TaskCreatedMessage { Value = "First message" }, configuration: config =>
+        await busClient.PublishAsync(new TaskCreatedMessage { }, configuration: config =>
         {
             config.WithRoutingKey("hello-que.#");
             config.WithExchange(exchange =>

@@ -3,12 +3,12 @@ using System.Xml.Linq;
 
 namespace TaskLauncher.ManagementApi;
 
-public class ConfigFileEditor : IConfigFileEditor
+public class ConfigurationFile : IConfigurationFile
 {
-    private readonly StorageConfig options;
+    private readonly StorageConfiguration options;
     private readonly XElement rootElement;
 
-    public ConfigFileEditor(IOptions<StorageConfig> options)
+    public ConfigurationFile(IOptions<StorageConfiguration> options)
     {
         this.options = options.Value;
         rootElement = XDocument.Load(options.Value.Path).Root!;
@@ -19,12 +19,12 @@ public class ConfigFileEditor : IConfigFileEditor
         return rootElement.Elements().SingleOrDefault(i => i.Name.LocalName == name)?.Value;
     }
 
-    public Config GetConfig()
+    public Dictionary<string, string> GetConfig()
     {
-        var result = new Config();
+        var result = new Dictionary<string, string>();
         foreach (var item in rootElement.Elements())
         {
-            result.Values.Add(item.Name.LocalName, item.Value);
+            result.Add(item.Name.LocalName, item.Value);
         }
         return result;
     }

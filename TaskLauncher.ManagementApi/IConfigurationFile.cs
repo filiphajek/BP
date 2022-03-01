@@ -1,8 +1,8 @@
 ﻿namespace TaskLauncher.ManagementApi
 {
-    public interface IConfigFileEditor
+    public interface IConfigurationFile
     {
-        Config GetConfig();
+        Dictionary<string, string> GetConfig();
         string? GetValue(string name);
         void Write(string name, string value);
     }

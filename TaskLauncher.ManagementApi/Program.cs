@@ -3,6 +3,7 @@ using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
+using RawRabbit.Context;
 using RawRabbit.vNext;
 using System.Xml.Linq;
 using TaskLauncher.Common.Configuration;
@@ -30,11 +31,11 @@ builder.Services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
 builder.Services.InstallTypedRawRabbit<Program>();
 
 //konfigurace
-builder.Services.Configure<StorageConfig>(builder.Configuration.GetSection("ConfigStorage"));
-builder.Services.Configure<ConfigValueChanged>(builder.Configuration.GetSection("PublishMessage"));
-builder.Services.Configure<StorageConfiguration>(builder.Configuration.GetSection(nameof(StorageConfiguration)));
+builder.Services.Configure<TaskLauncher.ManagementApi.StorageConfiguration>(builder.Configuration.GetSection("Storage"));
+builder.Services.Configure<SubscriberConfiguration>(builder.Configuration.GetSection("PublishMessage"));
+builder.Services.Configure<TaskLauncher.Common.Configuration.StorageConfiguration>(builder.Configuration.GetSection(nameof(TaskLauncher.Common.Configuration.StorageConfiguration)));
 
-builder.Services.AddSingleton<IConfigFileEditor, ConfigFileEditor>();
+builder.Services.AddSingleton<IConfigurationFile, ConfigurationFile>();
 ConfigInit(builder.Configuration["ConfigStorage:Path"]);
 
 //swagger
@@ -106,7 +107,7 @@ app.UseAuthorization();
 app.UseHangfireDashboard("/hangfire");
 
 app.MapPost("/api/config", async (IRecurringJobManager client, FileDeletionRoutine routine, 
-    IConfigFileEditor fileEditor, IConfigPublisher publisher, AddConfigValueRequest request) =>
+    IConfigurationFile fileEditor, IDefaultPublisher publisher, AddConfigValueRequest request) =>
 {
     fileEditor.Write(request.Name, request.Value);
 
@@ -121,14 +122,14 @@ app.MapPost("/api/config", async (IRecurringJobManager client, FileDeletionRouti
 
 }).AllowAnonymous();
 
-app.MapGet("/api/config", (IConfigFileEditor fileEditor, string? name) =>
+app.MapGet("/api/config", (IConfigurationFile fileEditor, string? name) =>
 {
     if (name is not null)
     {
         var val = fileEditor.GetValue(name);
         return Results.Ok(new { value = val });
     }
-    return Results.Ok(fileEditor.GetConfig());
+    return Results.Ok(new { values = fileEditor.GetConfig() });
 }).AllowAnonymous();
 
 app.MapGet("/api/schedule", (IBackgroundJobClient client, FileDeletionRoutine routine) =>

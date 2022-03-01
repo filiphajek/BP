@@ -6,19 +6,21 @@ using RawRabbit.Operations.Abstraction;
 
 namespace TaskLauncher.Common.TypedRawRabbit;
 
-public interface ITypedPublisher<TMessageContext> : IBusClient<TMessageContext> where TMessageContext : IMessageContext
+public interface IDefaultPublisher : IDefaultPublisher<MessageContext>
+{
+}
+
+public interface IDefaultPublisher<TMessageContext> : IBusClient<TMessageContext> where TMessageContext : IMessageContext
 {
     Task PublishAsync<T>(T message);
 }
 
-public abstract class TypedPublisher<TMessageContext, TPublisherConfig>
-    : BaseBusClient<TMessageContext>, ITypedPublisher<TMessageContext>
+public class DefaultPublisher<TMessageContext> : BaseBusClient<TMessageContext>, IDefaultPublisher<TMessageContext>
     where TMessageContext : IMessageContext
-    where TPublisherConfig : BasePublisherConfig
 {
-    protected TPublisherConfig PublisherOptions { get; }
+    protected PublisherConfiguration PublisherOptions { get; }
 
-    public TypedPublisher(IOptions<TPublisherConfig> publisherOptions,
+    public DefaultPublisher(IOptions<PublisherConfiguration> publisherOptions,
         IConfigurationEvaluator configEval,
         ISubscriber<TMessageContext> subscriber,
         IPublisher publisher,
@@ -39,5 +41,18 @@ public abstract class TypedPublisher<TMessageContext, TPublisherConfig>
                 exchange.WithName(PublisherOptions.ExchangeName);
             });
         });
+    }
+}
+
+public class DefaultPublisher : DefaultPublisher<MessageContext>, IDefaultPublisher
+{
+    protected DefaultPublisher(IOptions<PublisherConfiguration> publisherOptions, 
+        IConfigurationEvaluator configEval, 
+        ISubscriber<MessageContext> subscriber, 
+        IPublisher publisher, 
+        IResponder<MessageContext> responder, 
+        IRequester requester) 
+        : base(publisherOptions, configEval, subscriber, publisher, responder, requester)
+    {
     }
 }

@@ -15,7 +15,29 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Docker.DotNet" Version="3.125.5" />
+    <None Remove="bpproject-335500-6b0d2d09bf0e.json" />
+    <None Remove="rawrabbit.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="bpproject-335500-6b0d2d09bf0e.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="rawrabbit.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+	<PackageReference Include="RawRabbit" Version="1.10.4" />
+	<PackageReference Include="RawRabbit.Extensions" Version="1.10.4" />
+	<PackageReference Include="RawRabbit.vNext" Version="1.10.4" />
+	<PackageReference Include="RoundRobin" Version="2.1.1" />
+	<PackageReference Include="Docker.DotNet" Version="3.125.5" />
     <PackageReference Include="Ductus.FluentDocker" Version="2.10.44" />
     <PackageReference Include="IdentityModel" Version="6.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.2" />

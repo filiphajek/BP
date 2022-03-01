@@ -1,6 +1,6 @@
 ﻿namespace TaskLauncher.ManagementApi;
 
-public class StorageConfig
+public class StorageConfiguration
 {
     public string Path { get; set; }
 }

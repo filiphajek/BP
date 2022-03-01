@@ -10,9 +10,9 @@ public interface IRoutine
 public class FileDeletionRoutine : IRoutine
 {
     private readonly IFileStorageService fileStorageService;
-    private readonly IConfigFileEditor config;
+    private readonly IConfigurationFile config;
 
-    public FileDeletionRoutine(IFileStorageService fileStorageService, IConfigFileEditor config)
+    public FileDeletionRoutine(IFileStorageService fileStorageService, IConfigurationFile config)
     {
         this.fileStorageService = fileStorageService;
         this.config = config;
