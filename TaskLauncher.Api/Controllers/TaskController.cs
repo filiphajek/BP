@@ -13,18 +13,22 @@ using TaskLauncher.Common.RawRabbit;
 
 namespace TaskLauncher.Api.Controllers;
 
-[Authorize(AuthenticationSchemes = "Cookies, Bearer")] // TODO toto dat do policies aby to bylo prenositelne
+[Authorize(Policy = "user-policy")]
 public class TasksController : BaseController
 {
     private readonly IMapper mapper;
     private readonly ITaskRepository taskRepository;
     private readonly IEventRepository eventRepository;
+    private readonly ITokenBalanceRepository tokenRepository;
+    private readonly IPaymentRepository paymentRepository;
     private readonly IFileStorageService fileStorageService;
     private readonly IDefaultRabbitMQClient busClient;
 
     public TasksController(IMapper mapper, 
         ITaskRepository taskRepository, 
-        IEventRepository eventRepository, 
+        IEventRepository eventRepository,
+        ITokenBalanceRepository tokenRepository,
+        IPaymentRepository paymentRepository,
         ILogger<TasksController> logger, 
         IFileStorageService fileStorageService,
         IDefaultRabbitMQClient busClient)
@@ -33,6 +37,8 @@ public class TasksController : BaseController
         this.mapper = mapper;
         this.taskRepository = taskRepository;
         this.eventRepository = eventRepository;
+        this.tokenRepository = tokenRepository;
+        this.paymentRepository = paymentRepository;
         this.fileStorageService = fileStorageService;
         this.busClient = busClient;
     }
@@ -75,7 +81,7 @@ public class TasksController : BaseController
             await fileStorageService.UploadFileAsync($"{userId}/{fileId}/task", stream); // todo udelat pro to builder, nebo cestu ulozit do db
         }
 
-        var eventEntity = new EventEntity { Status = TaskState.Created, Time = DateTime.Now, UserId = userId };
+        var eventEntity = new EventEntity { Status = TaskState.InQueue, Time = DateTime.Now, UserId = userId };
         TaskEntity task = new()
         {
             ActualStatus = TaskState.Created,
@@ -83,6 +89,18 @@ public class TasksController : BaseController
             TaskFile = fileId,
             Events = new List<EventEntity> { eventEntity }
         };
+        
+        var token = (await tokenRepository.GetAllAsync()).FirstOrDefault();
+        if (token is null)
+            return BadRequest("No balance");
+
+        if(token.CurrentAmount <= 0)
+            return BadRequest("No balance");
+
+        token.CurrentAmount--;
+        await tokenRepository.UpdateAsync(token);
+        await paymentRepository.AddAsync(new() { Price = 1, Task = task, Time = DateTime.Now, UserId = userId }); // TODO price bude adminem konfigurovatelna
+
         var result = await taskRepository.AddAsync(mapper.Map(request, task));
 
         await busClient.PublishAsync(new TaskCreated { });

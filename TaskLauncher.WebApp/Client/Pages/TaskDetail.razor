@@ -19,13 +19,23 @@
 
         <br />
 
-        <button class="btn btn-primary" disabled="@isRunning" @onclick="StartTask">Start</button>
-        <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
-        <button @onclick="RemoveTask" disabled="@isRunning" class="btn btn-danger">Remove task</button>
+        @if(Task.ActualStatus == TaskState.Finished || Task.ActualStatus == TaskState.Archived || Task.ActualStatus == TaskState.Downloaded)
+        {
+            <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
+        }
+        <button @onclick="CancelTask" class="btn btn-danger"> @(Task.ActualStatus == TaskState.InQueue ? "Dequeue" : "Cancel") and restart</button>
 
         @if (message != "")
         {
             <p>@message</p>
+        }
+
+        <br />
+
+        <p><b>History</b></p>
+        @foreach (var book in Task.Events)
+        {
+            <p>Status changed to <b>@book.Status</b> at <b>@book.Time</b></p>
         }
 
     </ContentTemplate>

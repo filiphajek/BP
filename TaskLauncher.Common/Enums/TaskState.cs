@@ -7,5 +7,8 @@ public enum TaskState
     Prepared,
     Running,
     Finished,
-    Deleted
+    Deleted,
+    Cancelled,
+    Downloaded,
+    Archived
 }

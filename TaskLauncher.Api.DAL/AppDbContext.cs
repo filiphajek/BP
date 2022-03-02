@@ -33,6 +33,8 @@ public class AppDbContext : DbContext
         //konfigurace global query filteru
         modelBuilder.Entity<EventEntity>().HasQueryFilter(i => string.IsNullOrEmpty(userId) || i.UserId == userId);
         modelBuilder.Entity<TaskEntity>().HasQueryFilter(i => string.IsNullOrEmpty(userId) || i.UserId == userId);
+        modelBuilder.Entity<PaymentEntity>().HasQueryFilter(i => string.IsNullOrEmpty(userId) || i.UserId == userId);
+        modelBuilder.Entity<TokenBalanceEntity>().HasQueryFilter(i => string.IsNullOrEmpty(userId) || i.UserId == userId);
 
         base.OnModelCreating(modelBuilder);
     }

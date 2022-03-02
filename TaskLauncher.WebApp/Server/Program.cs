@@ -16,6 +16,9 @@ using TaskLauncher.Api.DAL.Installers;
 using TaskLauncher.Common.Services;
 using RawRabbit.vNext;
 using TaskLauncher.Common.RawRabbit;
+using Swashbuckle.AspNetCore.Filters;
+using TaskLauncher.Api.Contracts.SwaggerExamples;
+using TaskLauncher.Api.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,6 +94,18 @@ builder.Services.AddAuthentication(options =>
 //autorizacni pravidlo pro signalr endpoint
 builder.Services.AddAuthorization(policies =>
 {
+    policies.AddPolicy("admin-policy", p =>
+    {
+        p.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
+        p.RequireRole("admin");
+    });
+
+    policies.AddPolicy("user-policy", p =>
+    {
+        p.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
+        p.RequireRole("user");
+    });
+
     policies.AddPolicy("launcher", p =>
     {
         p.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
@@ -122,6 +137,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskLauncher", Version = "v1" });
+    c.ExampleFilters();
     var securitySchema = new OpenApiSecurityScheme
     {
         Description = "Using the Authorization header with the Bearer scheme.",
@@ -141,6 +157,9 @@ builder.Services.AddSwaggerGen(c =>
         { securitySchema, new[] { "Bearer" } }
     });
 });
+builder.Services.AddSwaggerExamplesFromAssemblyOf<CookieLessLoginRequestExample>();
+
+builder.Services.AddScoped<Seeder>();
 
 var app = builder.Build();
 
@@ -172,5 +191,11 @@ app.UseEndpoints(endpoints =>
     endpoints.MapFallbackToFile("index.html");
     endpoints.MapHub<LauncherHub>("/LauncherHub");
 });
+
+using (var scope = app.Services.CreateScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
+    await seeder.SeedAsync();
+}
 
 app.Run();

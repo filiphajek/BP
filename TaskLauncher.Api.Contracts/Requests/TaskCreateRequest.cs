@@ -2,11 +2,12 @@
 
 namespace TaskLauncher.Api.Contracts.Requests;
 
+public record CookieLessLoginRequest(string Name, string Password);
+
 public record TaskCreateRequest
 {
     public string Name { get; set; }
     public string Description { get; set; }
-    public string TaskFile { get; set; }
 }
 
 public record TaskStatusUpdateRequest

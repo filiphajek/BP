@@ -12,7 +12,7 @@ public partial class Tasks
 
     public List<TaskResponse> taskList { get; set; } = new();
 
-    private bool loading = false;
+    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -20,9 +20,8 @@ public partial class Tasks
         SpaManagementApiClient apiClient = new("localhost:5001/auth0api");
         var clients = (await apiClient.Users.GetAllAsync(new())).ToList();
 
-        loading = true;
         var tasks = await client.GetFromJsonAsync<List<TaskResponse>>("api/tasks");
         taskList.AddRange(tasks);
-        loading = false;
+        isLoading = false;
     }
 }

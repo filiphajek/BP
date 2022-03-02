@@ -2,11 +2,11 @@ using Auth0.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Common.Models;
 using TaskLauncher.WebApp.Server.Auth0;
@@ -100,14 +100,14 @@ public class AuthController : ControllerBase
     /// muze slouzit pro pristup na API nebo pouze jako autorizace sem na server z aplikace
     /// https://auth0.com/docs/get-started/authentication-and-authorization-flow/call-your-api-using-resource-owner-password-flow
     /// </summary>
-    [HttpPost("/m2m")]
+    [HttpPost("/loginbypasswordflow")]
     [AllowAnonymous]
     public async Task<IActionResult> LoginM2MAsync(CookieLessLoginRequest request)
     {
         var response = await clientFactory.CreateClient().PostAsJsonAsync($"https://{config.Domain}/oauth/token", new
         {
-            password = request.Password, // Password123*
-            username = request.Name, // testuser@example.com
+            password = request.Password,
+            username = request.Name,
             grant_type = "password",
             audience = config.Audience,
             client_id = config.ClientId,
@@ -151,7 +151,3 @@ public class AuthController : ControllerBase
         return Ok(new { value = "hello "});
     }
 }
-
-public record CookieLessLoginRequest(string Name, string Password);
-public record AuthResponse(string access_token, string refresh_token, string id_token, string token_type, int expires_in);
-public record RefreshTokenResponse(string access_token, string scope, string token_type, int expires_in);

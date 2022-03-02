@@ -1,4 +1,5 @@
-﻿using TaskLauncher.Api.DAL.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Api.DAL.Repositories.Base;
 
 namespace TaskLauncher.Api.DAL.Repositories;
@@ -12,4 +13,7 @@ public class PaymentRepository : AppRepository<PaymentEntity>, IPaymentRepositor
     public PaymentRepository(AppDbContext context) : base(context)
     {
     }
+
+    public override async Task<IEnumerable<PaymentEntity>> GetAllAsync() 
+        => await Context.Payments.Include(i => i.Task).ToListAsync();
 }

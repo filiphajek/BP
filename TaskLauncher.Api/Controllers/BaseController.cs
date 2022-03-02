@@ -14,4 +14,6 @@ public class BaseController : ControllerBase
     }
 
     protected string GetToken() => HttpContext.Request.Headers.Authorization.ToString().Split(' ').Last();
+
+    protected BadRequestObjectResult BadRequest(string errorMessage) => base.BadRequest(new { error = errorMessage });
 }

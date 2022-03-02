@@ -33,7 +33,7 @@ public partial class TaskDetail
 
     protected override async Task OnParametersSetAsync()
     {
-        Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/task/" + Id.ToString());
+        Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/tasks/" + Id.ToString());
         if (Task is null)
         {
             navigationManager.NavigateTo("tasks");
@@ -73,7 +73,7 @@ public partial class TaskDetail
         await hubConnection.InvokeStartTask(new() { TaskId = Task.Id });
     }
 
-    private async Task RemoveTask()
+    private async Task CancelTask()
     {
         var tmp = await client.DeleteAsync("api/task/" + Id.ToString());
         if(tmp.IsSuccessStatusCode)

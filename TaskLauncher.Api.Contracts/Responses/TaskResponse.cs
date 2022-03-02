@@ -2,6 +2,9 @@
 
 namespace TaskLauncher.Api.Contracts.Responses;
 
+public record AuthResponse(string access_token, string refresh_token, string id_token, string token_type, int expires_in);
+public record RefreshTokenResponse(string access_token, string scope, string token_type, int expires_in);
+
 public record TokenBalanceResponse
 {
     public double CurrentAmount { get; set; }
@@ -21,13 +24,18 @@ public record TaskResponse
 
 public record TaskDetailResponse : TaskResponse
 {
-    public List<EventResponse> Events { get; set; }
+    public List<EventResponse> Events { get; set; } = new();
 }
 
 public record EventResponse
 {
-    public string UserId { get; set; }
     public TaskState Status { get; set; }
     public DateTime Time { get; set; }
-    public Guid TaskId { get; set; }
+}
+
+public record PaymentResponse
+{
+    public TaskResponse Task { get; set; }
+    public DateTime Time { get; set; }
+    public double Price { get; set; }
 }

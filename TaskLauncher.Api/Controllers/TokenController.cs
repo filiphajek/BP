@@ -7,7 +7,6 @@ using TaskLauncher.Api.DAL.Repositories;
 
 namespace TaskLauncher.Api.Controllers;
 
-[Authorize]
 public class TokenController : BaseController
 {
     private readonly ITokenBalanceRepository tokenRepository;
@@ -19,6 +18,7 @@ public class TokenController : BaseController
         this.mapper = mapper;
     }
 
+    [Authorize(Policy = "user-policy")]
     [HttpGet]
     public async Task<ActionResult<TokenBalanceResponse>> GetTokenBalanceAsync(string? userId = null)
     {
@@ -34,7 +34,7 @@ public class TokenController : BaseController
         return Ok(mapper.Map<TokenBalanceResponse>(tokenBalance));
     }
 
-    [Authorize(Policy = "updateToken")]
+    [Authorize(Policy = "admin-policy")]
     [HttpPut]
     public async Task<ActionResult> UpdateTokenBalanceAsync(double amount, string userId)
     {
@@ -43,7 +43,7 @@ public class TokenController : BaseController
             return BadRequest();
 
         balance.CurrentAmount += amount;
-        await tokenRepository.UpdateAsync(balance); 
+        await tokenRepository.UpdateAsync(balance);
         return Ok();
     }
 }
