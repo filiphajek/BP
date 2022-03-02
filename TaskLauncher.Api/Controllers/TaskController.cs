@@ -1,8 +1,6 @@
 ﻿using MapsterMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RawRabbit;
-using RawRabbit.Context;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Api.DAL.Entities;
@@ -11,6 +9,7 @@ using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Services;
+using TaskLauncher.Common.RawRabbit;
 
 namespace TaskLauncher.Api.Controllers;
 
@@ -21,14 +20,14 @@ public class TasksController : BaseController
     private readonly ITaskRepository taskRepository;
     private readonly IEventRepository eventRepository;
     private readonly IFileStorageService fileStorageService;
-    private readonly IBusClient<MessageContext> busClient;
+    private readonly IDefaultRabbitMQClient busClient;
 
     public TasksController(IMapper mapper, 
         ITaskRepository taskRepository, 
         IEventRepository eventRepository, 
         ILogger<TasksController> logger, 
         IFileStorageService fileStorageService,
-        IBusClient<MessageContext> busClient)
+        IDefaultRabbitMQClient busClient)
         : base(logger)
     {
         this.mapper = mapper;
@@ -86,14 +85,7 @@ public class TasksController : BaseController
         };
         var result = await taskRepository.AddAsync(mapper.Map(request, task));
 
-        await busClient.PublishAsync(new TaskCreatedMessage { }, configuration: config =>
-        {
-            config.WithRoutingKey("hello-que.#");
-            config.WithExchange(exchange =>
-            {
-                exchange.WithName("hello-exchange");
-            });
-        });
+        await busClient.PublishAsync(new TaskCreated { });
 
         return Ok(mapper.Map<TaskResponse>(result));
     }

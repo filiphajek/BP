@@ -15,10 +15,13 @@ using TaskLauncher.Common.Installers;
 using TaskLauncher.Api.DAL.Installers;
 using TaskLauncher.Common.Services;
 using RawRabbit.vNext;
+using TaskLauncher.Common.RawRabbit;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
+builder.Services.InstallRawRabbitExtensions();
+builder.Services.Configure<RawRabbitConfiguration>(builder.Configuration.GetSection("RawRabbitExtensions"));
 
 //vycteni konfigurace z appsettings.json
 var serviceAddresses = new ServiceAddresses();

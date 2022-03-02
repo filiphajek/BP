@@ -5,6 +5,7 @@ using RawRabbit.Context;
 using RawRabbit.Extensions.Client;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Services;
+using TaskLauncher.Common.RawRabbit;
 using TaskLauncher.ContainerLauncher;
 using TaskLauncher.ContainerLauncher.Queue;
 using TaskLauncher.ContainerLauncher.Workers;
@@ -39,9 +40,10 @@ await Host.CreateDefaultBuilder(args)
         //docker config
         services.Configure<TaskLauncherConfig>(context.Configuration.GetSection(nameof(TaskLauncherConfig)));
         //rawrabbit
-        services.Configure<QueuesPriorityConfiguration>(context.Configuration.GetSection("RawRabbit"));
         services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
         services.AddRawRabbitExtensions<MessageContext>();
+        services.InstallRawRabbitExtensions();
+        services.Configure<QueuesPriorityConfiguration>(context.Configuration.GetSection("RawRabbitExtensions"));
 
         //main worker thread
         services.AddHostedService<LauncherWorker>();

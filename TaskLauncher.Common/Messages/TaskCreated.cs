@@ -2,7 +2,7 @@
 
 namespace TaskLauncher.Common.Messages;
 
-public class TaskCreatedMessage
+public class TaskCreated
 {
     public Guid Id { get; set; }
     public string UserId { get; set; }
@@ -12,24 +12,24 @@ public class TaskCreatedMessage
     public string ResultFilePath { get; set; }
 }
 
-public class TaskCancelledMessage
+public class TaskCancelled
 {
     public Guid TaskId { get; set; }
 }
 
-public class CancelTaskMessage
+public class CancelTask
 {
     public Guid TaskId { get; set; }
 }
 
-public class UpdateTaskMessage
+public class UpdateTask
 {
     public Guid Id { get; set; }
     public DateTime Time { get; set; }
     public TaskState State { get; set; }
 }
 
-public class ConfigChangedMessage
+public class ConfigChanged
 {
     public string Name { get; set; }
     public string Value { get; set; }

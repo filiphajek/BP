@@ -2,5 +2,5 @@
 
 public class QueuesPriorityConfiguration
 {
-    public Dictionary<string, int> Queues { get; set; }
+    public Dictionary<string, int> PriorityQueues { get; set; }
 }

@@ -7,7 +7,7 @@ using RoundRobin;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Services;
-using TaskLauncher.Common.TypedRawRabbit;
+using TaskLauncher.Common.RawRabbit;
 using TaskLauncher.ContainerLauncher.Queue;
 
 namespace TaskLauncher.ContainerLauncher.Workers;
@@ -17,8 +17,7 @@ public class LauncherWorker : BackgroundService
     private readonly ITaskLauncherService launcher;
     private readonly ILogger<LauncherWorker> logger;
     private readonly IBusClient busClient;
-    private readonly IDefaultSubscriber subscriber;
-    private readonly IDefaultPublisher publisher;
+    private readonly IDefaultRabbitMQClient mQClient;
     private readonly IFileStorageService fileStorageService;
     private readonly QueuesPriorityConfiguration options;
     private readonly HashSet<Guid> cancelledTasks = new();
@@ -26,14 +25,14 @@ public class LauncherWorker : BackgroundService
 
     private CancellationTokenSource tokenSource;
     private RoundRobinList<MessageQueue> roundRobin;
-    private TaskCreatedMessage actualTask;
+    private TaskCreated actualTask;
     private double timeout = 10.0;
 
     private void InitRoundRobin()
     {
-        var exampleList = options.Queues.Select(i => new MessageQueue(busClient, i.Key)).ToList();
+        var exampleList = options.PriorityQueues.Select(i => new MessageQueue(busClient, i.Key)).ToList();
         roundRobin = new RoundRobinList<MessageQueue>(exampleList);
-        foreach (var (Element, Priority) in exampleList.Zip(options.Queues.Values))
+        foreach (var (Element, Priority) in exampleList.Zip(options.PriorityQueues.Values))
         {
             roundRobin.IncreaseWeight(Element, Priority);
         }
@@ -42,15 +41,13 @@ public class LauncherWorker : BackgroundService
     public LauncherWorker(ILogger<LauncherWorker> logger, 
         IOptions<QueuesPriorityConfiguration> options,
         IBusClient busClient, 
-        IDefaultSubscriber subscriber, 
-        IDefaultPublisher publisher, 
+        IDefaultRabbitMQClient mQClient, 
         IFileStorageService fileStorageService, 
         ITaskLauncherService launcher)
     {
         this.logger = logger;
         this.busClient = busClient;
-        this.subscriber = subscriber;
-        this.publisher = publisher;
+        this.mQClient = mQClient;
         this.fileStorageService = fileStorageService;
         this.options = options.Value;
         InitRoundRobin();
@@ -60,7 +57,7 @@ public class LauncherWorker : BackgroundService
     public override Task StartAsync(CancellationToken cancellationToken)
     {
         //task byl zrusen, odstran z pameti
-        var cancelled = subscriber.SubscribeAsync<TaskCancelledMessage>((message, context) =>
+        var cancelled = mQClient.SubscribeAsync<TaskCancelled>((message, context) =>
         {
             if (cancelledTasks.Contains(message.TaskId))
                 cancelledTasks.Remove(message.TaskId);
@@ -68,7 +65,7 @@ public class LauncherWorker : BackgroundService
         });
 
         //task se musi zrusit, pokud ho nevykonavam tak si radeji ulozim id tasku
-        var cancel = subscriber.SubscribeAsync<CancelTaskMessage>((message, context) =>
+        var cancel = mQClient.SubscribeAsync<CancelTask>((message, context) =>
         {
             if (actualTask.Id == message.TaskId)
                 tokenSource.Cancel();
@@ -77,7 +74,7 @@ public class LauncherWorker : BackgroundService
             return Task.CompletedTask;
         });
 
-        var configChanged = subscriber.SubscribeAsync<ConfigChangedMessage>((message, context) =>
+        var configChanged = mQClient.SubscribeAsync<ConfigChanged>((message, context) =>
         {
             if(message.Name == "tasktimeout")
             {
@@ -101,11 +98,11 @@ public class LauncherWorker : BackgroundService
             stoppingToken.ThrowIfCancellationRequested();
             var currentQueue = roundRobin.Next();
             var name = currentQueue.Queue;
-            var mess = currentQueue.GetMessage<TaskCreatedMessage>();
+            var mess = currentQueue.GetMessage<TaskCreated>();
             while (mess is null)
             {
                 var qq = roundRobin.GetNextItem(currentQueue);
-                mess = qq.GetMessage<TaskCreatedMessage>();
+                mess = qq.GetMessage<TaskCreated>();
                 if (name == qq.Queue)
                 {
                     stoppingToken.ThrowIfCancellationRequested();
@@ -120,7 +117,7 @@ public class LauncherWorker : BackgroundService
             //zkontroluj zda task neni zrusen
             if (cancelledTasks.Contains(actualTask.Id))
             {
-                await publisher.PublishAsync(new TaskCancelledMessage { TaskId = mess.Message.Id });
+                await mQClient.PublishAsync(new TaskCancelled { TaskId = mess.Message.Id });
                 tokenSource.Cancel();
                 mess.Ack();
                 continue;
@@ -135,7 +132,7 @@ public class LauncherWorker : BackgroundService
             {
                 if(actualTask.State != TaskState.Finished)
                 {
-                    await publisher.PublishAsync(new TaskCancelledMessage { TaskId = actualTask.Id });
+                    await mQClient.PublishAsync(new TaskCancelled { TaskId = actualTask.Id });
                     logger.LogInformation("Task cancelled '{0}', ex: {1}", actualTask.Id, ex);
                 }
                 tokenSource.Dispose();
@@ -145,7 +142,7 @@ public class LauncherWorker : BackgroundService
         }
     }
 
-    private async Task TaskExecution(TaskCreatedMessage model, CancellationToken token)
+    private async Task TaskExecution(TaskCreated model, CancellationToken token)
     {
         logger.LogInformation("Starting execution of task '{0}'", model.Id);
         
@@ -185,10 +182,10 @@ public class LauncherWorker : BackgroundService
         token.ThrowIfCancellationRequested();
     }
 
-    private async Task UpdateTaskAsync(TaskCreatedMessage model, TaskState state)
+    private async Task UpdateTaskAsync(TaskCreated model, TaskState state)
     {
         model.State = state;
         model.Time = DateTime.Now;
-        await publisher.PublishAsync(new UpdateTaskMessage { Id = model.Id, State = model.State, Time = model.Time });
+        await mQClient.PublishAsync(new UpdateTask { Id = model.Id, State = model.State, Time = model.Time });
     }
 }

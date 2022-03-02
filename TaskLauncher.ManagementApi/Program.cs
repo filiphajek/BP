@@ -9,7 +9,7 @@ using System.Xml.Linq;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Services;
-using TaskLauncher.Common.TypedRawRabbit;
+using TaskLauncher.Common.RawRabbit;
 using TaskLauncher.ManagementApi;
 
 // TODO rate limiting https://www.youtube.com/watch?v=GQAgh_z1rHY&ab_channel=NickChapsas
@@ -28,15 +28,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 //raw rabbit
 builder.Services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
-builder.Services.InstallTypedRawRabbit<Program>();
+builder.Services.InstallRawRabbitExtensions();
 
 //konfigurace
 builder.Services.Configure<TaskLauncher.ManagementApi.StorageConfiguration>(builder.Configuration.GetSection("Storage"));
-builder.Services.Configure<SubscriberConfiguration>(builder.Configuration.GetSection("PublishMessage"));
+builder.Services.Configure<RawRabbitConfiguration>(builder.Configuration.GetSection("RawRabbitExtensions"));
 builder.Services.Configure<TaskLauncher.Common.Configuration.StorageConfiguration>(builder.Configuration.GetSection(nameof(TaskLauncher.Common.Configuration.StorageConfiguration)));
 
 builder.Services.AddSingleton<IConfigurationFile, ConfigurationFile>();
-ConfigInit(builder.Configuration["ConfigStorage:Path"]);
+ConfigInit(builder.Configuration["Storage:Path"]);
 
 //swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -107,7 +107,7 @@ app.UseAuthorization();
 app.UseHangfireDashboard("/hangfire");
 
 app.MapPost("/api/config", async (IRecurringJobManager client, FileDeletionRoutine routine, 
-    IConfigurationFile fileEditor, IDefaultPublisher publisher, AddConfigValueRequest request) =>
+    IConfigurationFile fileEditor, IDefaultRabbitMQClient mQClient, AddConfigValueRequest request) =>
 {
     fileEditor.Write(request.Name, request.Value);
 
@@ -118,7 +118,7 @@ app.MapPost("/api/config", async (IRecurringJobManager client, FileDeletionRouti
         client.AddOrUpdate(nameof(FileDeletionRoutine), () => routine.Perform(), Cron.Daily);
     }
 
-    await publisher.PublishAsync(new ConfigChangedMessage { Name = request.Name, Value = request.Value });
+    await mQClient.PublishAsync(new ConfigChanged { Name = request.Name, Value = request.Value });
 
 }).AllowAnonymous();
 
