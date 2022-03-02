@@ -89,7 +89,9 @@ public class TasksController : BaseController
             TaskFile = fileId,
             Events = new List<EventEntity> { eventEntity }
         };
-        
+
+        var taskEntity = mapper.Map(request, task);
+
         var token = (await tokenRepository.GetAllAsync()).FirstOrDefault();
         if (token is null)
             return BadRequest("No balance");
@@ -99,9 +101,8 @@ public class TasksController : BaseController
 
         token.CurrentAmount--;
         await tokenRepository.UpdateAsync(token);
-        await paymentRepository.AddAsync(new() { Price = 1, Task = task, Time = DateTime.Now, UserId = userId }); // TODO price bude adminem konfigurovatelna
-
-        var result = await taskRepository.AddAsync(mapper.Map(request, task));
+        var result = await taskRepository.AddAsync(taskEntity);
+        await paymentRepository.AddAsync(new() { Price = 1, Task = taskEntity, Time = DateTime.Now, UserId = userId }); // TODO price bude adminem konfigurovatelna
 
         await busClient.PublishAsync(new TaskCreated { });
 
