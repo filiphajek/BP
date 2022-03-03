@@ -16,8 +16,10 @@
                         <p>NickName: @user.NickName </p>
                         <p>Verified email: @user.EmailVerified </p>
                         <p>Last IP: @user.LastIpAddress </p>
-                    
-                        <a href="@(user.UserId.Remove(0, 6))/tasks">Tasks</a>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <a href="@(user.UserId.Remove(0, 6))/tasks">Tasks</a>
+                        </div>
 
                         <br/>
                     }

@@ -19,6 +19,7 @@ using TaskLauncher.Common.RawRabbit;
 using Swashbuckle.AspNetCore.Filters;
 using TaskLauncher.Api.Contracts.SwaggerExamples;
 using TaskLauncher.Api.Seeders;
+using TaskLauncher.Api.DAL;
 
 var builder = WebApplication.CreateBuilder(args);
 

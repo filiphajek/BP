@@ -16,10 +16,10 @@ public class Seeder
     {
         await dbContext.Database.EnsureCreatedAsync();
         
-        if (await dbContext.Payments.AnyAsync())
+        if (await dbContext.Payments.IgnoreQueryFilters().AnyAsync())
             return;
 
-        var task = await dbContext.Tasks.SingleAsync();
+        var task = await dbContext.Tasks.IgnoreQueryFilters().SingleAsync();
         await dbContext.Payments.AddAsync(new() { Price = 1, Time = DateTime.Now, UserId = "61b0e161678a0c00689644e0", Task = task });
         await dbContext.TokenBalances.AddAsync(new() { CurrentAmount = 99, LastAdded = DateTime.Now, UserId = "61b0e161678a0c00689644e0" });
 
