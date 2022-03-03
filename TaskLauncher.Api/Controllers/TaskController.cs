@@ -10,8 +10,21 @@ using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Services;
 using TaskLauncher.Common.RawRabbit;
+using Microsoft.AspNetCore.Mvc.Filters;
+using TaskLauncher.Api.DAL;
 
 namespace TaskLauncher.Api.Controllers;
+
+public class DbContextSaveAttribute : Attribute, IAsyncActionFilter
+{
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    {
+        //https://www.infoworld.com/article/3544006/how-to-use-dependency-injection-in-action-filters-in-aspnet-core-31.html
+        var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+        await next();
+        await dbContext.SaveChangesAsync();
+    }
+}
 
 [Authorize(Policy = "user-policy")]
 public class TasksController : BaseController
@@ -79,6 +92,7 @@ public class TasksController : BaseController
     /// <summary>
     /// Vytvoreni noveho tasku
     /// </summary>
+    [DbContextSave]
     [HttpPost]
     public async Task<ActionResult<TaskResponse>> CreateTaskAsync([FromForm] TaskCreateRequest request, IFormFile file)
     {
