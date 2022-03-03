@@ -43,6 +43,14 @@ public class TasksController : BaseController
         this.busClient = busClient;
     }
 
+    [Authorize(Policy = "admin-policy")]
+    [HttpGet("/api/{id}/tasks")]
+    public async Task<ActionResult<List<TaskResponse>>> GetAllTasksAsync([FromRoute] string id)
+    {
+        var list = await taskRepository.GetAllAsync();
+        return Ok(list.Where(i => i.UserId == id).Select(mapper.Map<TaskResponse>));
+    }
+
     /// <summary>
     /// Vraci vsechny tasky
     /// TODO PAGING
@@ -50,6 +58,8 @@ public class TasksController : BaseController
     [HttpGet]
     public async Task<ActionResult<List<TaskResponse>>> GetAllTasksAsync()
     {
+        if (User.IsInRole("admin"))
+            return Ok(new List<TaskResponse>());
         var list = await taskRepository.GetAllAsync();
         return Ok(list.Where(i => i.ActualStatus != TaskState.Deleted).Select(mapper.Map<TaskResponse>));
     }

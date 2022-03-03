@@ -1,5 +1,5 @@
-using Auth0.ManagementApi;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using System.Net.Http.Json;
 using TaskLauncher.Api.Contracts.Responses;
 
@@ -7,6 +7,12 @@ namespace TaskLauncher.WebApp.Client.Pages;
 
 public partial class Tasks
 {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    [Parameter]
+    public string Id { get; set; }
+
     [Inject]
     protected HttpClient client { get; set; }
 
@@ -16,11 +22,20 @@ public partial class Tasks
 
     protected override async Task OnInitializedAsync()
     {
-        //test
-        SpaManagementApiClient apiClient = new("localhost:5001/auth0api");
-        var clients = (await apiClient.Users.GetAllAsync(new())).ToList();
+        var authState = await authenticationStateTask;
+        if (authState.User.IsInRole("user") && string.IsNullOrEmpty(Id))
+        {
+            var tasks = await client.GetFromJsonAsync<List<TaskResponse>>("api/tasks");
+            taskList.AddRange(tasks);
+            isLoading = false;
+        }
+    }
 
-        var tasks = await client.GetFromJsonAsync<List<TaskResponse>>("api/tasks");
+    protected async override Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrEmpty(Id))
+            return;
+        var tasks = await client.GetFromJsonAsync<List<TaskResponse>>($"api/{Id}/tasks");
         taskList.AddRange(tasks);
         isLoading = false;
     }

@@ -1,0 +1,15 @@
+﻿@page "/profile"
+
+<AuthorizeView>
+    <Authorized>
+        <img src="@context.User.Claims.SingleOrDefault(i => i.Type == "picture").Value" />
+        
+        <p><b>Email: @context.User.Identity.Name</b></p>
+
+        <p>Nickname : @context.User.Claims.SingleOrDefault(i => i.Type == "nickname").Value</p>
+        <p>Vip : @context.User.Claims.SingleOrDefault(i => i.Type == "https://wutshot-test-api.com/vip").Value</p>
+    </Authorized>
+    <NotAuthorized>
+        You have to login
+    </NotAuthorized>
+</AuthorizeView>

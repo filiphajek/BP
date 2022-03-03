@@ -20,6 +20,9 @@ public class AppDbContext : DbContext
                 return;
         }
         //ziskej user id a vyfiltruj podle nej databazi, uzivatel pak muze pristoupit pouze ke svym datum
+
+        if (accessor.HttpContext is not null && accessor.HttpContext.User.IsInRole("admin"))
+            return;
         accessor.HttpContext?.User.TryGetAuth0Id(out userId);
     }
 
