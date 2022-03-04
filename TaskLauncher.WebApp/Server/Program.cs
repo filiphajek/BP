@@ -190,7 +190,7 @@ app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
     endpoints.MapFallbackToFile("index.html");
-    endpoints.MapHub<LauncherHub>("/LauncherHub");
+    endpoints.MapHub<WorkerHub>("/LauncherHub");
 });
 
 using (var scope = app.Services.CreateScope())

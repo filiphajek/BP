@@ -1,4 +1,4 @@
-namespace TaskLauncher.WebApp.Client.Pages.User;
+namespace TaskLauncher.WebApp.Client.Pages.Admin;
 
 public partial class Users
 {

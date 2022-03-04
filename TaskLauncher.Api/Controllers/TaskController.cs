@@ -12,9 +12,14 @@ using TaskLauncher.Common.Services;
 using TaskLauncher.Common.RawRabbit;
 using Microsoft.AspNetCore.Mvc.Filters;
 using TaskLauncher.Api.DAL;
+using Microsoft.EntityFrameworkCore;
 
 namespace TaskLauncher.Api.Controllers;
 
+/// <summary>
+/// Trva radove nanosekund pokud nedochazi k sql operacim
+/// </summary>
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
 public class DbContextSaveAttribute : Attribute, IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -36,6 +41,7 @@ public class TasksController : BaseController
     private readonly IPaymentRepository paymentRepository;
     private readonly IFileStorageService fileStorageService;
     private readonly IDefaultRabbitMQClient busClient;
+    private readonly AppDbContext context;
 
     public TasksController(IMapper mapper, 
         ITaskRepository taskRepository, 
@@ -44,7 +50,8 @@ public class TasksController : BaseController
         IPaymentRepository paymentRepository,
         ILogger<TasksController> logger, 
         IFileStorageService fileStorageService,
-        IDefaultRabbitMQClient busClient)
+        IDefaultRabbitMQClient busClient,
+        AppDbContext context)
         : base(logger)
     {
         this.mapper = mapper;
@@ -54,14 +61,15 @@ public class TasksController : BaseController
         this.paymentRepository = paymentRepository;
         this.fileStorageService = fileStorageService;
         this.busClient = busClient;
+        this.context = context;
     }
 
     [Authorize(Policy = "admin-policy")]
     [HttpGet("/api/{id}/tasks")]
     public async Task<ActionResult<List<TaskResponse>>> GetAllTasksAsync([FromRoute] string id)
     {
-        var list = await taskRepository.GetAllAsync();
-        return Ok(list.Where(i => i.UserId == id).Select(mapper.Map<TaskResponse>));
+        var list = await context.Tasks.IgnoreQueryFilters().Where(i => i.UserId == id).ToListAsync();
+        return Ok(list.Select(mapper.Map<TaskResponse>));
     }
 
     /// <summary>

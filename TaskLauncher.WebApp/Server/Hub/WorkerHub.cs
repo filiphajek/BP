@@ -7,7 +7,7 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.WebApp.Server.Hub;
 
-public interface ILauncherHub
+public interface IWorkerHub
 {
     /// <summary>
     /// Tento endpoint vola uzivatel a posloucha na nem launcher
@@ -23,12 +23,12 @@ public interface ILauncherHub
 }
 
 [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme}, {CookieAuthenticationDefaults.AuthenticationScheme}")]
-public class LauncherHub : Hub<ILauncherHub>
+public class WorkerHub : Hub<IWorkerHub>
 {
-    private readonly ILogger<LauncherHub> logger;
+    private readonly ILogger<WorkerHub> logger;
     private readonly SignalRMemoryStorage storage;
 
-    public LauncherHub(ILogger<LauncherHub> logger, SignalRMemoryStorage storage)
+    public WorkerHub(ILogger<WorkerHub> logger, SignalRMemoryStorage storage)
     {
         this.logger = logger;
         this.storage = storage;
@@ -80,4 +80,18 @@ public class LauncherHub : Hub<ILauncherHub>
         storage.Remove(id, Context.ConnectionId);
         return base.OnDisconnectedAsync(exception);
     }
+}
+
+
+//userhub pro uzivatelske notifikace
+
+public interface IUserHub 
+{
+
+}
+
+
+public class UserHub : Hub<IUserHub>
+{
+
 }
