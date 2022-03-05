@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Mapster;
+using System.ComponentModel.DataAnnotations;
 
 namespace TaskLauncher.WebApp.Client.Models;
 

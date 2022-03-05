@@ -36,9 +36,9 @@ else
         var query = new QueryDictionary<StringValues>();
 
         var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "grid", columns, 10)
+            .ChangePageSize(true)
             .Sortable()
             .Filterable()
-            .SetStriped(true)
             .WithMultipleFilters()
             .WithGridItemsCount();
 

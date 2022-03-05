@@ -1,0 +1,12 @@
+﻿@using TaskLauncher.Common.Models
+
+<img src="@User.Picture" />
+<p><b>Email: @User.Email</b></p>
+<p>Nickname : @User.NickName</p>
+<p>Vip : @User.Vip</p>
+
+@code{
+
+    [Parameter]
+    public UserModel User { get; set; }
+}

@@ -46,9 +46,6 @@ builder.Services.AddSingleton(serviceAddresses);
 builder.Services.AddControllersWithViews()
     .AddApplicationPart(typeof(TasksController).Assembly)
     .AddOData(opt => opt.AddRouteComponents("odata", GetEdmModel()).Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
-    //.AddOData(options => options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(1000));
-    //.AddOData(opt => opt.AddRouteComponents("odata", GetEdmModel())
-    //.Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
 
 builder.Services.AddRazorPages();
 

@@ -47,13 +47,8 @@ public class ExampleController : ControllerBase
     [EnableQuery]
     public IActionResult Get()
     {
-        var orders = new List<TaskResponse>()
-            {
-                new() { Id = Guid.NewGuid(), Description = "xd", Name = "xdfsd", ResultFile = "df", TaskFile = "sd", UserId = "sdf" },
-                new() { Id = Guid.NewGuid(), Description = "te", Name = "xdfsd", ResultFile = "df", TaskFile = "sd", UserId = "sdf" },
-                new() { Id = Guid.NewGuid(), Description = "te", Name = "xdfsd", ResultFile = "df", TaskFile = "sd", UserId = "sdf" },
-            }.AsQueryable();
-        return Ok(orders);
+        var tasks = context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>();
+        return Ok(tasks);
     }
 }
 

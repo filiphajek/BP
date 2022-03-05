@@ -2,30 +2,14 @@
 
 <AuthorizeView Roles="admin">
     <Authorized>
-        <SpinLoader IsLoading="@(isLoading)" Spinner="SpinnerType.Circle">
-            <ContentTemplate>
-                @if (users is null || users.Count == 0)
-                {
-                    <p>No users</p>
-                }
-                else
-                {
-                    foreach(var user in users)
-                    {
-                        <p>Email: @user.Email </p>
-                        <p>NickName: @user.NickName </p>
-                        <p>Verified email: @user.EmailVerified </p>
-                        <p>Last IP: @user.LastIpAddress </p>
-                        
-                        <div style="margin-bottom: 20px;">
-                            <a href="@(user.UserId.Remove(0, 6))/tasks">Tasks</a>
-                        </div>
-
-                        <br/>
-                    }
-                }
-            </ContentTemplate>
-        </SpinLoader>
+        @if (task.IsCompleted)
+        {
+            <GridComponent T="Auth0.ManagementApi.Models.User" Grid="@grid"></GridComponent>
+        }
+        else
+        {
+            <p><em>Loading...</em></p>
+        }
     </Authorized>
     <NotAuthorized>
         You have to login

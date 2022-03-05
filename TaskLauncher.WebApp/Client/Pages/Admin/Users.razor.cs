@@ -1,16 +1,35 @@
+using GridBlazor;
+using GridShared.Utility;
+using Microsoft.Extensions.Primitives;
+using TaskLauncher.WebApp.Client.Services;
+using GridShared;
+
 namespace TaskLauncher.WebApp.Client.Pages.Admin;
 
 public partial class Users
 {
     protected bool isLoading = false;
-
-    protected List<Auth0.ManagementApi.Models.User>? users;
+    private CGrid<Auth0.ManagementApi.Models.User> grid;
+    private Task task;
 
     protected async override Task OnInitializedAsync()
     {
         isLoading = true;
-        SpaManagementApiClient apiClient = new("localhost:5001/auth0api");
-        users = (await apiClient.Users.GetAllAsync(new())).ToList();
+
+        Action<IGridColumnCollection<Auth0.ManagementApi.Models.User>> columns = c =>
+        {
+            c.Add(o => o.Email).Encoded(false).Sanitized(false).RenderValueAs(o =>  $"<a href='profile/{o.UserId}'>{o.Email}</a>");
+            c.Add(o => o.NickName);
+        };
+
+        var query = new QueryDictionary<StringValues>();
+        var client = new GridClient<Auth0.ManagementApi.Models.User>(async q => await UserProvider.GetUsers(columns, q), query, false, "usersGrid", columns)
+            .Sortable();
+
+        grid = client.Grid;
+        task = client.UpdateGrid();
+        await task;
+
         isLoading = false;
     }
 }
