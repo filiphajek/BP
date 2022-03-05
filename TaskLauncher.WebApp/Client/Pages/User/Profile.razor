@@ -3,7 +3,11 @@
 
 <AuthorizeView>
     <Authorized>
-        <ProfileComponent User=User/>
+        <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
+            <ContentTemplate>
+                <ProfileComponent User=User />
+            </ContentTemplate>
+        </SpinLoader>
     </Authorized>
     <NotAuthorized>
         You have to login

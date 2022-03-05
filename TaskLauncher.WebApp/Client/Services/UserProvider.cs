@@ -6,13 +6,19 @@ using Microsoft.Extensions.Primitives;
 
 namespace TaskLauncher.WebApp.Client.Services;
 
-public class UserProvider
+public class UserProvider : IUserProvider
 {
-    public static async Task<ItemsDTO<User>> GetUsers(Action<IGridColumnCollection<User>> columns, QueryDictionary<StringValues> query)
+    private readonly SpaManagementApiClient auth0client;
+
+    public UserProvider(SpaManagementApiClient auth0client)
     {
-        SpaManagementApiClient apiClient = new("localhost:5001/auth0api");
-        var users = (await apiClient.Users.GetAllAsync(new())).ToList();
-        
+        this.auth0client = auth0client;
+    }
+
+    public async Task<ItemsDTO<User>> GetUsers(Action<IGridColumnCollection<User>> columns, QueryDictionary<StringValues> query)
+    {
+        var users = (await auth0client.Users.GetAllAsync(new())).ToList();
+
         var server = new GridCoreServer<User>(users, query, true, "usersGrid", columns).Sortable();
         var items = server.ItemsToDisplay;
         return items;

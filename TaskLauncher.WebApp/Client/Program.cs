@@ -5,6 +5,7 @@ using TaskLauncher.WebApp.Client;
 using TaskLauncher.WebApp.Client.Authentication;
 using System.Net.Http.Headers;
 using TaskLauncher.Common.Configuration;
+using TaskLauncher.WebApp.Client.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -25,11 +26,17 @@ builder.Services.AddHttpClient("default", client =>
 });
 builder.Services.AddTransient(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("default"));
 
+Auth0ApiClientConfiguration auth0Config = new();
+builder.Configuration.Bind(nameof(Auth0ApiClientConfiguration), auth0Config);
+builder.Services.AddSingleton(auth0Config);
+builder.Services.AddScoped<SpaManagementApiClient>();
+
+builder.Services.AddScoped<IUserProvider, UserProvider>();
+
 //autorizace
 builder.Services.AddAuthorizationCore();
 builder.Services.AddSingleton<AuthenticationStateProvider, HostAuthenticationStateProvider>();
 builder.Services.AddSingleton(sp => (HostAuthenticationStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 builder.Services.AddTransient<AuthorizedHandler>();
-
 
 await builder.Build().RunAsync();

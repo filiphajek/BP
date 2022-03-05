@@ -4,6 +4,12 @@ namespace TaskLauncher.WebApp.Client;
 
 public class SpaManagementApiClient : ManagementApiClient
 {
-    public SpaManagementApiClient(string domain, IManagementConnection connection) : base("some.token", domain, connection) { }
-    public SpaManagementApiClient(string domain) : base("some.token", domain, new HttpClientManagementConnection()) { }
+    public SpaManagementApiClient(Auth0ApiClientConfiguration options) 
+        : base("some.token", $"{options.Domain}/{options.Endpoint}", new HttpClientManagementConnection()) { }
+}
+
+public class Auth0ApiClientConfiguration
+{
+    public string Domain { get; set; }
+    public string Endpoint { get; set; }
 }

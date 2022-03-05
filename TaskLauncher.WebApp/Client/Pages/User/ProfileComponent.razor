@@ -1,12 +1,47 @@
-﻿@using TaskLauncher.Common.Models
+﻿@using TaskLauncher.Common.Extensions
+@using TaskLauncher.Common.Models
 
 <img src="@User.Picture" />
 <p><b>Email: @User.Email</b></p>
 <p>Nickname : @User.NickName</p>
 <p>Vip : @User.Vip</p>
 
-@code{
+<AuthorizeView Roles="admin">
+    <Authorized>
+        @if(User.Blocked.HasValue && User.Blocked.Value)
+        {
+            <button class="btn btn-success" @onclick="UnBanUserAsync">Unban user</button>
+        }
+        else
+        {
+            <button class="btn btn-danger" @onclick="BanUserAsync">Ban user</button>
+        }
+    </Authorized>
+</AuthorizeView>
 
+@code{
     [Parameter]
     public UserModel User { get; set; }
+
+    [Inject]
+    public SpaManagementApiClient auth0client { get; set; }
+
+
+    async Task BanUserAsync()
+    {
+        User = (await auth0client.Users.UpdateAsync(User.UserId, new()
+        {
+            Blocked = true
+        })).GetModel();
+        StateHasChanged();
+    }
+
+    async Task UnBanUserAsync()
+    {
+        User = (await auth0client.Users.UpdateAsync(User.UserId, new()
+        {
+            Blocked = false
+        })).GetModel();
+        StateHasChanged();
+    }
 }
