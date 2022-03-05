@@ -19,9 +19,19 @@ using TaskLauncher.Common.RawRabbit;
 using Swashbuckle.AspNetCore.Filters;
 using TaskLauncher.Api.Contracts.SwaggerExamples;
 using TaskLauncher.Api.Seeders;
-using TaskLauncher.Api.DAL;
+using Microsoft.AspNetCore.OData;
+using Microsoft.OData.ModelBuilder;
+using TaskLauncher.Api.Contracts.Responses;
+using Microsoft.OData.Edm;
 
 var builder = WebApplication.CreateBuilder(args);
+
+static IEdmModel GetEdmModel()
+{
+    ODataConventionModelBuilder builder = new();
+    builder.EntitySet<TaskResponse>("Example");
+    return builder.GetEdmModel();
+}
 
 builder.Services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
 builder.Services.InstallRawRabbitExtensions();
@@ -34,7 +44,12 @@ builder.Services.AddSingleton(serviceAddresses);
 
 //pridani kontroleru s error stranky
 builder.Services.AddControllersWithViews()
-    .AddApplicationPart(typeof(TasksController).Assembly);
+    .AddApplicationPart(typeof(TasksController).Assembly)
+    .AddOData(opt => opt.AddRouteComponents("odata", GetEdmModel()).Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
+    //.AddOData(options => options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(1000));
+    //.AddOData(opt => opt.AddRouteComponents("odata", GetEdmModel())
+    //.Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
+
 builder.Services.AddRazorPages();
 
 var config = new TypeAdapterConfig();
@@ -138,7 +153,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskLauncher", Version = "v1" });
-    c.ExampleFilters();
+    //c.ExampleFilters();
     var securitySchema = new OpenApiSecurityScheme
     {
         Description = "Using the Authorization header with the Bearer scheme.",
@@ -158,7 +173,7 @@ builder.Services.AddSwaggerGen(c =>
         { securitySchema, new[] { "Bearer" } }
     });
 });
-builder.Services.AddSwaggerExamplesFromAssemblyOf<CookieLessLoginRequestExample>();
+//builder.Services.AddSwaggerExamplesFromAssemblyOf<CookieLessLoginRequestExample>();
 
 builder.Services.AddScoped<Seeder>();
 

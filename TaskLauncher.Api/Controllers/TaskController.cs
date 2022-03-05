@@ -7,12 +7,13 @@ using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Api.DAL.Repositories;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
-using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Services;
-using TaskLauncher.Common.RawRabbit;
 using Microsoft.AspNetCore.Mvc.Filters;
 using TaskLauncher.Api.DAL;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.OData.Query;
+using Mapster;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
 
 namespace TaskLauncher.Api.Controllers;
 
@@ -31,6 +32,37 @@ public class DbContextSaveAttribute : Attribute, IAsyncActionFilter
     }
 }
 
+public class TmpController : ODataController
+{
+    private readonly AppDbContext context;
+
+    public TmpController(AppDbContext context)
+    {
+        this.context = context;
+    }
+
+    [EnableQuery]
+    public IActionResult ODataTest()
+    {
+        return Ok(context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>());
+    }
+}
+
+public class ExampleController : ODataController
+{
+    [EnableQuery]
+    public IActionResult Get()
+    {
+        var orders = new List<TaskResponse>()
+            {
+                new() { Id = Guid.NewGuid(), Description = "xd", Name = "xdfsd", ResultFile = "df", TaskFile = "sd", UserId = "sdf" },
+                new() { Id = Guid.NewGuid(), Description = "te", Name = "xdfsd", ResultFile = "df", TaskFile = "sd", UserId = "sdf" },
+                new() { Id = Guid.NewGuid(), Description = "te", Name = "xdfsd", ResultFile = "df", TaskFile = "sd", UserId = "sdf" },
+            }.AsQueryable();
+        return Ok(orders);
+    }
+}
+
 [Authorize(Policy = "user-policy")]
 public class TasksController : BaseController
 {
@@ -40,7 +72,6 @@ public class TasksController : BaseController
     private readonly ITokenBalanceRepository tokenRepository;
     private readonly IPaymentRepository paymentRepository;
     private readonly IFileStorageService fileStorageService;
-    private readonly IDefaultRabbitMQClient busClient;
     private readonly AppDbContext context;
 
     public TasksController(IMapper mapper, 
@@ -50,7 +81,6 @@ public class TasksController : BaseController
         IPaymentRepository paymentRepository,
         ILogger<TasksController> logger, 
         IFileStorageService fileStorageService,
-        IDefaultRabbitMQClient busClient,
         AppDbContext context)
         : base(logger)
     {
@@ -60,7 +90,6 @@ public class TasksController : BaseController
         this.tokenRepository = tokenRepository;
         this.paymentRepository = paymentRepository;
         this.fileStorageService = fileStorageService;
-        this.busClient = busClient;
         this.context = context;
     }
 
@@ -135,8 +164,6 @@ public class TasksController : BaseController
         await tokenRepository.UpdateAsync(token);
         var result = await taskRepository.AddAsync(taskEntity);
         await paymentRepository.AddAsync(new() { Price = 1, Task = taskEntity, Time = DateTime.Now, UserId = userId }); // TODO price bude adminem konfigurovatelna
-
-        await busClient.PublishAsync(new TaskCreated { });
 
         return Ok(mapper.Map<TaskResponse>(result));
     }

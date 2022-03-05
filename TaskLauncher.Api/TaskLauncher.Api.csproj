@@ -9,8 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="Auth0.AspNetCore.Authentication" Version="1.0.1" />
-	  <PackageReference Include="FluentValidation.AspNetCore" Version="10.3.6" />
+	<PackageReference Include="Microsoft.AspNetCore.OData" Version="8.0.8" />
+	<PackageReference Include="Auth0.AspNetCore.Authentication" Version="1.0.1" />
+	<PackageReference Include="FluentValidation.AspNetCore" Version="10.3.6" />
     <PackageReference Include="Mapster" Version="7.2.0" />
     <PackageReference Include="Mapster.DependencyInjection" Version="1.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.2" />
