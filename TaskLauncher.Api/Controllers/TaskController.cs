@@ -32,24 +32,18 @@ public class DbContextSaveAttribute : Attribute, IAsyncActionFilter
     }
 }
 
-public class TmpController : ODataController
+[Route("/api")]
+[ApiController]
+public class ExampleController : ControllerBase
 {
     private readonly AppDbContext context;
 
-    public TmpController(AppDbContext context)
+    public ExampleController(AppDbContext context)
     {
         this.context = context;
     }
 
-    [EnableQuery]
-    public IActionResult ODataTest()
-    {
-        return Ok(context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>());
-    }
-}
-
-public class ExampleController : ODataController
-{
+    [HttpGet]
     [EnableQuery]
     public IActionResult Get()
     {
