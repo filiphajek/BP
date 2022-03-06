@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.OData.ModelBuilder;
 using TaskLauncher.Api.Contracts.Responses;
 using Microsoft.OData.Edm;
+using Microsoft.AspNetCore.OData.Routing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,7 +46,9 @@ builder.Services.AddSingleton(serviceAddresses);
 //pridani kontroleru s error stranky
 builder.Services.AddControllersWithViews()
     .AddApplicationPart(typeof(TasksController).Assembly)
-    .AddOData(opt => opt.AddRouteComponents("odata", GetTaskEdmModel("Example")).AddRouteComponents("odata2", GetTaskEdmModel("Admin"))
+    .AddOData(opt => opt
+    .AddRouteComponents("odata", GetTaskEdmModel("Example"))
+    .AddRouteComponents("odata3", GetTaskEdmModel("Admin"))
     .Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
 
 builder.Services.AddRazorPages();
@@ -190,6 +193,27 @@ app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.Use(Test);
+
+static async Task Test(HttpContext context, Func<Task> next)
+{
+    var endpoint = context.GetEndpoint();
+    if (endpoint == null)
+    {
+        await next();
+    }
+
+    IEnumerable<string> templates;
+    IODataRoutingMetadata metadata = endpoint.Metadata.GetMetadata<IODataRoutingMetadata>();
+    if (metadata != null)
+    {
+        templates = metadata.Template.GetTemplates();
+    }
+    await next(); 
+}
+
+
 app.UseAuthentication();
 app.UseAuthorization();
 

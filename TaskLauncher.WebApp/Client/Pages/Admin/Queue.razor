@@ -1,0 +1,45 @@
+﻿@page "/queue"
+@using Microsoft.Extensions.Primitives
+@using TaskLauncher.Api.Contracts.Responses
+@inject NavigationManager NavigationManager
+@inject HttpClient HttpClient
+@attribute [Authorize(Roles = "admin")]
+
+<PageTitle>Task queue</PageTitle>
+
+@if (task.IsCompleted)
+{
+    <GridComponent T="TaskResponse" Grid="@grid"></GridComponent>
+}
+else
+{
+    <p><em>Loading...</em></p>
+}
+
+@code
+{
+    private CGrid<TaskResponse> grid;
+    private Task task;
+
+    Action<IGridColumnCollection<TaskResponse>> columns = c =>
+    {
+        c.Add(o => o.Id);
+        c.Add(o => o.Description);
+        c.Add(o => o.ActualStatus);
+        c.Add(o => o.TaskFile);
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        string url = NavigationManager.BaseUri + "odata3/Admin";
+        var query = new QueryDictionary<StringValues>();
+
+        var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "queueGrid", columns, 10)
+            .ChangePageSize(true)
+            .WithGridItemsCount();
+
+        grid = client.Grid;
+        task = client.UpdateGrid();
+        await task;
+    }
+}

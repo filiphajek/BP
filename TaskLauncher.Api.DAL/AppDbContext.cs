@@ -16,6 +16,9 @@ public class AppDbContext : DbContext
     public DbSet<TaskEntity> Tasks { get; set; }
     public DbSet<PaymentEntity> Payments { get; set; }
     public DbSet<TokenBalanceEntity> TokenBalances { get; set; }
+    public DbSet<BanEntity> Bans { get; set; }
+    public DbSet<IpEntity> Ips { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -23,6 +26,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<TaskEntity>().HasQueryFilter(i => i.UserId == service.GetUserId());
         modelBuilder.Entity<PaymentEntity>().HasQueryFilter(i => i.UserId == service.GetUserId());
         modelBuilder.Entity<TokenBalanceEntity>().HasQueryFilter(i => i.UserId == service.GetUserId());
+        modelBuilder.Entity<BanEntity>().HasQueryFilter(i => i.UserId == service.GetUserId());
+        modelBuilder.Entity<IpEntity>().HasQueryFilter(i => i.UserId == service.GetUserId());
 
         base.OnModelCreating(modelBuilder);
     }
