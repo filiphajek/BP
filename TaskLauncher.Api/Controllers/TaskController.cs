@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.OData.Query;
 using Mapster;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
+using Microsoft.AspNetCore.OData.Formatter;
 
 namespace TaskLauncher.Api.Controllers;
 
@@ -43,11 +44,16 @@ public class ExampleController : ControllerBase
         this.context = context;
     }
 
-    [HttpGet]
     [EnableQuery]
-    public IActionResult Get()
+    public IActionResult Get(string? id = null) //https://localhost:5001/odata/Example?id=61b0e161678a0c00689644e0
     {
-        var tasks = context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>();
+        if (id is null)
+            return Ok(context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>());
+
+        //if (!User.IsInRole("Admin"))
+        //    return Unauthorized();
+
+        var tasks = context.Tasks.IgnoreQueryFilters().Where(i => i.UserId == id).ProjectToType<TaskResponse>();
         return Ok(tasks);
     }
 }

@@ -26,10 +26,10 @@ using Microsoft.OData.Edm;
 
 var builder = WebApplication.CreateBuilder(args);
 
-static IEdmModel GetEdmModel()
+static IEdmModel GetTaskEdmModel(string name)
 {
     ODataConventionModelBuilder builder = new();
-    builder.EntitySet<TaskResponse>("Example");
+    builder.EntitySet<TaskResponse>(name);
     return builder.GetEdmModel();
 }
 
@@ -45,7 +45,8 @@ builder.Services.AddSingleton(serviceAddresses);
 //pridani kontroleru s error stranky
 builder.Services.AddControllersWithViews()
     .AddApplicationPart(typeof(TasksController).Assembly)
-    .AddOData(opt => opt.AddRouteComponents("odata", GetEdmModel()).Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
+    .AddOData(opt => opt.AddRouteComponents("odata", GetTaskEdmModel("Example")).AddRouteComponents("odata2", GetTaskEdmModel("Admin"))
+    .Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
 
 builder.Services.AddRazorPages();
 
@@ -116,7 +117,7 @@ builder.Services.AddAuthorization(policies =>
     policies.AddPolicy("user-policy", p =>
     {
         p.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
-        p.RequireRole("user");
+        p.RequireRole("admin, user");
     });
 
     policies.AddPolicy("launcher", p =>

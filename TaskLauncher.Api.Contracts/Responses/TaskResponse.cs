@@ -13,6 +13,18 @@ public record TokenBalanceResponse
 }
 
 
+public record TaskResponse2
+{
+    [Key]
+    public Guid Id { get; set; }
+    public string TaskFile { get; set; }
+    public string ResultFile { get; set; }
+    public string UserId { get; set; }
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public TaskState ActualStatus { get; set; } = TaskState.Created;
+}
+
 public record TaskResponse
 {
     [Key]
