@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.WebApp.Server.Hub;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using TaskLauncher.WebApp.Server.Services;
-using TaskLauncher.WebApp.Server.Auth0;
 using TaskLauncher.WebApp.Server.Proxy;
 using TaskLauncher.WebApp.Server.Extensions;
 using Auth0.AspNetCore.Authentication;
@@ -24,13 +22,24 @@ using Microsoft.OData.ModelBuilder;
 using TaskLauncher.Api.Contracts.Responses;
 using Microsoft.OData.Edm;
 using Microsoft.AspNetCore.OData.Routing;
+using TaskLauncher.Api.DAL.Entities;
+using TaskLauncher.Common.Auth0;
 
 var builder = WebApplication.CreateBuilder(args);
 
-static IEdmModel GetTaskEdmModel(string name)
+static IEdmModel GetAdminEdmModel()
 {
     ODataConventionModelBuilder builder = new();
-    builder.EntitySet<TaskResponse>(name);
+    builder.EntitySet<PaymentEntity>("Payment");
+    builder.EntitySet<TaskResponse>("Task");
+    return builder.GetEdmModel();
+}
+
+static IEdmModel GetUserEdmModel()
+{
+    ODataConventionModelBuilder builder = new();
+    builder.EntitySet<PaymentEntity>("Payment");
+    builder.EntitySet<TaskResponse>("Task");
     return builder.GetEdmModel();
 }
 
@@ -43,12 +52,12 @@ var serviceAddresses = new ServiceAddresses();
 builder.Configuration.Bind(nameof(ServiceAddresses), serviceAddresses);
 builder.Services.AddSingleton(serviceAddresses);
 
-//pridani kontroleru s error stranky
+//pridani kontroleru s error stranky a pridani protokolu odata
 builder.Services.AddControllersWithViews()
     .AddApplicationPart(typeof(TasksController).Assembly)
     .AddOData(opt => opt
-    .AddRouteComponents("odata", GetTaskEdmModel("Example"))
-    .AddRouteComponents("odata3", GetTaskEdmModel("Admin"))
+    .AddRouteComponents("odata/user", GetUserEdmModel())
+    .AddRouteComponents("odata/admin", GetAdminEdmModel())
     .Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
 
 builder.Services.AddRazorPages();
@@ -67,7 +76,8 @@ builder.Configuration.Bind(nameof(Auth0ApiConfiguration), auth0config);
 //cache
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSingleton<Cache<AccessToken>>();
-builder.Services.AddScoped<ManagementTokenService>();
+builder.Services.AddSingleton<ManagementTokenService>();
+builder.Services.AddSingleton<ManagementApiClientFactory>();
 
 //pristup do google bucket storage
 builder.Services.Configure<StorageConfiguration>(builder.Configuration.GetSection(nameof(StorageConfiguration)));
@@ -120,7 +130,7 @@ builder.Services.AddAuthorization(policies =>
     policies.AddPolicy("user-policy", p =>
     {
         p.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
-        p.RequireRole("admin, user");
+        p.RequireRole("admin", "user");
     });
 
     policies.AddPolicy("launcher", p =>

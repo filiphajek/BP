@@ -20,6 +20,7 @@ public class AdminController : ControllerBase
         this.context = context;
     }
 
+    [HttpGet("tasks")]
     [EnableQuery]
     public IActionResult Get()
     {

@@ -1,7 +1,9 @@
-﻿using Microsoft.Extensions.Options;
-using TaskLauncher.WebApp.Server.Services;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
+using TaskLauncher.Common.Services;
 
-namespace TaskLauncher.WebApp.Server.Auth0;
+namespace TaskLauncher.Common.Auth0;
 
 public class ManagementTokenService
 {
@@ -22,6 +24,15 @@ public class ManagementTokenService
         this.logger = logger;
         this.cache = cache;
         this.config = config.Value;
+    }
+
+    public bool TokenExpired(string api_name)
+    {
+        var accessToken = cache.Get(api_name);
+        if (accessToken is null)
+            return false;
+
+        return accessToken.ExpiresIn > DateTime.UtcNow;
     }
 
     public async Task<string> GetApiToken(HttpClient client, string api_name)

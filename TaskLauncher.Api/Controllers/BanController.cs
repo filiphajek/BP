@@ -1,33 +1,33 @@
-﻿using Auth0.ManagementApi;
+﻿using Mapster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using TaskLauncher.Api.Controllers;
+using TaskLauncher.Api.Contracts.Requests;
+using TaskLauncher.Api.Contracts.Responses;
+using TaskLauncher.Api.Controllers.Base;
 using TaskLauncher.Api.DAL;
 using TaskLauncher.Api.DAL.Entities;
-using TaskLauncher.WebApp.Server.Auth0;
+using TaskLauncher.Common.Auth0;
 
-namespace TaskLauncher.WebApp.Server.Controllers;
+namespace TaskLauncher.Api.Controllers;
 
-[Authorize(Policy = "admin-policy")]
 public class BanController : BaseController
 {
     private readonly AppDbContext context;
-    private readonly ManagementTokenService managementTokenService;
+    private readonly ManagementApiClientFactory clientFactory;
 
-    public BanController(ILogger<BanController> logger, AppDbContext context, ManagementTokenService managementTokenService) : base(logger)
+    public BanController(ILogger<BanController> logger, AppDbContext context, ManagementApiClientFactory clientFactory) : base(logger)
     {
         this.context = context;
-        this.managementTokenService = managementTokenService;
+        this.clientFactory = clientFactory;
     }
 
+    [Authorize(Policy = "admin-policy")]
     [HttpPut]
     public async Task<IActionResult> BanUserAsync(BanUserRequest request)
     {
-        var accessToken = await managementTokenService.GetApiToken(new(), "managment_api");
-        ManagementApiClient auth0client = new(accessToken, "localhost:5001");
+        var auth0client = await clientFactory.GetClient();
 
         var ban = new BanEntity { Description = request.Reason, UserId = request.UserId, Started = DateTime.Now };
         await context.Bans.AddAsync(ban);
@@ -41,13 +41,13 @@ public class BanController : BaseController
         return Ok(tmp);
     }
 
+    [Authorize(Policy = "admin-policy")]
     [HttpGet("cancel")]
     public async Task<IActionResult> UnBanUserAsync(string id)
     {
-        var accessToken = await managementTokenService.GetApiToken(new(), "managment_api");
-        ManagementApiClient auth0client = new(accessToken, "localhost:5001");
-        var user = await auth0client.Users.GetAsync(id);
+        var auth0client = await clientFactory.GetClient();
 
+        var user = await auth0client.Users.GetAsync(id);
         if (user.Blocked.HasValue && !user.Blocked.Value)
             return BadRequest();
 
@@ -63,17 +63,14 @@ public class BanController : BaseController
         return Ok(tmp);
     }
 
-    [HttpGet("userdetail")]
-    public async Task<IActionResult> GetAllIps()
+    [Authorize(Policy = "admin-policy")]
+    [HttpGet]
+    public IActionResult GetAllBans(string? userId = null)
     {
-        var tmp = await context.Ips.ToListAsync();
-        return Ok(tmp);
-        //chcem videt bany, ip, balance, platby -> vse pres odata a na frontendu tam budou takovy karty
-    }
-}
+        if (userId is null)
+            return Ok(context.Ips.IgnoreQueryFilters().ProjectToType<BanResponse>());
 
-public record BanUserRequest
-{
-    public string UserId { get; set; }
-    public string Reason { get; set; }
+        var allIps = context.Ips.IgnoreQueryFilters().Where(i => i.UserId == userId).ProjectToType<BanResponse>();
+        return Ok(allIps);
+    }
 }

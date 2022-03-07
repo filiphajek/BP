@@ -10,6 +10,7 @@ public record ErrorResponse
 
 public record BanResponse
 {
+    public Guid Id { get; set; }
     public DateTime Started { get; set; }
     public DateTime? Ended { get; set; }
     public string Description { get; set; }
@@ -17,6 +18,7 @@ public record BanResponse
 
 public record PaymentResponse
 {
+    public Guid Id { get; set; }
     public TaskResponse Task { get; set; }
     public DateTime Time { get; set; }
     public double Price { get; set; }

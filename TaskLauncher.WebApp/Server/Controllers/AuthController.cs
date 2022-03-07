@@ -4,12 +4,15 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
+using TaskLauncher.Api.DAL;
+using TaskLauncher.Common.Auth0;
+using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
-using TaskLauncher.WebApp.Server.Auth0;
 
 namespace TaskLauncher.WebApp.Server.Controllers;
 
@@ -20,12 +23,14 @@ namespace TaskLauncher.WebApp.Server.Controllers;
 [Route("[controller]")]
 public class AuthController : ControllerBase
 {
+    private readonly AppDbContext context;
     private readonly IHttpClientFactory clientFactory;
     private readonly ILogger<AuthController> logger;
     private readonly Auth0ApiConfiguration config;
 
-    public AuthController(IHttpClientFactory clientFactory, ILogger<AuthController> logger, IOptions<Auth0ApiConfiguration> config)
+    public AuthController(AppDbContext context, IHttpClientFactory clientFactory, ILogger<AuthController> logger, IOptions<Auth0ApiConfiguration> config)
     {
+        this.context = context;
         this.clientFactory = clientFactory;
         this.logger = logger;
         this.config = config.Value;
@@ -37,6 +42,13 @@ public class AuthController : ControllerBase
     [HttpGet("login")]
     public async Task Login()
     {
+        var ip = await context.Ips.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Ipv4 == HttpContext.Connection.RemoteIpAddress!.ToString());
+        if (ip is not null && ip.Banned)
+        {
+            HttpContext.Response.StatusCode = 402;
+            return;
+        }
+
         var authenticationProperties = new LoginAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
         await HttpContext.ChallengeAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
     }
@@ -71,11 +83,26 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpGet("user")]
     [AllowAnonymous]
-    public IActionResult GetUserData()
+    public async Task<IActionResult> GetUserData()
     {
         if (User.Identity is null)
             return Ok(UserInfo.Anonymous);
-        return Ok(User.Identity.IsAuthenticated ? CreateUserInfo(User) : UserInfo.Anonymous);
+
+        if (!User.Identity.IsAuthenticated)
+            return Ok(UserInfo.Anonymous);
+
+        //adresy je rovnou lepsi zbirat pres auth0 managment api .. ale takhle pres httpcontext asi taky good
+        var address = HttpContext.Connection.RemoteIpAddress?.ToString();
+        if (address is not null)
+        {
+            if (!await context.Ips.AnyAsync(i => i.Ipv4 == address) && User.TryGetAuth0Id(out var userId))
+            {
+                await context.Ips.AddAsync(new() { Ipv4 = address, UserId = userId });
+                await context.SaveChangesAsync();
+            }
+        }
+
+        return Ok(CreateUserInfo(User));
     }
 
     private static UserInfo CreateUserInfo(ClaimsPrincipal claimsPrincipal)

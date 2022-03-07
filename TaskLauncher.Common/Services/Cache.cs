@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
 
-namespace TaskLauncher.WebApp.Server.Services;
+namespace TaskLauncher.Common.Services;
 
 public class Cache<T> where T : class
 {

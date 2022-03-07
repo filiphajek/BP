@@ -1,4 +1,4 @@
-﻿namespace TaskLauncher.WebApp.Server.Auth0;
+﻿namespace TaskLauncher.Common.Auth0;
 
 public class Auth0ApiConfiguration
 {

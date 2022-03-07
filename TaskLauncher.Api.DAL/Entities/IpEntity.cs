@@ -4,4 +4,5 @@ public record IpEntity : BaseEntity, IUserKeyProtection
 {
     public string UserId { get; set; }
     public string Ipv4 { get; set; }
+    public bool Banned { get; set; } = false;
 }

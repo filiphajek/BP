@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
-using TaskLauncher.WebApp.Server.Auth0;
+using TaskLauncher.Common.Auth0;
 
 namespace TaskLauncher.WebApp.Server.Proxy;
 

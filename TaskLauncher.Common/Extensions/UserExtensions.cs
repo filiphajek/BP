@@ -1,14 +1,15 @@
-﻿using Mapster;
+﻿using Auth0.ManagementApi.Models;
+using Mapster;
 using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.Common.Extensions;
 
 public static class UserExtensions
 {
-    public static UserModel GetModel(this Auth0.ManagementApi.Models.User user)
+    public static UserModel GetModel(this User user)
     {
         var config = new TypeAdapterConfig();
-        config.ForType<Auth0.ManagementApi.Models.User, UserModel>()
+        config.ForType<User, UserModel>()
             .Ignore(i => i.UserMetadata)
             .Ignore(i => i.AppMetadata)
             .Ignore(i => i.ProviderAttributes);

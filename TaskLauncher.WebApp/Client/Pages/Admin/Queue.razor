@@ -31,7 +31,7 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        string url = NavigationManager.BaseUri + "odata3/Admin";
+        string url = NavigationManager.BaseUri + "odata/admin/task";
         var query = new QueryDictionary<StringValues>();
 
         var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "queueGrid", columns, 10)

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskLauncher.Api.Contracts.Responses;
+using TaskLauncher.Api.Controllers.Base;
 using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Api.DAL.Repositories;
 

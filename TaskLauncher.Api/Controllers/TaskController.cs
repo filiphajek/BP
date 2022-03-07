@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.OData.Query;
 using Mapster;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Formatter;
+using TaskLauncher.Api.Controllers.Base;
 
 namespace TaskLauncher.Api.Controllers;
 
@@ -30,31 +31,6 @@ public class DbContextSaveAttribute : Attribute, IAsyncActionFilter
         var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
         await next();
         await dbContext.SaveChangesAsync();
-    }
-}
-
-[Route("/api")]
-[ApiController]
-public class ExampleController : ControllerBase
-{
-    private readonly AppDbContext context;
-
-    public ExampleController(AppDbContext context)
-    {
-        this.context = context;
-    }
-
-    [EnableQuery]
-    public IActionResult Get(string? id = null) //https://localhost:5001/odata/Example?id=61b0e161678a0c00689644e0
-    {
-        if (id is null)
-            return Ok(context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>());
-
-        //if (!User.IsInRole("Admin"))
-        //    return Unauthorized();
-
-        var tasks = context.Tasks.IgnoreQueryFilters().Where(i => i.UserId == id).ProjectToType<TaskResponse>();
-        return Ok(tasks);
     }
 }
 
@@ -98,7 +74,6 @@ public class TasksController : BaseController
 
     /// <summary>
     /// Vraci vsechny tasky
-    /// TODO PAGING
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<List<TaskResponse>>> GetAllTasksAsync()
@@ -124,7 +99,6 @@ public class TasksController : BaseController
     /// <summary>
     /// Vytvoreni noveho tasku
     /// </summary>
-    [DbContextSave]
     [HttpPost]
     public async Task<ActionResult<TaskResponse>> CreateTaskAsync([FromForm] TaskCreateRequest request, IFormFile file)
     {
