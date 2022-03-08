@@ -35,7 +35,7 @@ public class ManagementTokenService
         return accessToken.ExpiresIn > DateTime.UtcNow;
     }
 
-    public async Task<string> GetApiToken(HttpClient client, string api_name)
+    public async Task<string> GetApiToken(HttpClient client, string api_name, bool audienceIsDomain = true)
     {
         var accessToken = cache.Get(api_name);
 
@@ -49,21 +49,25 @@ public class ManagementTokenService
 
         logger.LogDebug("New token for management api");
 
-        var newAccessToken = await GetApiTokenClient(client);
+        var newAccessToken = await GetApiTokenClient(client, true);
         cache.Add(api_name, newAccessToken);
 
         return newAccessToken.AcessToken;
     }
 
-    private async Task<AccessToken> GetApiTokenClient(HttpClient client)
+    private async Task<AccessToken> GetApiTokenClient(HttpClient client, bool audienceIsDomain)
     {
+        string aud = $"https://{config.Domain}/api/v2/";
+        if(!audienceIsDomain)
+            aud = config.Audience;
+        
         try
         {
             var payload = new
             {
                 client_id = config.ClientId,
                 client_secret = config.ClientSecret,
-                audience = $"https://{config.Domain}/api/v2/",
+                audience = aud,
                 grant_type = "client_credentials"
             };
 

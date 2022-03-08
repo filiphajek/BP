@@ -1,0 +1,67 @@
+﻿@page "/registration"
+@using Auth0.ManagementApi.Models
+@using MapsterMapper
+@using TaskLauncher.Common.Models
+@attribute [Authorize(Policy = "not-registered")]
+@inject SpaManagementApiClient client
+@inject IMapper mapper
+
+<EditForm Model="UserModel" OnValidSubmit="SignUpAsync">
+    <DataAnnotationsValidator />
+    
+    <div class="field">
+        <label class="label">First name</label>
+        <div class="control">
+            <InputText id="firstName" class="input" @bind-Value="@UserModel.FirstName"></InputText>
+            <ValidationMessage For="@(() => UserModel.FirstName)" />
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Last name</label>
+        <div class="control">
+            <InputText id="lastName" class="input" @bind-Value="@UserModel.LastName"></InputText>
+            <ValidationMessage For="@(() => UserModel.LastName)" />
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Nick name</label>
+        <div class="control">
+            <InputText id="nickName" class="input" @bind-Value="@UserModel.NickName"></InputText>
+            <ValidationMessage For="@(() => UserModel.NickName)" />
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Phone</label>
+        <div class="control">
+            <InputText id="phoneNumber" class="input" @bind-Value="@UserModel.PhoneNumber"></InputText>
+            <ValidationMessage For="@(() => UserModel.PhoneNumber)" />
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Picture</label>
+        <div class="control">
+            <InputText id="picture" class="input" @bind-Value="@UserModel.Picture"></InputText>
+            <ValidationMessage For="@(() => UserModel.Picture)" />
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="control">
+            <button type="submit" class="btn btn-primary">Sign up</button>
+        </div>
+    </div>
+</EditForm>
+
+@code{
+    public UserRegistrationModel UserModel { get; set; }
+
+
+    async Task SignUpAsync()
+    {
+        var result = await client.Users.UpdateAsync("", mapper.Map<UserUpdateRequest>(UserModel));
+    }
+}

@@ -1,4 +1,7 @@
 using Auth0.AspNetCore.Authentication;
+using Auth0.AuthenticationApi;
+using Auth0.ManagementApi.Models;
+using MapsterMapper;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -6,11 +9,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using System.Globalization;
 using System.Security.Claims;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Api.DAL;
-using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Common.Auth0;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
@@ -27,13 +31,18 @@ public class AuthController : ControllerBase
     private readonly AppDbContext context;
     private readonly IHttpClientFactory clientFactory;
     private readonly ILogger<AuthController> logger;
+    private readonly ManagementApiClientFactory apiClientFactory;
+    private readonly IMapper mapper;
     private readonly Auth0ApiConfiguration config;
 
-    public AuthController(AppDbContext context, IHttpClientFactory clientFactory, ILogger<AuthController> logger, IOptions<Auth0ApiConfiguration> config)
+    public AuthController(AppDbContext context, IHttpClientFactory clientFactory, ILogger<AuthController> logger, 
+        IOptions<Auth0ApiConfiguration> config, ManagementApiClientFactory apiClientFactory, IMapper mapper)
     {
         this.context = context;
         this.clientFactory = clientFactory;
         this.logger = logger;
+        this.apiClientFactory = apiClientFactory;
+        this.mapper = mapper;
         this.config = config.Value;
     }
 
@@ -84,11 +93,33 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpGet("user")]
     [AllowAnonymous]
-    public IActionResult GetUserData()
+    public async Task<IActionResult> GetUserData()
     {
-        if (User.Identity is null)
+        if (User.Identity is null || !User.Identity.IsAuthenticated)
             return Ok(UserInfo.Anonymous);
-        return Ok(User.Identity.IsAuthenticated ? CreateUserInfo(User) : UserInfo.Anonymous);
+
+        var client = new AuthenticationApiClient(new Uri($"https://{config.Domain}"));
+        var response = await client.GetTokenAsync(new Auth0.AuthenticationApi.Models.RefreshTokenRequest
+        {
+            RefreshToken = await HttpContext.GetTokenAsync("refresh_token"),
+            Audience = "https://wutshot-test-api.com",
+            ClientId = config.ClientId,
+            ClientSecret = config.ClientSecret,
+            Scope = "openid profile email",
+            SigningAlgorithm = JwtSignatureAlgorithm.RS256
+        });
+
+        var auth = await HttpContext.AuthenticateAsync("Cookies");
+        if (auth.Properties is null || auth.Principal is null)
+            return Ok(UserInfo.Anonymous);
+
+        auth.Properties.UpdateTokenValue("refresh_token", response.RefreshToken);
+        auth.Properties.UpdateTokenValue("access_token", response.AccessToken);
+        auth.Properties.UpdateTokenValue("id_token", response.IdToken);
+        
+        await HttpContext.SignInAsync("Cookies", auth.Principal, auth.Properties);
+
+        return Ok(CreateUserInfo(User));
     }
 
     private static UserInfo CreateUserInfo(ClaimsPrincipal claimsPrincipal)
@@ -162,5 +193,19 @@ public class AuthController : ControllerBase
     public IActionResult AuthorizedEndpoints()
     {
         return Ok(new { value = "hello "});
+    }
+
+    [Authorize]
+    [HttpPost("/signup")]
+    public async Task<IActionResult> SignUpAsync(UserModel request)
+    {
+        var auth0client = await apiClientFactory.GetClient();
+        if (!User.TryGetAuth0Id(out var userId))
+            return BadRequest();
+        
+        var result = await auth0client.Users.UpdateAsync(userId, mapper.Map<UserUpdateRequest>(request));
+        if(result is null)
+            return BadRequest();
+        return Ok();
     }
 }

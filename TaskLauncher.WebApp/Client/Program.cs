@@ -6,6 +6,8 @@ using TaskLauncher.WebApp.Client.Authentication;
 using System.Net.Http.Headers;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.WebApp.Client.Services;
+using MapsterMapper;
+using Mapster;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -33,8 +35,25 @@ builder.Services.AddScoped<SpaManagementApiClient>();
 
 builder.Services.AddScoped<IUserProvider, UserProvider>();
 
+var config = new TypeAdapterConfig();
+config.Scan(typeof(Program).Assembly);
+builder.Services.AddSingleton(config);
+builder.Services.AddScoped<IMapper, ServiceMapper>();
+
 //autorizace
-builder.Services.AddAuthorizationCore();
+builder.Services.AddAuthorizationCore(config =>
+{
+    config.AddPolicy("not-registered", p =>
+    {
+        p.RequireClaim("registered", "false");
+    });
+    config.AddPolicy("user-policy", p =>
+    {
+        p.RequireRole("user", "admin");
+        p.RequireClaim("emailverified", "true");
+        p.RequireClaim("registered", "true");
+    });
+});
 builder.Services.AddSingleton<AuthenticationStateProvider, HostAuthenticationStateProvider>();
 builder.Services.AddSingleton(sp => (HostAuthenticationStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 builder.Services.AddTransient<AuthorizedHandler>();

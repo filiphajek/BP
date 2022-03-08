@@ -206,26 +206,6 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.Use(Test);
-
-static async Task Test(HttpContext context, Func<Task> next)
-{
-    var endpoint = context.GetEndpoint();
-    if (endpoint == null)
-    {
-        await next();
-    }
-
-    IEnumerable<string> templates;
-    IODataRoutingMetadata metadata = endpoint.Metadata.GetMetadata<IODataRoutingMetadata>();
-    if (metadata != null)
-    {
-        templates = metadata.Template.GetTemplates();
-    }
-    await next(); 
-}
-
-
 app.UseAuthentication();
 app.UseAuthorization();
 
