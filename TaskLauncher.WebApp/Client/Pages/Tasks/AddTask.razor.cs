@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.WebApp.Client.Models;
 
-namespace TaskLauncher.WebApp.Client.Pages;
+namespace TaskLauncher.WebApp.Client.Pages.Tasks;
 
 public partial class AddTask
 {
@@ -37,8 +37,8 @@ public partial class AddTask
 
         using (var stream = file.OpenReadStream())
         {
-            var response = await client.SendMultipartFormDataAsync("api/tasks", stream, Model, file.Name);
-            if(response.IsSuccessStatusCode)
+            var response = await client.SendMultipartFormDataAsync("api/task", stream, Model, file.Name);
+            if (response.IsSuccessStatusCode)
             {
                 navigationManager.NavigateTo("/tasks", true);
             }

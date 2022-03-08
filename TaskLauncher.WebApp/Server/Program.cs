@@ -24,13 +24,14 @@ using Microsoft.OData.Edm;
 using Microsoft.AspNetCore.OData.Routing;
 using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Common.Auth0;
+using TaskLauncher.WebApp.Server;
 
 var builder = WebApplication.CreateBuilder(args);
 
 static IEdmModel GetAdminEdmModel()
 {
     ODataConventionModelBuilder builder = new();
-    builder.EntitySet<PaymentEntity>("Payment");
+    builder.EntitySet<PaymentResponse>("Payment");
     builder.EntitySet<TaskResponse>("Task");
     return builder.GetEdmModel();
 }
@@ -38,7 +39,7 @@ static IEdmModel GetAdminEdmModel()
 static IEdmModel GetUserEdmModel()
 {
     ODataConventionModelBuilder builder = new();
-    builder.EntitySet<PaymentEntity>("Payment");
+    builder.EntitySet<PaymentResponse>("Payment");
     builder.EntitySet<TaskResponse>("Task");
     return builder.GetEdmModel();
 }
@@ -54,7 +55,7 @@ builder.Services.AddSingleton(serviceAddresses);
 
 //pridani kontroleru s error stranky a pridani protokolu odata
 builder.Services.AddControllersWithViews()
-    .AddApplicationPart(typeof(TasksController).Assembly)
+    .AddApplicationPart(typeof(TokenController).Assembly)
     .AddOData(opt => opt
     .AddRouteComponents("odata/user", GetUserEdmModel())
     .AddRouteComponents("odata/admin", GetAdminEdmModel())
@@ -163,6 +164,7 @@ builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
+    //c.DocumentFilter<SwaggerFilter>();
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskLauncher", Version = "v1" });
     //c.ExampleFilters();
     var securitySchema = new OpenApiSecurityScheme

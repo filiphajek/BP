@@ -10,6 +10,7 @@ using System.Security.Claims;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Api.DAL;
+using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Common.Auth0;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
@@ -42,8 +43,8 @@ public class AuthController : ControllerBase
     [HttpGet("login")]
     public async Task Login()
     {
-        var ip = await context.Ips.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Ipv4 == HttpContext.Connection.RemoteIpAddress!.ToString());
-        if (ip is not null && ip.Banned)
+        var ip = await context.IpBans.SingleOrDefaultAsync(i => i.Ip == HttpContext.Connection.RemoteIpAddress!.ToString());
+        if (ip is not null)
         {
             HttpContext.Response.StatusCode = 402;
             return;
@@ -83,26 +84,11 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpGet("user")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetUserData()
+    public IActionResult GetUserData()
     {
         if (User.Identity is null)
             return Ok(UserInfo.Anonymous);
-
-        if (!User.Identity.IsAuthenticated)
-            return Ok(UserInfo.Anonymous);
-
-        //adresy je rovnou lepsi zbirat pres auth0 managment api .. ale takhle pres httpcontext asi taky good
-        var address = HttpContext.Connection.RemoteIpAddress?.ToString();
-        if (address is not null)
-        {
-            if (!await context.Ips.AnyAsync(i => i.Ipv4 == address) && User.TryGetAuth0Id(out var userId))
-            {
-                await context.Ips.AddAsync(new() { Ipv4 = address, UserId = userId });
-                await context.SaveChangesAsync();
-            }
-        }
-
-        return Ok(CreateUserInfo(User));
+        return Ok(User.Identity.IsAuthenticated ? CreateUserInfo(User) : UserInfo.Anonymous);
     }
 
     private static UserInfo CreateUserInfo(ClaimsPrincipal claimsPrincipal)

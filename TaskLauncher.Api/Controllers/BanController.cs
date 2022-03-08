@@ -29,6 +29,10 @@ public class BanController : BaseController
     {
         var auth0client = await clientFactory.GetClient();
 
+        var user = await auth0client.Users.GetAsync(request.UserId);
+        if (user.Blocked.HasValue && user.Blocked.Value)
+            return BadRequest();
+
         var ban = new BanEntity { Description = request.Reason, UserId = request.UserId, Started = DateTime.Now };
         await context.Bans.AddAsync(ban);
 
@@ -38,6 +42,7 @@ public class BanController : BaseController
             Blocked = true
         });
 
+        await context.SaveChangesAsync();
         return Ok(tmp);
     }
 
@@ -53,6 +58,12 @@ public class BanController : BaseController
 
         Guid banId = user.AppMetadata.banid.Value;
         var ban = await context.Bans.SingleOrDefaultAsync(i => i.Id == banId);
+        if (ban is null)
+            return BadRequest();
+
+        ban.Ended = DateTime.Now;
+        context.Update(ban);
+        await context.SaveChangesAsync();
 
         var tmp = (await auth0client.Users.UpdateAsync(id, new()
         {
@@ -63,14 +74,41 @@ public class BanController : BaseController
         return Ok(tmp);
     }
 
-    [Authorize(Policy = "admin-policy")]
-    [HttpGet]
-    public IActionResult GetAllBans(string? userId = null)
+    [HttpGet("banusersip")]
+    public async Task<IActionResult> BanUsersIpAddresses(string userId)
     {
-        if (userId is null)
-            return Ok(context.Ips.IgnoreQueryFilters().ProjectToType<BanResponse>());
+        /*var ips = await Task.Delay(10); //get user
 
-        var allIps = context.Ips.IgnoreQueryFilters().Where(i => i.UserId == userId).ProjectToType<BanResponse>();
-        return Ok(allIps);
+        foreach(var ip in ips)
+        {
+            ip.Address.Banned = true;
+            context.Update(ip);
+        }*/
+        await context.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpGet("banip")]
+    public async Task<IActionResult> BanIpAddress(string address)
+    {
+        var ip = await context.IpBans.SingleOrDefaultAsync(i => i.Ip == address);
+        if (ip is not null)
+            return Ok();
+        
+        await context.IpBans.AddAsync(new IpBanEntity { Ip = address });
+        await context.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpGet("unbanip")]
+    public async Task<IActionResult> UnBanIpAddress(string address)
+    {
+        var ip = await context.IpBans.SingleOrDefaultAsync(i => i.Ip == address);
+        if(ip is null)
+            return NotFound();
+
+        context.Remove(ip);
+        await context.SaveChangesAsync();
+        return Ok();
     }
 }

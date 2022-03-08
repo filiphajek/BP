@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Newtonsoft.Json;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
 
@@ -42,5 +43,45 @@ public partial class Profile
 
         User = (await auth0client.Users.GetAsync(Id)).GetModel();
         loading = false;
+    }
+
+    async Task UnVipAsync()
+    {
+        User = (await auth0client.Users.UpdateAsync(User.UserId, new()
+        {
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false }")
+        })).GetModel();
+    }
+
+    async Task VipAsync()
+    {
+        User = (await auth0client.Users.UpdateAsync(User.UserId, new()
+        {
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': true }")
+        })).GetModel();
+    }
+
+    async Task BanUserAsync()
+    {
+        //var tmp = await auth0client.UserBlocks.GetByUserIdAsync(User.UserId); // blocked for
+        User = (await auth0client.Users.UpdateAsync(User.UserId, new()
+        {
+            Blocked = true
+        })).GetModel();
+        StateHasChanged();
+    }
+
+    async Task UnBanUserAsync()
+    {
+        User = (await auth0client.Users.UpdateAsync(User.UserId, new()
+        {
+            Blocked = false
+        })).GetModel();
+        StateHasChanged();
+    }
+
+    async Task CancelAsync()
+    {
+        //nejakej warning a pak vse smazat
     }
 }

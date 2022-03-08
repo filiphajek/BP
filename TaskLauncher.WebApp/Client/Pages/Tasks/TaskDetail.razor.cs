@@ -7,7 +7,7 @@ using TaskLauncher.Common.Models;
 using System.Net.Http.Json;
 using TaskLauncher.Common.Enums;
 
-namespace TaskLauncher.WebApp.Client.Pages;
+namespace TaskLauncher.WebApp.Client.Pages.Tasks;
 
 public partial class TaskDetail
 {
@@ -31,14 +31,8 @@ public partial class TaskDetail
     private bool isRunning = false;
     private bool isLoading = true;
 
-    protected override async Task OnParametersSetAsync()
+    async Task StartSignalRClient()
     {
-        Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/tasks/" + Id.ToString());
-        if (Task is null)
-        {
-            navigationManager.NavigateTo("tasks");
-            return;
-        }
         hubConnection = new HubConnectionBuilder()
             .WithUrl(serviceAddresses.HubAddress)
             .WithAutomaticReconnect()
@@ -46,6 +40,17 @@ public partial class TaskDetail
 
         hubConnection.OnTaskStatusChanged(StatusChanged);
         await hubConnection.StartAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/task/" + Id.ToString());
+        if (Task is null)
+        {
+            navigationManager.NavigateTo("tasks");
+            return;
+        }
+        //await StartSignalRClient();
         isLoading = false;
     }
 
@@ -65,12 +70,6 @@ public partial class TaskDetail
             isRunning = false;
         }*/
         StateHasChanged();
-    }
-
-    private async Task StartTask()
-    {
-        isRunning = true;
-        await hubConnection.InvokeStartTask(new() { TaskId = Task.Id });
     }
 
     private async Task CancelTask()

@@ -1,21 +1,22 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Mapster;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Api.Controllers.Base;
 using TaskLauncher.Api.DAL;
-using TaskLauncher.Api.DAL.Entities;
 
 namespace TaskLauncher.Api.Controllers.Admin;
 
-public class PaymentController : AdminODataController<PaymentEntity>
+public class PaymentController : AdminODataController<PaymentResponse>
 {
     public PaymentController(AppDbContext context) : base(context) { }
 
-    public override ActionResult<PaymentEntity> Get(string userId = "") //https://localhost:5001/test/adminpayment?userid=6225224ff0bca300691d9bd8&$select=id
+    public override ActionResult<IQueryable<PaymentResponse>> Get(string userId = "")
     {
         if (string.IsNullOrEmpty(userId))
         {
             return Ok(context.Payments.IgnoreQueryFilters());
         }
-        return Ok(context.Payments.IgnoreQueryFilters().Where(i => i.UserId == userId));
+        return Ok(context.Payments.IgnoreQueryFilters().Where(i => i.UserId == userId).ProjectToType<PaymentResponse>());
     }
 }

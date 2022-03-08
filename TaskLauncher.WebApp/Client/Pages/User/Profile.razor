@@ -1,15 +1,52 @@
 ﻿@page "/profile"
 @page "/profile/{id}"
 
-<AuthorizeView>
-    <Authorized>
-        <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
-            <ContentTemplate>
+<SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
+    <ContentTemplate>
+        <AuthorizeView>
+            <Authorized>
                 <ProfileComponent User=User />
-            </ContentTemplate>
-        </SpinLoader>
-    </Authorized>
-    <NotAuthorized>
-        You have to login
-    </NotAuthorized>
-</AuthorizeView>
+            </Authorized>
+            <NotAuthorized>
+                You have to login
+            </NotAuthorized>
+        </AuthorizeView>
+
+        @if (!string.IsNullOrEmpty(Id))
+        {
+            <AuthorizeView Roles="admin">
+                <Authorized>
+                    <a href="@User.UserId/tasks" class="btn btn-info">Show users tasks</a>
+
+                    @if (User.Blocked.HasValue && User.Blocked.Value)
+                    {
+                        <button class="btn btn-success" @onclick="UnBanUserAsync">Unban user</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-danger" @onclick="BanUserAsync">Ban user</button>
+                    }
+
+                    @if (User.Vip)
+                    {
+                        <button class="btn btn-danger" @onclick="UnVipAsync">Take off vip</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-success" @onclick="VipAsync">Give vip</button>
+                    }
+                    <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
+                </Authorized>
+            </AuthorizeView>
+        }
+        else
+        {
+            <AuthorizeView Roles="user">
+                <Authorized>
+                    <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
+                </Authorized>
+            </AuthorizeView>
+        }
+
+    </ContentTemplate>
+</SpinLoader>

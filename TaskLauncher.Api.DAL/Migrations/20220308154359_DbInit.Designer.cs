@@ -12,8 +12,8 @@ using TaskLauncher.Api.DAL;
 namespace TaskLauncher.Api.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20220307115111_IpBan")]
-    partial class IpBan
+    [Migration("20220308154359_DbInit")]
+    partial class DbInit
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -49,6 +49,20 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.ToTable("Bans");
                 });
 
+            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.ConfigEntity", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("Configs");
+                });
+
             modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.EventEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -75,26 +89,14 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.ToTable("Events");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.IpEntity", b =>
+            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.IpBanEntity", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("Ip")
+                        .HasColumnType("nvarchar(450)");
 
-                    b.Property<bool>("Banned")
-                        .HasColumnType("bit");
+                    b.HasKey("Ip");
 
-                    b.Property<string>("Ipv4")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Ips");
+                    b.ToTable("IpBans");
                 });
 
             modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.PaymentEntity", b =>
