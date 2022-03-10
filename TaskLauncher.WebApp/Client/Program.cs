@@ -56,7 +56,7 @@ builder.Services.AddAuthorizationCore(config =>
 {
     config.AddPolicy("not-registered", p =>
     {
-        p.RequireClaim("registered", "false");
+        p.RequireClaim("https://wutshot-test-api.com/registered", "false");
     });
     config.AddPolicy("user-policy", p =>
     {

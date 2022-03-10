@@ -57,7 +57,7 @@
 </EditForm>
 
 @code{
-    public UserRegistrationModel UserModel { get; set; }
+    public UserRegistrationModel UserModel { get; set; } = new();
 
 
     async Task SignUpAsync()
