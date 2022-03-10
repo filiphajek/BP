@@ -3,16 +3,13 @@ using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
-using RawRabbit.Context;
 using RawRabbit.vNext;
 using System.Xml.Linq;
-using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Services;
 using TaskLauncher.Common.RawRabbit;
 using TaskLauncher.ManagementApi;
-
-// TODO rate limiting https://www.youtube.com/watch?v=GQAgh_z1rHY&ab_channel=NickChapsas
+using TaskLauncher.Api.Contracts.Requests;
 
 static void ConfigInit(string path)
 {
@@ -31,7 +28,7 @@ builder.Services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
 builder.Services.InstallRawRabbitExtensions();
 
 //konfigurace
-builder.Services.Configure<TaskLauncher.ManagementApi.StorageConfiguration>(builder.Configuration.GetSection("Storage"));
+builder.Services.Configure<TaskLauncher.ManagementApi.StorageFileConfiguration>(builder.Configuration.GetSection("Storage"));
 builder.Services.Configure<RawRabbitConfiguration>(builder.Configuration.GetSection("RawRabbitExtensions"));
 builder.Services.Configure<TaskLauncher.Common.Configuration.StorageConfiguration>(builder.Configuration.GetSection(nameof(TaskLauncher.Common.Configuration.StorageConfiguration)));
 
@@ -107,18 +104,18 @@ app.UseAuthorization();
 app.UseHangfireDashboard("/hangfire");
 
 app.MapPost("/api/config", async (IRecurringJobManager client, FileDeletionRoutine routine, 
-    IConfigurationFile fileEditor, IDefaultRabbitMQClient mQClient, AddConfigValueRequest request) =>
+    IConfigurationFile fileEditor, IDefaultRabbitMQClient mQClient, AddOrUpdateConfigValueRequest request) =>
 {
-    fileEditor.Write(request.Name, request.Value);
+    fileEditor.Write(request.Key, request.Value);
 
-    if(request.Name == "autofileremove")
+    if(request.Key == "autofileremove")
     {
         //zmena hangfire schedule
         client.RemoveIfExists(nameof(FileDeletionRoutine));
         client.AddOrUpdate(nameof(FileDeletionRoutine), () => routine.Perform(), Cron.Daily);
     }
 
-    await mQClient.PublishAsync(new ConfigChanged { Name = request.Name, Value = request.Value });
+    await mQClient.PublishAsync(new ConfigChanged { Name = request.Key, Value = request.Value });
 
 }).AllowAnonymous();
 

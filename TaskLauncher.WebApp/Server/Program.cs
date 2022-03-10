@@ -21,11 +21,11 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.OData.ModelBuilder;
 using TaskLauncher.Api.Contracts.Responses;
 using Microsoft.OData.Edm;
-using Microsoft.AspNetCore.OData.Routing;
-using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Common.Auth0;
-using TaskLauncher.WebApp.Server;
 using TaskLauncher.WebApp.Server.Tasks;
+using Hangfire;
+using Hangfire.SqlServer;
+using TaskLauncher.ManagementApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -120,6 +120,22 @@ builder.Services.AddAuthentication(options =>
     options.UseRefreshTokens = true;
 });
 
+//hangfire
+builder.Services.AddRoutines<Program>();
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(builder.Configuration.GetConnectionString("HangfireConnection"), new SqlServerStorageOptions
+    {
+        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+        QueuePollInterval = TimeSpan.Zero,
+        UseRecommendedIsolationLevel = true,
+        DisableGlobalLocks = true
+    }));
+builder.Services.AddHangfireServer();
+
 //autorizacni pravidlo pro signalr endpoint
 builder.Services.AddAuthorization(policies =>
 {
@@ -193,6 +209,7 @@ builder.Services.AddSwaggerGen(c =>
 //builder.Services.AddSwaggerExamplesFromAssemblyOf<CookieLessLoginRequestExample>();
 
 builder.Services.AddScoped<Seeder>();
+builder.Services.AddScoped<Configurator>();
 
 var app = builder.Build();
 
@@ -217,7 +234,7 @@ app.UseAuthorization();
 app.MapReverseProxy(opt =>
 {
     opt.UseProxyMiddlewares<Program>();
-}).RequireAuthorization();
+}).RequireAuthorization("admin-policy");
 
 app.UseEndpoints(endpoints =>
 {
@@ -226,6 +243,8 @@ app.UseEndpoints(endpoints =>
     endpoints.MapHub<WorkerHub>("/WorkerHub");
     endpoints.MapHub<UserHub>("/UserHub");
 });
+
+app.UseHangfireDashboard("/hangfire");
 
 //backend testing
 var taskCache = app.Services.GetRequiredService<Balancer>();
@@ -241,8 +260,17 @@ for (int i = 0; i < 20; i++)
 
 using (var scope = app.Services.CreateScope())
 {
+    var jobClient = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+    var routine = scope.ServiceProvider.GetRequiredService<TaskLauncher.WebApp.Server.Routines.FileDeletionRoutine>();
+    jobClient.RemoveIfExists(nameof(FileDeletionRoutine));
+    //jobClient.AddOrUpdate(nameof(FileDeletionRoutine), () => routine.Perform(), Cron.Minutely);
+    
+    var configurator = scope.ServiceProvider.GetRequiredService<Configurator>();
+    await configurator.ConfigureDefaultsAsync();
+
     var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
     await seeder.SeedAsync();
 }
 
+app.MapHangfireDashboard().RequireAuthorization("admin-policy");
 app.Run();

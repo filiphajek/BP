@@ -5,10 +5,10 @@ namespace TaskLauncher.ManagementApi;
 
 public class ConfigurationFile : IConfigurationFile
 {
-    private readonly StorageConfiguration options;
+    private readonly StorageFileConfiguration options;
     private readonly XElement rootElement;
 
-    public ConfigurationFile(IOptions<StorageConfiguration> options)
+    public ConfigurationFile(IOptions<StorageFileConfiguration> options)
     {
         this.options = options.Value;
         rootElement = XDocument.Load(options.Value.Path).Root!;
