@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.Options;
-using TaskLauncher.Common.Auth0;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Models;
+using TaskLauncher.WebApp.Client.Extensions;
 
 namespace TaskLauncher.WebApp.Client;
 
@@ -21,20 +20,12 @@ public class SignalRClient : IAsyncDisposable
     private int attemps = 0;
     public int Attemps { get; init; } = 15;
 
-    public SignalRClient(IOptions<ServiceAddresses> serviceAddresses, ManagementTokenService managementTokenService)
+    public event Action<TaskModel> OnTaskUpdate;
+
+    public SignalRClient(ServiceAddresses serviceAddresses)
     {
         Connection = new HubConnectionBuilder()
-            .WithUrl(serviceAddresses.Value.HubAddress, async options =>
-            {
-                //ziskani autorizacniho tokenu pro pristup na signalr hub
-                options.AccessTokenProvider = async () => await managementTokenService.GetApiToken(new(), "task-api", false);
-
-                //pouze pro testovani, kdy nemam validni certifikat
-                options.HttpMessageHandlerFactory = (x) => new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                };
-            })
+            .WithUrl(serviceAddresses.HubAddress)
             .WithAutomaticReconnect()
             .Build();
     }
@@ -42,16 +33,24 @@ public class SignalRClient : IAsyncDisposable
     /// <summary>
     /// Registrace odchyceni zpravy o spusteni task
     /// </summary>
-    public void RegisterOnReceivedTask(string method, Func<TaskModel, Task> handler)
+    public void RegisterOnTaskUpdate(Action<TaskModel> handler)
     {
-        var tmp = Connection.On(method, handler);
+        var tmp = Connection.OnNotification(i =>
+        {
+            if(OnTaskUpdate is not null)
+            {
+                OnTaskUpdate.Invoke(i);
+                return;
+            }
+            handler.Invoke(i);
+        });
         registrations.Add(tmp);
     }
 
     /// <summary>
     /// Pripojeni na hub
     /// </summary>
-    public async Task TryToConnect(CancellationToken cancellationToken)
+    public async Task TryToConnect(CancellationToken cancellationToken = default)
     {
         while (Attemps != attemps)
         {

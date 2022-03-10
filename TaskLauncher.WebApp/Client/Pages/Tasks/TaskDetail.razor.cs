@@ -1,15 +1,13 @@
 using Microsoft.AspNetCore.Components;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Common.Configuration;
-using Microsoft.AspNetCore.SignalR.Client;
-using TaskLauncher.WebApp.Client.Extensions;
 using TaskLauncher.Common.Models;
 using System.Net.Http.Json;
 using TaskLauncher.Common.Enums;
 
 namespace TaskLauncher.WebApp.Client.Pages.Tasks;
 
-public partial class TaskDetail
+public partial class TaskDetail : IDisposable
 {
     [Inject]
     protected NavigationManager navigationManager { get; set; }
@@ -20,27 +18,17 @@ public partial class TaskDetail
     [Inject]
     protected ServiceAddresses serviceAddresses { get; set; }
 
+    [Inject]
+    protected SignalRClient signalRClient { get; set; }
+
     [Parameter]
     public Guid Id { get; set; }
 
     public TaskDetailResponse? Task { get; set; } = new();
 
-    private HubConnection hubConnection;
-
     private string message = "";
     private bool isRunning = false;
     private bool isLoading = true;
-
-    async Task StartSignalRClient()
-    {
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(serviceAddresses.HubAddress)
-            .WithAutomaticReconnect()
-            .Build();
-
-        hubConnection.OnNotification(StatusChanged);
-        await hubConnection.StartAsync();
-    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -50,16 +38,16 @@ public partial class TaskDetail
             navigationManager.NavigateTo("tasks");
             return;
         }
-        //await StartSignalRClient();
+        signalRClient.OnTaskUpdate += StatusChanged;
         isLoading = false;
     }
 
     //aktualizace gui po prijmuti signalr zpravy
     private void StatusChanged(TaskModel model)
     {
-        Console.WriteLine($"status changed: {model.State}");
-        Task.ActualStatus = model.State;
-        /*if (model.State == TaskState.InQueue)
+        Console.WriteLine($"Status changed: {model.State} on task: {model.Id}");
+        /*Task.ActualStatus = model.State;
+        if (model.State == TaskState.InQueue)
         {
             Task.Start = model.Time;
             Task.End = null;
@@ -85,5 +73,10 @@ public partial class TaskDetail
         {
             navigationManager.NavigateTo("api/file/" + Id.ToString(), true);
         }
+    }
+
+    public void Dispose()
+    {
+        signalRClient.OnTaskUpdate -= StatusChanged;
     }
 }

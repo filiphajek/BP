@@ -26,6 +26,7 @@ public class LauncherWorker : BackgroundService
     private TaskCompletionSource<bool> tmpCompletionSource = new();
     private CancellationTokenSource? tokenSource = null;
     private TaskModel? actualTask = null;
+    private bool isWorking = false;
 
     public LauncherWorker(ILogger<LauncherWorker> logger, 
         IFileStorageService fileService,
@@ -54,8 +55,9 @@ public class LauncherWorker : BackgroundService
         });
         signalrClient.Connection.OnIsWorking(async () =>
         {
-            logger.LogInformation("is working xdd");
-            await signalrClient.Connection.InvokeGiveMeWork();
+            logger.LogInformation("is working?");
+            if(!isWorking)
+                await signalrClient.Connection.InvokeGiveMeWork();
         });
 
         await Task.Delay(5000, stoppingToken);
@@ -79,16 +81,19 @@ public class LauncherWorker : BackgroundService
 
     private async Task TestTaskExecution(TaskModel model, CancellationToken token)
     {
+        isWorking = true;
         logger.LogInformation("Starting execution of task '{0}'", model.Id);
         logger.LogInformation("{0} {1} {2}", model.Id, model.State, model.TaskFilePath);
         await Task.Delay(5000, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
         model.State = TaskState.Finished;
+        isWorking = false;
         await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 
     private async Task TaskExecution(TaskModel model, CancellationToken token)
     {
+        isWorking = true;
         actualTask = model;
         logger.LogInformation("Starting execution of task '{0}'", model.Id);
         
@@ -121,6 +126,7 @@ public class LauncherWorker : BackgroundService
         await UpdateTaskAsync(model, TaskState.Finished, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
 
+        isWorking = false;
         await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 

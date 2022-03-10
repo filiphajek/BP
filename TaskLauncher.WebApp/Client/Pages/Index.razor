@@ -1,6 +1,27 @@
 ﻿@page "/"
+@inject SignalRClient signalRClient
+@inject IToastService toastService
 
 <PageTitle>Index</PageTitle>
 
 
 <p><b>Welcome to Task Launcher</b></p>
+
+@code{
+    //dat do rootu
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        var state = await authenticationStateTask;
+        if(state.User.Identity!.IsAuthenticated)
+        {
+            if(signalRClient.Connection.State != Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
+            {
+                await signalRClient.TryToConnect();
+                signalRClient.RegisterOnTaskUpdate(i => toastService.ShowSuccess($"Task finished {i.Id}"));
+            }
+        }
+    }
+}

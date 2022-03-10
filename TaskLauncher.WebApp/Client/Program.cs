@@ -8,6 +8,7 @@ using TaskLauncher.Common.Configuration;
 using TaskLauncher.WebApp.Client.Services;
 using MapsterMapper;
 using Mapster;
+using Blazored.Toast;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -17,6 +18,16 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 var serviceAddresses = new ServiceAddresses();
 builder.Configuration.Bind(nameof(ServiceAddresses), serviceAddresses);
 builder.Services.AddSingleton(serviceAddresses);
+
+builder.Services.AddBlazoredToast();
+builder.Services.AddSingleton<SignalRClient>();
+/*try
+{
+    await signalRClient.TryToConnect();
+    signalRClient.RegisterOnTaskUpdate(i => Console.WriteLine($"Task update {i.Id}"));
+    builder.Services.AddSingleton(signalRClient);
+}
+catch { }*/
 
 //registrace httpclienta
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });

@@ -8,6 +8,7 @@
 
   <ItemGroup>
 	<PackageReference Include="Auth0.ManagementApi" Version="7.14.0" />
+	<PackageReference Include="Blazored.Toast" Version="3.2.2" />
     <PackageReference Include="BlazorPro.Spinkit" Version="1.2.0" />
     <PackageReference Include="GridBlazor" Version="3.2.0" />
     <PackageReference Include="GridCore" Version="5.2.0" />

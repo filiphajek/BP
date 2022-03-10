@@ -72,13 +72,17 @@ public class WorkerHub : Hub<IWorkerHub>
     private readonly TaskCache cache;
     private readonly Balancer balancer;
     private readonly IServiceProvider provider;
+    private readonly IHubContext<UserHub, IUserHub> userHubContext;
+    private readonly SignalRMemoryStorage userConnectionsStorage;
 
-    public WorkerHub(ILogger<WorkerHub> logger, TaskCache cache, Balancer balancer, IServiceProvider provider, IHubContext<UserHub> hubContext)
+    public WorkerHub(ILogger<WorkerHub> logger, TaskCache cache, Balancer balancer, IServiceProvider provider, IHubContext<UserHub, IUserHub> userHubContext, SignalRMemoryStorage userConnectionsStorage)
     {
         this.logger = logger;
         this.cache = cache;
         this.balancer = balancer;
         this.provider = provider;
+        this.userHubContext = userHubContext;
+        this.userConnectionsStorage = userConnectionsStorage;
     }
 
     private async Task SendTask()
@@ -122,6 +126,11 @@ public class WorkerHub : Hub<IWorkerHub>
 
     public async Task TaskStatusUpdate(TaskModel model)
     {
+        if(model.UserId is not null)
+        {
+            var connections = userConnectionsStorage.GetConnections(model.UserId);
+            await userHubContext.Clients.Clients(connections).Notify(model);
+        }
         //update - lze udelat i jako http endpoint
         //await UpdateDatabase(model);
 
@@ -129,6 +138,7 @@ public class WorkerHub : Hub<IWorkerHub>
         var cachedTask = cache[Context.ConnectionId];
         cachedTask!.State = model.State;
 
+        //toto mit jako novou message, mit update message a pak send new work message
         if (model.State == Common.Enums.TaskState.Finished)
         {
             logger.LogInformation("Worker '{0}' finished task '{1}'", Context.ConnectionId, model.Id);
