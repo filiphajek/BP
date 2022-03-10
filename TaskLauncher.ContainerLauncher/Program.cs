@@ -1,14 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using RawRabbit.Context;
-using RawRabbit.Extensions.Client;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Services;
-using TaskLauncher.Common.RawRabbit;
 using TaskLauncher.ContainerLauncher;
-using TaskLauncher.ContainerLauncher.Queue;
 using TaskLauncher.ContainerLauncher.Workers;
+using TaskLauncher.Common.Auth0;
 
 await Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(builder =>
@@ -29,21 +26,20 @@ await Host.CreateDefaultBuilder(args)
         services.AddSingleton<IFileStorageService, FileStorageService>();
         services.AddSingleton<ITaskLauncherService, TaskLauncherService>();
         services.AddSingleton<SignalRClient>();
-        services.AddSingleton<TokenProvider>();
+
+        //token services with cache
+        services.AddDistributedMemoryCache();
+        services.AddSingleton<Cache<AccessToken>>();
+        services.AddSingleton<ManagementTokenService>();
 
         //auth0 config
-        services.Configure<Auth0Configuration>(context.Configuration.GetSection(nameof(Auth0Configuration)));
+        services.Configure<Auth0ApiConfiguration>(context.Configuration.GetSection(nameof(Auth0ApiConfiguration)));
         //google bucket config
         services.Configure<StorageConfiguration>(context.Configuration.GetSection(nameof(StorageConfiguration)));
         //api addresses
         services.Configure<ServiceAddresses>(context.Configuration.GetSection(nameof(ServiceAddresses)));
         //docker config
         services.Configure<TaskLauncherConfig>(context.Configuration.GetSection(nameof(TaskLauncherConfig)));
-        //rawrabbit
-        services.AddRawRabbit(cfg => cfg.AddJsonFile("rawrabbit.json"));
-        services.AddRawRabbitExtensions<MessageContext>();
-        services.InstallRawRabbitExtensions();
-        services.Configure<QueuesPriorityConfiguration>(context.Configuration.GetSection("RawRabbitExtensions"));
 
         //main worker thread
         services.AddHostedService<LauncherWorker>();

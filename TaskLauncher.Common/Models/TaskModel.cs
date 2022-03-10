@@ -4,8 +4,10 @@ namespace TaskLauncher.Common.Models;
 
 public class TaskModel
 {
-    public Guid TaskId { get; set; }
+    public Guid Id { get; set; }
     public string UserId { get; set; }
     public TaskState State { get; set; } = TaskState.Created;
     public DateTime Time { get; set; }
+    public string TaskFilePath { get; set; }
+    public string ResultFilePath { get; set; }
 }

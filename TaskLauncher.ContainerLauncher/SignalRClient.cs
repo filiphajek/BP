@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Options;
+using TaskLauncher.Common.Auth0;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Models;
 using TaskLauncher.Common.Services;
+using TaskLauncher.ContainerLauncher.Extensions;
 
 namespace TaskLauncher.ContainerLauncher;
 
@@ -17,17 +20,17 @@ public class SignalRClient : IAsyncDisposable
     //vsechny registrace na odchytavani real-time zprav
     private readonly HashSet<IDisposable> registrations = new();
 
-    //pokusy pro prihlaseni na signakr hub
+    //pokusy pro prihlaseni na signalr hub
     private int attemps = 0;
     public int Attemps { get; init; } = 15;
 
-    public SignalRClient(ServiceAddresses serviceAddresses, TokenProvider provider)
+    public SignalRClient(IOptions<ServiceAddresses> serviceAddresses, ManagementTokenService tokenService)
     {
         Connection = new HubConnectionBuilder()
-            .WithUrl(serviceAddresses.HubAddress, options =>
+            .WithUrl(serviceAddresses.Value.HubAddress, options =>
             {
                 //ziskani autorizacniho tokenu pro pristup na signalr hub
-                options.AccessTokenProvider = async () => await provider.Authorize();
+                options.AccessTokenProvider = async () => await tokenService.GetApiToken(new(), "task-api", false);
                 //pouze pro testovani, kdy nemam validni certifikat
                 options.HttpMessageHandlerFactory = (x) => new HttpClientHandler
                 {
@@ -41,18 +44,18 @@ public class SignalRClient : IAsyncDisposable
     /// <summary>
     /// Registrace odchyceni zpravy o spusteni task
     /// </summary>
-    public void RegisterOnReceivedTask(string method, Func<TaskCreated, Task> handler)
+    public void RegisterOnReceivedTask(Func<TaskModel, Task> handler)
     {
-        var tmp = Connection.On(method, handler);
+        var tmp = Connection.OnTaskStarted(handler);
         registrations.Add(tmp);
     }
 
     /// <summary>
     /// Registrace odchyceni zpravy o zruseni tasku
     /// </summary>
-    public void RegisterOnCancelTask(string method, Action<TaskCancelled> handler)
+    public void RegisterOnCancelTask(Action<TaskModel> handler)
     {
-        var tmp = Connection.On(method, handler);
+        var tmp = Connection.OnCancelTask(handler);
         registrations.Add(tmp);
     }
 

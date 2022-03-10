@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.OData.Routing;
 using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Common.Auth0;
 using TaskLauncher.WebApp.Server;
+using TaskLauncher.WebApp.Server.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -160,6 +161,9 @@ builder.Services.Configure<RouteOptions>(options =>
 //pridani signalr s pomonym in memory ulozistem vsech real-time spojeni
 builder.Services.AddSingleton<SignalRMemoryStorage>();
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<TaskCache>();
+builder.Services.AddSingleton<Balancer>();
+builder.Services.Configure<PriorityQueuesConfiguration>(builder.Configuration.GetSection("PriorityQueues"));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -219,8 +223,21 @@ app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
     endpoints.MapFallbackToFile("index.html");
-    endpoints.MapHub<WorkerHub>("/LauncherHub");
+    endpoints.MapHub<WorkerHub>("/WorkerHub");
+    endpoints.MapHub<UserHub>("/UserHub");
 });
+
+//backend testing
+var taskCache = app.Services.GetRequiredService<Balancer>();
+for(int i = 0; i < 20; i++)
+{
+    taskCache.Enqueue("nonvip", new() { Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"NON-vip {i}" });
+}
+
+for (int i = 0; i < 20; i++)
+{
+    taskCache.Enqueue("vip", new() { Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"vip {i}" });
+}
 
 using (var scope = app.Services.CreateScope())
 {

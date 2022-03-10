@@ -1,97 +1,166 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using TaskLauncher.Common.Extensions;
+using Microsoft.EntityFrameworkCore;
+using TaskLauncher.Api.DAL;
 using TaskLauncher.Common.Models;
+using TaskLauncher.WebApp.Server.Tasks;
 
 namespace TaskLauncher.WebApp.Server.Hub;
 
 public interface IWorkerHub
 {
     /// <summary>
-    /// Tento endpoint vola uzivatel a posloucha na nem launcher
-    /// Uzivatel spousti vypocet
+    /// Spusteni tasu
     /// </summary>
     Task StartTask(TaskModel model);
 
     /// <summary>
-    /// Na tomto endpointu posloucha uzivatel a vola ho launcher
-    /// Informuje o zmene stavu tasku (zacatek vypoctu, konec apod.)
+    /// Zruseni tasku
     /// </summary>
-    Task TaskStatusChanged(TaskModel model);
+    Task CancelTask(TaskModel model);
+
+    /// <summary>
+    /// Dotazeni se workeru zda neco dela
+    /// </summary>
+    Task IsWorking();
 }
 
-[Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme}, {CookieAuthenticationDefaults.AuthenticationScheme}")]
+public class BackgroundTask
+{
+    private Task timerTask;
+    private readonly CancellationTokenSource _cts = new();
+
+    public void Start(TimeSpan timeSpan)
+    {
+        async Task DoStart()
+        {
+            try
+            {
+                var timer = new PeriodicTimer(timeSpan);
+
+                while (await timer.WaitForNextTickAsync(_cts.Token))
+                {
+                    Console.WriteLine(DateTime.UtcNow);
+                }
+            }
+            catch (OperationCanceledException e)
+            {
+            }
+        }
+
+        timerTask = DoStart();
+    }
+
+    public async Task StopAsync()
+    {
+        _cts.Cancel();
+
+        await timerTask;
+
+        _cts.Dispose();
+
+        Console.WriteLine("BackgroundTask cancelled");
+    }
+}
+
+
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)] //Policy = "worker"
 public class WorkerHub : Hub<IWorkerHub>
 {
     private readonly ILogger<WorkerHub> logger;
-    private readonly SignalRMemoryStorage storage;
+    private readonly TaskCache cache;
+    private readonly Balancer balancer;
+    private readonly IServiceProvider provider;
 
-    public WorkerHub(ILogger<WorkerHub> logger, SignalRMemoryStorage storage)
+    public WorkerHub(ILogger<WorkerHub> logger, TaskCache cache, Balancer balancer, IServiceProvider provider, IHubContext<UserHub> hubContext)
     {
         this.logger = logger;
-        this.storage = storage;
+        this.cache = cache;
+        this.balancer = balancer;
+        this.provider = provider;
     }
 
-    [Authorize]
-    public async Task StartTask(TaskModel model)
+    private async Task SendTask()
     {
-        if (!Context.User!.TryGetAuth0Id(out var id))
-            return;
-
-        model.UserId = id;
-        await Clients.Clients(storage.GetConnections("1MBhNBPqfSs8FYlaHoFLe2uRwa5BV5Qa")).StartTask(model);
-    }
-
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "launcher")]
-    public async Task TaskStatusChanged(TaskModel model)
-    {
-        await Clients.Clients(storage.GetConnections(model.UserId)).TaskStatusChanged(model);
-    }
-
-    public override Task OnConnectedAsync()
-    {
-        logger.LogInformation($"User connected: '{Context.ConnectionId}'");
-
-        if (Context.User is null)
-            return Task.CompletedTask;
-
-        //registrace launcher aplikace, v budoucnu toto bude jinak
-        var azp = Context.User.Claims.SingleOrDefault(i => i.Type == "azp");
-        if (azp?.Value == "1MBhNBPqfSs8FYlaHoFLe2uRwa5BV5Qa")
+        CancellationTokenSource cts = new();
+        cts.CancelAfter(7000);
+        try
         {
-            storage.Add("1MBhNBPqfSs8FYlaHoFLe2uRwa5BV5Qa", Context.ConnectionId);
-            return base.OnConnectedAsync();
+            var model = await balancer.GetNext(cts.Token);
+            await Clients.Caller.StartTask(model);
+            cache.AddOrSet(Context.ConnectionId, model);
+            logger.LogInformation("Worker '{0}' started new task '{1}'", Context.ConnectionId, model.Id);
         }
-
-        if (!Context.User.TryGetAuth0Id(out var id))
+        catch(OperationCanceledException)
         {
-            return Task.CompletedTask;
+            balancer.ClientsWithoutWork = true;
+            //balancer.Enqueue("vip", new() { Id = Guid.NewGuid(), State = Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = "vip" });
         }
-
-        storage.Add(id, Context.ConnectionId);
-        return base.OnConnectedAsync();
+        finally
+        {
+            cts.Dispose();
+        }
     }
 
-    public override Task OnDisconnectedAsync(Exception? exception)
+    private async Task UpdateDatabase(TaskModel model)
     {
-        Context.User!.TryGetAuth0Id(out var id);
-        storage.Remove(id, Context.ConnectionId);
-        return base.OnDisconnectedAsync(exception);
+        using var scope = provider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var task = await dbContext.Tasks.SingleAsync(i => i.Id == model.Id);
+        task.ActualStatus = model.State;
+        dbContext.Update(task);
+        var ev = await dbContext.Events.AddAsync(new() { Status = model.State, Task = task, Time = DateTime.Now, UserId = model.UserId });
+        await dbContext.SaveChangesAsync();
     }
-}
 
+    public async Task GiveMeWork()
+    {
+        logger.LogInformation("Worker '{0}' is asking for work", Context.ConnectionId);
+        await SendTask();
+    }
 
-//userhub pro uzivatelske notifikace
+    public async Task TaskStatusUpdate(TaskModel model)
+    {
+        //update - lze udelat i jako http endpoint
+        //await UpdateDatabase(model);
 
-public interface IUserHub 
-{
+        //update cache
+        var cachedTask = cache[Context.ConnectionId];
+        cachedTask!.State = model.State;
 
-}
+        if (model.State == Common.Enums.TaskState.Finished)
+        {
+            logger.LogInformation("Worker '{0}' finished task '{1}'", Context.ConnectionId, model.Id);
+            //take new task
+            await SendTask();
+        }
+    }
 
+    public override async Task OnConnectedAsync()
+    {
+        //connect
+        logger.LogInformation("Worker connected: '{0}'", Context.ConnectionId);
+        await base.OnConnectedAsync();
+        //take task
+        await SendTask();
+    }
 
-public class UserHub : Hub<IUserHub>
-{
-
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        //is task finished?
+        if(cache.TryGetValue(Context.ConnectionId, out var model))
+        {
+            if(model.State != Common.Enums.TaskState.Finished)
+            {
+                logger.LogInformation("Worker '{0}' crashed. Task '{1}' will be requeued ", Context.ConnectionId, model.Id);
+                model.State = Common.Enums.TaskState.Cancelled;
+                //do db ulozit event zhavarovano
+                //await UpdateDatabase(model);
+                balancer.Enqueue("cancel", model);
+            }
+        }
+        logger.LogInformation("Worker disconnected: '{0}'", Context.ConnectionId);
+        await base.OnDisconnectedAsync(exception);
+    }
 }

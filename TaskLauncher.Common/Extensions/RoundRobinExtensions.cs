@@ -1,6 +1,7 @@
-﻿using RoundRobin;
+﻿using Mapster;
+using RoundRobin;
 
-namespace TaskLauncher.ContainerLauncher.Queue;
+namespace TaskLauncher.Common.Extensions;
 
 public static class RoundRobinExtensions
 {

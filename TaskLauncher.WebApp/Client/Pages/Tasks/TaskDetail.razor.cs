@@ -38,7 +38,7 @@ public partial class TaskDetail
             .WithAutomaticReconnect()
             .Build();
 
-        hubConnection.OnTaskStatusChanged(StatusChanged);
+        hubConnection.OnNotification(StatusChanged);
         await hubConnection.StartAsync();
     }
 

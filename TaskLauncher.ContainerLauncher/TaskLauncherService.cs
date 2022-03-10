@@ -1,5 +1,6 @@
 ﻿using Docker.DotNet;
 using Docker.DotNet.Models;
+using Microsoft.Extensions.Options;
 
 namespace TaskLauncher.ContainerLauncher;
 
@@ -23,7 +24,7 @@ public class TaskLauncherService : ITaskLauncherService
     public readonly DockerClient client;
     private readonly TaskLauncherConfig config;
 
-    public TaskLauncherService(TaskLauncherConfig config)
+    public TaskLauncherService(IOptions<TaskLauncherConfig> config)
     {
         Uri uri = new("unix:///var/run/docker.sock");
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
@@ -31,7 +32,7 @@ public class TaskLauncherService : ITaskLauncherService
             uri = new Uri("npipe://./pipe/docker_engine");
         }
         client = new DockerClientConfiguration(uri).CreateClient();
-        this.config = config;
+        this.config = config.Value;
     }
 
     public async Task<StartContainerResult> StartContainer(CancellationToken token)

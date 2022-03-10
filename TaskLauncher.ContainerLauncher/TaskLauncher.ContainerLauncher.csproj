@@ -33,16 +33,14 @@
   </ItemGroup>
 
   <ItemGroup>
-	<PackageReference Include="RawRabbit" Version="1.10.4" />
-	<PackageReference Include="RawRabbit.Extensions" Version="1.10.4" />
-	<PackageReference Include="RawRabbit.vNext" Version="1.10.4" />
-	<PackageReference Include="RoundRobin" Version="2.1.1" />
+	<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.1" />
 	<PackageReference Include="Docker.DotNet" Version="3.125.5" />
     <PackageReference Include="Ductus.FluentDocker" Version="2.10.44" />
     <PackageReference Include="IdentityModel" Version="6.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
+	<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.14.0" />
   </ItemGroup>
 

@@ -1,12 +1,16 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TaskLauncher.Common.Enums;
-using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Services;
 using TaskLauncher.Common.Auth0;
 using IdentityModel.Client;
 using TaskLauncher.Api.Contracts.Requests;
 using System.Net.Http.Json;
+using TaskLauncher.ContainerLauncher.Extensions;
+using TaskLauncher.Common.Models;
+using Microsoft.Extensions.Options;
+using TaskLauncher.Common.Configuration;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace TaskLauncher.ContainerLauncher.Workers;
 
@@ -21,40 +25,48 @@ public class LauncherWorker : BackgroundService
 
     private TaskCompletionSource<bool> tmpCompletionSource = new();
     private CancellationTokenSource? tokenSource = null;
-    private TaskCreated? actualTask = null;
+    private TaskModel? actualTask = null;
 
     public LauncherWorker(ILogger<LauncherWorker> logger, 
         IFileStorageService fileService,
         ManagementTokenService managementTokenService,
         ITaskLauncherService launcher,
-        HttpClient httpClient,
+        IOptions<ServiceAddresses> serviceAddresses,
         SignalRClient signalrClient)
     {
         this.logger = logger;
         this.fileService = fileService;
         this.managementTokenService = managementTokenService;
         this.launcher = launcher;
-        this.httpClient = httpClient;
+        httpClient = new HttpClient { BaseAddress = serviceAddresses.Value.WebApiAddressUri };
         this.signalrClient = signalrClient;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        //TODO zachytit a zalogovat cancel exceptiony -> melo by byt ok ale testnout https://docs.microsoft.com/en-us/dotnet/core/compatibility/core-libraries/6.0/hosting-exception-handling
         tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        signalrClient.RegisterOnReceivedTask("StartTask", async i => await TaskExecution(i, tokenSource.Token));
-        signalrClient.RegisterOnCancelTask("CancelTask", i =>
+        signalrClient.RegisterOnReceivedTask(async i => await TestTaskExecution(i, tokenSource.Token));
+        signalrClient.RegisterOnCancelTask(i =>
         {
-            if(actualTask is not null && i.TaskId == actualTask.Id)
+            if(actualTask is not null && i.Id == actualTask.Id)
                 tokenSource.Cancel();
         });
+        signalrClient.Connection.OnIsWorking(async () =>
+        {
+            logger.LogInformation("is working xdd");
+            await signalrClient.Connection.InvokeGiveMeWork();
+        });
+
+        await Task.Delay(5000, stoppingToken);
 
         //ziskani autorizacniho tokenu k web api
-        var token = await managementTokenService.GetApiToken(httpClient, "task-api", false);
+        var token = await managementTokenService.GetApiToken(new(), "task-api", false);
         httpClient.SetBearerToken(token);
 
         //pripojeni na signalr hub
         await signalrClient.TryToConnect(tokenSource.Token);
-        logger.LogInformation("Connected, service starting");
+        logger.LogInformation("Connected, worker is starting");
 
         //hlavni smycka
         while (true)
@@ -65,7 +77,17 @@ public class LauncherWorker : BackgroundService
         }
     }
 
-    private async Task TaskExecution(TaskCreated model, CancellationToken token)
+    private async Task TestTaskExecution(TaskModel model, CancellationToken token)
+    {
+        logger.LogInformation("Starting execution of task '{0}'", model.Id);
+        logger.LogInformation("{0} {1} {2}", model.Id, model.State, model.TaskFilePath);
+        await Task.Delay(5000, token);
+        logger.LogInformation("Task '{0}' finished", model.Id);
+        model.State = TaskState.Finished;
+        await signalrClient.Connection.InvokeTaskStatusChanged(model);
+    }
+
+    private async Task TaskExecution(TaskModel model, CancellationToken token)
     {
         actualTask = model;
         logger.LogInformation("Starting execution of task '{0}'", model.Id);
@@ -99,10 +121,10 @@ public class LauncherWorker : BackgroundService
         await UpdateTaskAsync(model, TaskState.Finished, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
 
-        token.ThrowIfCancellationRequested();
+        await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 
-    private async Task UpdateTaskAsync(TaskCreated model, TaskState state, CancellationToken cancellationToken)
+    private async Task UpdateTaskAsync(TaskModel model, TaskState state, CancellationToken cancellationToken)
     {
         model.State = state;
         model.Time = DateTime.Now;

@@ -49,7 +49,7 @@ public class ManagementTokenService
 
         logger.LogDebug("New token for management api");
 
-        var newAccessToken = await GetApiTokenClient(client, true);
+        var newAccessToken = await GetApiTokenClient(client, audienceIsDomain);
         cache.Add(api_name, newAccessToken);
 
         return newAccessToken.AcessToken;

@@ -27,7 +27,7 @@ public class SignalRClient : IAsyncDisposable
             .WithUrl(serviceAddresses.Value.HubAddress, async options =>
             {
                 //ziskani autorizacniho tokenu pro pristup na signalr hub
-                options.AccessTokenProvider = async () => await managementTokenService.GetApiToken(new(), "task-api", true);
+                options.AccessTokenProvider = async () => await managementTokenService.GetApiToken(new(), "task-api", false);
 
                 //pouze pro testovani, kdy nemam validni certifikat
                 options.HttpMessageHandlerFactory = (x) => new HttpClientHandler
