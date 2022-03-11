@@ -17,6 +17,9 @@ public class Configurator
     {
         await AddConfigValue("autofileremove", "Po jake dobe se smazou soubory (v dnechs)", "7");
         await AddConfigValue("tasktimeout", "Po jak dlouhe dobe se ma zrusit task (v hodinach)", "1");
+        await AddConfigValue("viptaskprice", "Cena tasku spustena vip uzivatelem v tokenech", "1");
+        await AddConfigValue("normaltaskprice", "Normalni cena tasku v tokenech", "2");
+        await AddConfigValue("starttokenbalance", "Zakladni pocet tokenu po registraci", "200");
         await dbContext.SaveChangesAsync();
     }
 

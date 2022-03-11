@@ -19,15 +19,9 @@ var serviceAddresses = new ServiceAddresses();
 builder.Configuration.Bind(nameof(ServiceAddresses), serviceAddresses);
 builder.Services.AddSingleton(serviceAddresses);
 
+//notifikace
 builder.Services.AddBlazoredToast();
 builder.Services.AddSingleton<SignalRClient>();
-/*try
-{
-    await signalRClient.TryToConnect();
-    signalRClient.RegisterOnTaskUpdate(i => Console.WriteLine($"Task update {i.Id}"));
-    builder.Services.AddSingleton(signalRClient);
-}
-catch { }*/
 
 //registrace httpclienta
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });

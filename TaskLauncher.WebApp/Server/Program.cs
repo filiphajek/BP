@@ -139,6 +139,11 @@ builder.Services.AddHangfireServer();
 //autorizacni pravidlo pro signalr endpoint
 builder.Services.AddAuthorization(policies =>
 {
+    policies.AddPolicy("not-registered", p =>
+    {
+        p.RequireClaim("https://wutshot-test-api.com/registered", "false");
+    });
+
     policies.AddPolicy("admin-policy", p =>
     {
         p.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
