@@ -1,7 +1,7 @@
 ﻿@using TaskLauncher.WebApp.Client.Models
 
 @page "/tasks/add"
-@attribute [Authorize]
+@attribute [Authorize(Policy = "user-policy")]
 
 <PageTitle>Add new task</PageTitle>
 

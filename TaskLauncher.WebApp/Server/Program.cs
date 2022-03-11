@@ -139,21 +139,28 @@ builder.Services.AddHangfireServer();
 //autorizacni pravidlo pro signalr endpoint
 builder.Services.AddAuthorization(policies =>
 {
+    policies.AddPolicy("email-not-confirmed", p =>
+    {
+        p.RequireClaim("email_verified", "false");
+    });
     policies.AddPolicy("not-registered", p =>
     {
         p.RequireClaim("https://wutshot-test-api.com/registered", "false");
     });
-
     policies.AddPolicy("admin-policy", p =>
     {
         p.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
         p.RequireRole("admin");
+        p.RequireClaim("https://wutshot-test-api.com/registered", "true");
+        p.RequireClaim("email_verified", "true");
     });
 
     policies.AddPolicy("user-policy", p =>
     {
         p.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
-        p.RequireRole("admin", "user");
+        p.RequireClaim("https://wutshot-test-api.com/registered", "true");
+        p.RequireClaim("email_verified", "true");
+        p.RequireRole("user", "admin");
     });
 
     policies.AddPolicy("launcher", p =>

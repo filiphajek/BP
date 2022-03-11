@@ -48,15 +48,25 @@ builder.Services.AddScoped<IMapper, ServiceMapper>();
 //autorizace
 builder.Services.AddAuthorizationCore(config =>
 {
+    config.AddPolicy("email-not-confirmed", p =>
+    {
+        p.RequireClaim("email_verified", "false");
+    });
     config.AddPolicy("not-registered", p =>
     {
         p.RequireClaim("https://wutshot-test-api.com/registered", "false");
     });
     config.AddPolicy("user-policy", p =>
     {
+        p.RequireClaim("https://wutshot-test-api.com/registered", "true");
+        p.RequireClaim("email_verified", "true");
         p.RequireRole("user", "admin");
-        p.RequireClaim("emailverified", "true");
-        p.RequireClaim("registered", "true");
+    });
+    config.AddPolicy("admin-policy", p =>
+    {
+        p.RequireRole("admin");
+        p.RequireClaim("https://wutshot-test-api.com/registered", "true");
+        p.RequireClaim("email_verified", "true");
     });
 });
 builder.Services.AddSingleton<AuthenticationStateProvider, HostAuthenticationStateProvider>();

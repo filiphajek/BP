@@ -17,6 +17,10 @@
                 <RadzenFieldset>
 
                     <div class="row justify-content-center">
+                        <EmailVerification/>
+                    </div>
+
+                    <div class="row justify-content-center">
                         <div class="col-md-12 d-flex align-items-end justify-content-center" style="margin-top: 15px;">
                             <RadzenLabel Text="Complete registration" style="font-size:30px; margin-bottom:15px" />
                         </div>
@@ -87,7 +91,8 @@
 
                     <div class="row justify-content-center">
                         <div class="col-md-12 d-flex align-items-end justify-content-center" style="margin-top: 15px;">
-                            <RadzenButton ButtonType="Radzen.ButtonType.Submit" Style="background-color: blue" Text="Submit"></RadzenButton>
+                            <RadzenButton ButtonType="Radzen.ButtonType.Submit" ButtonStyle="ButtonStyle.Success" IsBusy="loading" Text="Submit"></RadzenButton>
+                            <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle" style="margin-left: 15px"/>
                         </div>
                     </div>
                 </RadzenFieldset>
@@ -102,6 +107,8 @@
 
     public UserRegistrationModel model { get; set; } = new();
 
+    bool loading = false;
+
     protected override async Task OnInitializedAsync()
     {
         var state = await authenticationStateTask;
@@ -111,10 +118,14 @@
 
     async Task OnSubmit(UserRegistrationModel model)
     {
-        var result = await httpClient.PostAsJsonAsync("auth/signup", model);
-        if(result.IsSuccessStatusCode)
+        loading = true;
+        Console.WriteLine("submit");
+        await Task.Delay(5000);
+        //var result = await httpClient.PostAsJsonAsync("auth/signup", model);
+        loading = false;
+       /* if(result.IsSuccessStatusCode)
         {
             navigationManager.NavigateTo("/", true);
-        }
+        }*/
     }
 }

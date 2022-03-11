@@ -83,19 +83,6 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Ziskani access tokenu
-    /// </summary>
-    [Authorize]
-    [HttpGet("accesstoken")]
-    public async Task<IActionResult> GetAccessToken()
-    {
-        var token = await HttpContext.GetTokenAsync("access_token");
-        if (string.IsNullOrEmpty(token))
-            return Unauthorized();
-        return Ok(new { access = token });
-    }
-
-    /// <summary>
     /// Ziskani uzivatelskych dat prihlaseneho uzivatele
     /// </summary>
     [HttpGet("user")]
@@ -187,7 +174,7 @@ public class AuthController : ControllerBase
 
         //assign role
         await auth0client.Users.AssignRolesAsync("auth0|" + userId, new AssignRolesRequest { Roles = new[] { "rol_6Vh7zpX3Z61sN307" } });
-        
+
         //update profile
         var updateRequest = mapper.Map<UserUpdateRequest>(request);
         updateRequest.Email = null;
@@ -219,7 +206,7 @@ public class AuthController : ControllerBase
         var handler = new JwtSecurityTokenHandler();
         var jsonToken = handler.ReadJwtToken(response.IdToken);
 
-        var claimsToRemove = claimsIdentity.Claims.Where(i => i.Type != ClaimTypes.NameIdentifier).ToList();
+        var claimsToRemove = claimsIdentity.Claims.Where(i => i.Type != ClaimTypes.NameIdentifier).Where(i => i.Type != ClaimTypes.Name).ToList();
         foreach(var claim in claimsToRemove)
         {
             claimsIdentity.TryRemoveClaim(claim);
@@ -233,5 +220,21 @@ public class AuthController : ControllerBase
         await context.TokenBalances.AddAsync(new() { CurrentAmount = int.Parse(balanceConfig.Value), LastAdded = DateTime.Now, UserId = userId });
         await context.SaveChangesAsync();
         return Ok();
+    }
+
+    [Authorize(Policy = "email-not-confirmed")]
+    [HttpPost("email")]
+    public async Task<IActionResult> SendEmailAsync()
+    {
+        var auth0client = await apiClientFactory.GetClient();
+        if (!User.TryGetAuth0Id(out var userId))
+            return BadRequest();
+        userId = "auth0|" + userId;
+        var job = await auth0client.Jobs.SendVerificationEmailAsync(new()
+        {
+            ClientId = config.ClientId,
+            UserId = userId,
+        });
+        return Ok(job);
     }
 }

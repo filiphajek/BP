@@ -1,5 +1,6 @@
 ﻿@page "/profile"
 @page "/profile/{id}"
+@attribute [Authorize]
 
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>

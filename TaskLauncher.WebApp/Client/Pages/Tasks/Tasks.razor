@@ -1,7 +1,7 @@
 ﻿@page "/tasks"
 @page "/{id}/tasks"
 @using TaskLauncher.Api.Contracts.Responses
-@attribute [Authorize]
+@attribute [Authorize(Policy = "user-policy")]
 
 <PageTitle>Tasks</PageTitle>
 
