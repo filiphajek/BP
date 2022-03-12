@@ -12,6 +12,14 @@ public record TokenBalanceResponse
     public DateTime LastAdded { get; set; }
 }
 
+public record ConfigResponse
+{
+    public string Key { get; set; }
+    public string Value { get; set; }
+    public string Description { get; set; }
+    public bool CanDelete { get; set; } = true;
+}
+
 public record TaskResponse
 {
     [Key]

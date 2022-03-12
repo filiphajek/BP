@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.Api.Contracts.Requests;
+using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Api.Controllers.Base;
 using TaskLauncher.Api.DAL;
 using TaskLauncher.Api.DAL.Entities;
@@ -32,10 +33,13 @@ public class ConfigController : BaseController
     public async Task<IActionResult> GetConfiguratioAsync(string? key = null)
     {
         if(key is null)
-            return Ok(await dbContext.Configs.ToListAsync());
-        
+        {
+            var list = await dbContext.Configs.ToListAsync();
+            return Ok(list.Select(mapper.Map<ConfigResponse>));
+        }
+
         var config = await dbContext.Configs.SingleOrDefaultAsync(i => i.Key == key);
-        return Ok(config); // je jedno ze to bude null
+        return Ok(mapper.Map<ConfigResponse>(config)); // je jedno ze to bude null
     }
 
     [HttpPost]
