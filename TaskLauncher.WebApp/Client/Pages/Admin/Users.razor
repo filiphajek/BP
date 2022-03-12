@@ -1,19 +1,11 @@
 ﻿@page "/users"
-@attribute [Authorize(Roles = "admin-policy")]
+@attribute [Authorize(Policy = "admin-policy")]
 
-<AuthorizeView Roles="admin">
-    <Authorized>
-        @if (task.IsCompleted)
-        {
-            <GridComponent T="Auth0.ManagementApi.Models.User" Grid="@grid"></GridComponent>
-        }
-        else
-        {
-            <SpinLoader IsLoading="@(true)" Spinner="SpinnerType.Circle"/>
-        }
-    </Authorized>
-    <NotAuthorized>
-        You have to login
-    </NotAuthorized>
-</AuthorizeView>
-
+@if (task.IsCompleted)
+{
+    <GridComponent T="Auth0.ManagementApi.Models.User" Grid="@grid"></GridComponent>
+}
+else
+{
+    <SpinLoader IsLoading="@(true)" Spinner="SpinnerType.Circle"/>
+}

@@ -26,6 +26,9 @@ using TaskLauncher.WebApp.Server.Tasks;
 using Hangfire;
 using Hangfire.SqlServer;
 using TaskLauncher.ManagementApi;
+using TaskLauncher.Authorization.Requirements;
+using Microsoft.AspNetCore.Authorization;
+using TaskLauncher.Authorization.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -136,9 +139,14 @@ builder.Services.AddHangfire(configuration => configuration
     }));
 builder.Services.AddHangfireServer();
 
+builder.Services.AddSingleton<IAuthorizationHandler, CanCancelHandler>();
 //autorizacni pravidlo pro signalr endpoint
 builder.Services.AddAuthorization(policies =>
 {
+    policies.AddPolicy("can-cancel-account", p =>
+    {
+        p.Requirements.Add(new CanCancelRequirement());
+    });
     policies.AddPolicy("email-not-confirmed", p =>
     {
         p.RequireClaim("email_verified", "false");

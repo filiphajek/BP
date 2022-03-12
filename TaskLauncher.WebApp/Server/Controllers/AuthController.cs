@@ -196,6 +196,8 @@ public class AuthController : ControllerBase
             SigningAlgorithm = JwtSignatureAlgorithm.RS256
         });
 
+        //TODO tato aktualizace by mohla byt u userinfo endointu -> nemusi se tak znovu prihlasit ale jen aktualizovat
+
         //refresh claimsprincipal
         var auth = await HttpContext.AuthenticateAsync("Cookies");
         auth.Properties!.UpdateTokenValue("refresh_token", response.RefreshToken);
@@ -236,5 +238,23 @@ public class AuthController : ControllerBase
             UserId = userId,
         });
         return Ok(job);
+    }
+
+    [Authorize(Policy = "can-cancel-account")]
+    [HttpDelete("user/{id}")]
+    public async Task<IActionResult> CancelAccountAsync(string id)
+    {
+        if (!User.TryGetAuth0Id(out var userId))
+            return Unauthorized();
+        if(id != userId)
+            return Unauthorized();
+
+        var auth0client = await apiClientFactory.GetClient();
+        await auth0client.Users.DeleteAsync("auth0|" + id);
+
+        var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
+        await HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Ok();
     }
 }

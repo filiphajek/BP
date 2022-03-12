@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Newtonsoft.Json;
+using Radzen;
+using System.Security.Claims;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
 
@@ -8,6 +10,15 @@ namespace TaskLauncher.WebApp.Client.Pages.User;
 
 public partial class Profile
 {
+    [Inject]
+    public DialogService DialogService { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    [Inject]
+    protected HttpClient client { get; set; }   
+
     [Inject]
     public SpaManagementApiClient auth0client { get; set; }
 
@@ -27,6 +38,7 @@ public partial class Profile
             var principal = (await authenticationStateTask).User;
             User = new()
             {
+                UserId = principal.Claims.SingleOrDefault(i => i.Type == ClaimTypes.NameIdentifier)!.Value,
                 NickName = principal.Claims.SingleOrDefault(i => i.Type == "nickname")!.Value,
                 Email = principal.Identity!.Name,
                 Picture = principal.Claims.SingleOrDefault(i => i.Type == "picture")!.Value,
@@ -82,6 +94,13 @@ public partial class Profile
 
     async Task CancelAsync()
     {
-        //nejakej warning a pak vse smazat
+        var tmp = await DialogService.Confirm("Are you sure?", "MyTitle", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+        if (!tmp.HasValue)
+            return;
+        if (!tmp.Value)
+            return;
+
+        await client.DeleteAsync("auth/user/" + User.UserId.Remove(0, 6));
+        NavigationManager.NavigateTo("/", true);
     }
 }

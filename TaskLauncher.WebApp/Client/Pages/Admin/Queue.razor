@@ -3,7 +3,7 @@
 @using TaskLauncher.Api.Contracts.Responses
 @inject NavigationManager NavigationManager
 @inject HttpClient HttpClient
-@attribute [Authorize(Roles = "admin-policy")]
+@attribute [Authorize(Policy = "admin-policy")]
 
 <PageTitle>Task queue</PageTitle>
 

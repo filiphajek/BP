@@ -15,7 +15,7 @@
 
         @if (!string.IsNullOrEmpty(Id))
         {
-            <AuthorizeView Roles="admin">
+            <AuthorizeView Policy="admin-policy">
                 <Authorized>
                     <a href="@User.UserId/tasks" class="btn btn-info">Show users tasks</a>
 
@@ -42,7 +42,7 @@
         }
         else
         {
-            <AuthorizeView Roles="user">
+            <AuthorizeView Policy="can-cancel-account">
                 <Authorized>
                     <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
                 </Authorized>

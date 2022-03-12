@@ -9,6 +9,10 @@ using TaskLauncher.WebApp.Client.Services;
 using MapsterMapper;
 using Mapster;
 using Blazored.Toast;
+using Microsoft.AspNetCore.Authorization;
+using TaskLauncher.Authorization.Handlers;
+using TaskLauncher.Authorization.Requirements;
+using Radzen;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -18,6 +22,8 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 var serviceAddresses = new ServiceAddresses();
 builder.Configuration.Bind(nameof(ServiceAddresses), serviceAddresses);
 builder.Services.AddSingleton(serviceAddresses);
+
+builder.Services.AddScoped<DialogService>();
 
 //notifikace
 builder.Services.AddBlazoredToast();
@@ -45,9 +51,15 @@ config.Scan(typeof(Program).Assembly);
 builder.Services.AddSingleton(config);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
 
+builder.Services.AddSingleton<IAuthorizationHandler, CanCancelHandler>();
+
 //autorizace
 builder.Services.AddAuthorizationCore(config =>
 {
+    config.AddPolicy("can-cancel-account", p =>
+    {
+        p.Requirements.Add(new CanCancelRequirement());
+    });
     config.AddPolicy("email-not-confirmed", p =>
     {
         p.RequireClaim("email_verified", "false");

@@ -14,7 +14,7 @@ public class Auth0ManagementTokenMiddleware : ProxyHandlerMiddleware
 
     public override async Task HandleAsync(HttpContext context)
     {
-        var accessToken = await managementTokenService.GetApiToken(new(), "managment_api", false);
+        var accessToken = await managementTokenService.GetApiToken(new(), "managment_api");
         context.Request.Headers.Authorization = $"Bearer {accessToken}";
     }
 }
