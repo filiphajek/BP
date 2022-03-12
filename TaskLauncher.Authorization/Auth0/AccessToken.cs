@@ -1,4 +1,4 @@
-﻿namespace TaskLauncher.Common.Auth0;
+﻿namespace TaskLauncher.Authorization.Auth0;
 
 public class AccessToken
 {

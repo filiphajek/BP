@@ -46,6 +46,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TaskLauncher.Api.Contracts\TaskLauncher.Api.Contracts.csproj" />
+    <ProjectReference Include="..\TaskLauncher.Authorization\TaskLauncher.Authorization.csproj" />
     <ProjectReference Include="..\TaskLauncher.Common\TaskLauncher.Common.csproj" />
   </ItemGroup>
 

@@ -16,6 +16,7 @@ public static class UserExtensions
 
         var model = user.Adapt<UserModel>(config);
         model.Vip = user.AppMetadata.vip.Value;
+        model.Registered = user.AppMetadata.registered.Value;
         model.Original = user;
         return model;
     }

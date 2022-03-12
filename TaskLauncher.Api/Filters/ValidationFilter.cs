@@ -5,6 +5,16 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.Api.Filters;
 
+public class AuthFilter : IAuthorizationFilter
+{
+    public void OnAuthorization(AuthorizationFilterContext context)
+    {
+        var ban = context.HttpContext.User.Claims.SingleOrDefault(i => i.Type == "banid");
+        if(ban is not null) 
+            context.Result = new UnauthorizedResult();
+    }
+}
+
 public class ValidationFilter : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
 using TaskLauncher.Common.Services;
 
-namespace TaskLauncher.Common.Auth0;
+namespace TaskLauncher.Authorization.Auth0;
 
 public class ManagementTokenService
 {

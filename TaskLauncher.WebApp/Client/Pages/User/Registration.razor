@@ -119,13 +119,11 @@
     async Task OnSubmit(UserRegistrationModel model)
     {
         loading = true;
-        Console.WriteLine("submit");
-        await Task.Delay(5000);
-        //var result = await httpClient.PostAsJsonAsync("auth/signup", model);
+        var result = await httpClient.PostAsJsonAsync("auth/signup", model);
         loading = false;
-       /* if(result.IsSuccessStatusCode)
+        if(result.IsSuccessStatusCode)
         {
             navigationManager.NavigateTo("/", true);
-        }*/
+        }
     }
 }

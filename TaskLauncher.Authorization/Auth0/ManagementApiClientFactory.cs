@@ -1,7 +1,7 @@
 ﻿using Auth0.ManagementApi;
 using Microsoft.Extensions.Options;
 
-namespace TaskLauncher.Common.Auth0;
+namespace TaskLauncher.Authorization.Auth0;
 
 public class ManagementApiClientFactory
 {

@@ -9,15 +9,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Newtonsoft.Json;
-using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Api.DAL;
-using TaskLauncher.Common.Auth0;
+using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
 
@@ -87,10 +85,14 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpGet("user")]
     [AllowAnonymous]
-    public IActionResult GetUserData()
+    public async Task<IActionResult> GetUserData()
     {
         if (User.Identity is null || !User.Identity.IsAuthenticated)
             return Ok(UserInfo.Anonymous);
+        
+        if(User.Claims.Single(c => c.Type == "email_verified").Value == "false")
+            await RefreshPrincipal();
+
         return Ok(CreateUserInfo(User));
     }
 
@@ -160,6 +162,40 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    private async Task RefreshPrincipal()
+    {
+        //refresh tokens
+        var client = new AuthenticationApiClient(new Uri($"https://{config.Domain}"));
+        var response = await client.GetTokenAsync(new Auth0.AuthenticationApi.Models.RefreshTokenRequest
+        {
+            RefreshToken = await HttpContext.GetTokenAsync("refresh_token"),
+            Audience = "https://wutshot-test-api.com",
+            ClientId = config.ClientId,
+            ClientSecret = config.ClientSecret,
+            Scope = "openid profile email",
+            SigningAlgorithm = JwtSignatureAlgorithm.RS256
+        });
+
+        //refresh claimsprincipal
+        var auth = await HttpContext.AuthenticateAsync("Cookies");
+        auth.Properties!.UpdateTokenValue("refresh_token", response.RefreshToken);
+        auth.Properties!.UpdateTokenValue("access_token", response.AccessToken);
+        auth.Properties!.UpdateTokenValue("id_token", response.IdToken);
+
+        var claimsIdentity = (auth.Principal!.Identity as ClaimsIdentity)!;
+        var handler = new JwtSecurityTokenHandler();
+        var jsonToken = handler.ReadJwtToken(response.IdToken);
+
+        var claimsToRemove = claimsIdentity.Claims.Where(i => i.Type != ClaimTypes.NameIdentifier).Where(i => i.Type != ClaimTypes.Name).ToList();
+        foreach (var claim in claimsToRemove)
+        {
+            claimsIdentity.TryRemoveClaim(claim);
+        }
+        claimsIdentity.AddClaims(jsonToken.Claims);
+
+        await HttpContext.SignInAsync("Cookies", auth.Principal, auth.Properties);
+    }
+
     /// <summary>
     /// Dokonceni registrace
     /// </summary>
@@ -184,38 +220,7 @@ public class AuthController : ControllerBase
         if (result is null)
             return BadRequest(result);
 
-        //refresh tokens
-        var client = new AuthenticationApiClient(new Uri($"https://{config.Domain}"));
-        var response = await client.GetTokenAsync(new Auth0.AuthenticationApi.Models.RefreshTokenRequest
-        {
-            RefreshToken = await HttpContext.GetTokenAsync("refresh_token"),
-            Audience = "https://wutshot-test-api.com",
-            ClientId = config.ClientId,
-            ClientSecret = config.ClientSecret,
-            Scope = "openid profile email",
-            SigningAlgorithm = JwtSignatureAlgorithm.RS256
-        });
-
-        //TODO tato aktualizace by mohla byt u userinfo endointu -> nemusi se tak znovu prihlasit ale jen aktualizovat
-
-        //refresh claimsprincipal
-        var auth = await HttpContext.AuthenticateAsync("Cookies");
-        auth.Properties!.UpdateTokenValue("refresh_token", response.RefreshToken);
-        auth.Properties!.UpdateTokenValue("access_token", response.AccessToken);
-        auth.Properties!.UpdateTokenValue("id_token", response.IdToken);
-
-        var claimsIdentity = (auth.Principal!.Identity as ClaimsIdentity)!;
-        var handler = new JwtSecurityTokenHandler();
-        var jsonToken = handler.ReadJwtToken(response.IdToken);
-
-        var claimsToRemove = claimsIdentity.Claims.Where(i => i.Type != ClaimTypes.NameIdentifier).Where(i => i.Type != ClaimTypes.Name).ToList();
-        foreach(var claim in claimsToRemove)
-        {
-            claimsIdentity.TryRemoveClaim(claim);
-        }
-        claimsIdentity.AddClaims(jsonToken.Claims);
-
-        await HttpContext.SignInAsync("Cookies", auth.Principal, auth.Properties);
+        await RefreshPrincipal();
 
         //init databaze
         var balanceConfig = await context.Configs.SingleAsync(i => i.Key == "starttokenbalance");

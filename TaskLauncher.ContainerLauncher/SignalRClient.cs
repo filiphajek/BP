@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Options;
-using TaskLauncher.Common.Auth0;
+using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Models;
 using TaskLauncher.ContainerLauncher.Extensions;

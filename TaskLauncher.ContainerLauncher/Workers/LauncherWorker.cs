@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Logging;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Services;
-using TaskLauncher.Common.Auth0;
 using IdentityModel.Client;
 using TaskLauncher.Api.Contracts.Requests;
 using System.Net.Http.Json;
@@ -10,7 +9,7 @@ using TaskLauncher.ContainerLauncher.Extensions;
 using TaskLauncher.Common.Models;
 using Microsoft.Extensions.Options;
 using TaskLauncher.Common.Configuration;
-using Microsoft.AspNetCore.SignalR.Client;
+using TaskLauncher.Authorization.Auth0;
 
 namespace TaskLauncher.ContainerLauncher.Workers;
 

@@ -1,10 +1,15 @@
+using Auth0.ManagementApi.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Newtonsoft.Json;
 using Radzen;
+using System.Net.Http.Json;
 using System.Security.Claims;
+using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
+using TaskLauncher.WebApp.Client.Pages.Admin;
+using static TaskLauncher.WebApp.Client.Pages.Admin.BanDialog;
 
 namespace TaskLauncher.WebApp.Client.Pages.User;
 
@@ -75,20 +80,19 @@ public partial class Profile
 
     async Task BanUserAsync()
     {
-        //var tmp = await auth0client.UserBlocks.GetByUserIdAsync(User.UserId); // blocked for
-        User = (await auth0client.Users.UpdateAsync(User.UserId, new()
-        {
-            Blocked = true
-        })).GetModel();
+        BanDialogResult res = await DialogService.OpenAsync<BanDialog>($"Give ban to {User.NickName}", 
+            new Dictionary<string, object>() { { "UserId", User.UserId } }, 
+            new DialogOptions() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
+
+        var result = await client.PostAsJsonAsync("api/ban", new BanUserRequest { Reason = res.Reason, UserId = User.UserId });
+        User = (await result.Content.ReadFromJsonAsync<UserModel>())!;
         StateHasChanged();
     }
 
     async Task UnBanUserAsync()
     {
-        User = (await auth0client.Users.UpdateAsync(User.UserId, new()
-        {
-            Blocked = false
-        })).GetModel();
+        var result = await client.PostAsJsonAsync($"api/ban/cancel?id={User.UserId.Remove(0, 6)}", new { });
+        User = (await result.Content.ReadFromJsonAsync<UserModel>())!;
         StateHasChanged();
     }
 

@@ -19,13 +19,13 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.OData.ModelBuilder;
 using TaskLauncher.Api.Contracts.Responses;
 using Microsoft.OData.Edm;
-using TaskLauncher.Common.Auth0;
 using TaskLauncher.WebApp.Server.Tasks;
 using Hangfire;
 using Hangfire.SqlServer;
 using TaskLauncher.Common.TypedRawRabbit;
 using TaskLauncher.Authorization;
 using TaskLauncher.WebApp.Server.Routines;
+using TaskLauncher.Authorization.Auth0;
 
 var builder = WebApplication.CreateBuilder(args);
 

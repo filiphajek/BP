@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Services;
 using TaskLauncher.ContainerLauncher;
 using TaskLauncher.ContainerLauncher.Workers;
-using TaskLauncher.Common.Auth0;
 
 await Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(builder =>

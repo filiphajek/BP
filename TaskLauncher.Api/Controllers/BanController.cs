@@ -1,17 +1,17 @@
-﻿using Mapster;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using TaskLauncher.Api.Contracts.Requests;
-using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Api.Controllers.Base;
 using TaskLauncher.Api.DAL;
 using TaskLauncher.Api.DAL.Entities;
-using TaskLauncher.Common.Auth0;
+using TaskLauncher.Authorization.Auth0;
+using TaskLauncher.Common.Extensions;
 
 namespace TaskLauncher.Api.Controllers;
 
+[Authorize(Policy = "admin-policy")]
 public class BanController : BaseController
 {
     private readonly AppDbContext context;
@@ -23,8 +23,15 @@ public class BanController : BaseController
         this.clientFactory = clientFactory;
     }
 
-    [Authorize(Policy = "admin-policy")]
-    [HttpPut]
+    [HttpGet]
+    public async Task<IActionResult> GetAllAsync(string? userId = null)
+    {
+        if (userId is null)
+            return Ok(await context.Bans.ToListAsync());
+        return Ok(await context.Bans.Where(i => i.UserId == userId).ToListAsync());
+    }
+
+    [HttpPost]
     public async Task<IActionResult> BanUserAsync(BanUserRequest request)
     {
         var auth0client = await clientFactory.GetClient();
@@ -33,31 +40,29 @@ public class BanController : BaseController
         if (user.Blocked.HasValue && user.Blocked.Value)
             return BadRequest();
 
-        var ban = new BanEntity { Description = request.Reason, UserId = request.UserId, Started = DateTime.Now };
+        var ban = new BanEntity { Description = request.Reason, Email = user.Email, UserId = request.UserId, Started = DateTime.Now };
         await context.Bans.AddAsync(ban);
 
-        var tmp = await auth0client.Users.UpdateAsync(request.UserId, new()
+        var tmp = (await auth0client.Users.UpdateAsync(request.UserId, new()
         {
-            AppMetadata = JsonConvert.DeserializeObject($"{{ 'banid': {ban.Id} }}"),
             Blocked = true
-        });
+        })).GetModel();
 
         await context.SaveChangesAsync();
         return Ok(tmp);
     }
 
-    [Authorize(Policy = "admin-policy")]
-    [HttpGet("cancel")]
+    [HttpPost("cancel")]
     public async Task<IActionResult> UnBanUserAsync(string id)
     {
+        id = "auth0|" + id;
         var auth0client = await clientFactory.GetClient();
 
         var user = await auth0client.Users.GetAsync(id);
         if (user.Blocked.HasValue && !user.Blocked.Value)
             return BadRequest();
 
-        Guid banId = user.AppMetadata.banid.Value;
-        var ban = await context.Bans.SingleOrDefaultAsync(i => i.Id == banId);
+        var ban = await context.Bans.IgnoreQueryFilters().OrderByDescending(i => i.Started).FirstOrDefaultAsync(i => i.UserId == id);
         if (ban is null)
             return BadRequest();
 
@@ -68,10 +73,20 @@ public class BanController : BaseController
         var tmp = (await auth0client.Users.UpdateAsync(id, new()
         {
             Blocked = false,
-            AppMetadata = JsonConvert.DeserializeObject("{ 'banid': null }"),
-        }));
+        })).GetModel();
 
         return Ok(tmp);
+    }
+
+    [HttpDelete]
+    public async Task<IActionResult> DeleteBanAsync(Guid id)
+    {
+        var ban = await context.Bans.SingleOrDefaultAsync(i => i.Id == id);
+        if (ban is null)
+            return NotFound();
+        context.Remove(ban);
+        await context.SaveChangesAsync();
+        return Ok();
     }
 
     [HttpGet("banusersip")]

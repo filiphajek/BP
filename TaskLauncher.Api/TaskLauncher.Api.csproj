@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TaskLauncher.Api.Contracts\TaskLauncher.Api.Contracts.csproj" />
     <ProjectReference Include="..\TaskLauncher.Api.DAL\TaskLauncher.Api.DAL.csproj" />
+    <ProjectReference Include="..\TaskLauncher.Authorization\TaskLauncher.Authorization.csproj" />
   </ItemGroup>
 
   <ItemGroup>
