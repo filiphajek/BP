@@ -9,10 +9,8 @@ using TaskLauncher.WebApp.Client.Services;
 using MapsterMapper;
 using Mapster;
 using Blazored.Toast;
-using Microsoft.AspNetCore.Authorization;
-using TaskLauncher.Authorization.Handlers;
-using TaskLauncher.Authorization.Requirements;
 using Radzen;
+using TaskLauncher.Authorization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -51,36 +49,8 @@ config.Scan(typeof(Program).Assembly);
 builder.Services.AddSingleton(config);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
 
-builder.Services.AddSingleton<IAuthorizationHandler, CanCancelHandler>();
-
 //autorizace
-builder.Services.AddAuthorizationCore(config =>
-{
-    config.AddPolicy("can-cancel-account", p =>
-    {
-        p.Requirements.Add(new CanCancelRequirement());
-    });
-    config.AddPolicy("email-not-confirmed", p =>
-    {
-        p.RequireClaim("email_verified", "false");
-    });
-    config.AddPolicy("not-registered", p =>
-    {
-        p.RequireClaim("https://wutshot-test-api.com/registered", "false");
-    });
-    config.AddPolicy("user-policy", p =>
-    {
-        p.RequireClaim("https://wutshot-test-api.com/registered", "true");
-        p.RequireClaim("email_verified", "true");
-        p.RequireRole("user", "admin");
-    });
-    config.AddPolicy("admin-policy", p =>
-    {
-        p.RequireRole("admin");
-        p.RequireClaim("https://wutshot-test-api.com/registered", "true");
-        p.RequireClaim("email_verified", "true");
-    });
-});
+builder.Services.AddAuthorizationClient();
 builder.Services.AddSingleton<AuthenticationStateProvider, HostAuthenticationStateProvider>();
 builder.Services.AddSingleton(sp => (HostAuthenticationStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 builder.Services.AddTransient<AuthorizedHandler>();

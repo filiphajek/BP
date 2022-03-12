@@ -2,7 +2,7 @@
 using RawRabbit.Configuration.Publish;
 using RawRabbit.Configuration.Subscribe;
 
-namespace TaskLauncher.Common.RawRabbit;
+namespace TaskLauncher.Common.TypedRawRabbit;
 
 public interface IRawRabbitConfigurationBuilder
 {
@@ -27,7 +27,7 @@ public class RawRabbitConfigurationBuilder : IRawRabbitConfigurationBuilder
         if (publishConfig is null)
         {
             publishConfig = options.Publish.SingleOrDefault(i => !i.MessageTypes.Any());
-            if(publishConfig is null)
+            if (publishConfig is null)
                 return null;
         }
 

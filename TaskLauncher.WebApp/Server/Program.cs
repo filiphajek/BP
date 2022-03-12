@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.WebApp.Server.Hub;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using TaskLauncher.WebApp.Server.Proxy;
 using TaskLauncher.WebApp.Server.Extensions;
 using Auth0.AspNetCore.Authentication;
@@ -13,7 +12,6 @@ using TaskLauncher.Common.Installers;
 using TaskLauncher.Api.DAL.Installers;
 using TaskLauncher.Common.Services;
 using RawRabbit.vNext;
-using TaskLauncher.Common.RawRabbit;
 using Swashbuckle.AspNetCore.Filters;
 using TaskLauncher.Api.Contracts.SwaggerExamples;
 using TaskLauncher.Api.Seeders;
@@ -25,10 +23,9 @@ using TaskLauncher.Common.Auth0;
 using TaskLauncher.WebApp.Server.Tasks;
 using Hangfire;
 using Hangfire.SqlServer;
-using TaskLauncher.ManagementApi;
-using TaskLauncher.Authorization.Requirements;
-using Microsoft.AspNetCore.Authorization;
-using TaskLauncher.Authorization.Handlers;
+using TaskLauncher.Common.TypedRawRabbit;
+using TaskLauncher.Authorization;
+using TaskLauncher.WebApp.Server.Routines;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -139,45 +136,8 @@ builder.Services.AddHangfire(configuration => configuration
     }));
 builder.Services.AddHangfireServer();
 
-builder.Services.AddSingleton<IAuthorizationHandler, CanCancelHandler>();
-//autorizacni pravidlo pro signalr endpoint
-builder.Services.AddAuthorization(policies =>
-{
-    policies.AddPolicy("can-cancel-account", p =>
-    {
-        p.Requirements.Add(new CanCancelRequirement());
-    });
-    policies.AddPolicy("email-not-confirmed", p =>
-    {
-        p.RequireClaim("email_verified", "false");
-    });
-    policies.AddPolicy("not-registered", p =>
-    {
-        p.RequireClaim("https://wutshot-test-api.com/registered", "false");
-    });
-    policies.AddPolicy("admin-policy", p =>
-    {
-        p.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
-        p.RequireRole("admin");
-        p.RequireClaim("https://wutshot-test-api.com/registered", "true");
-        p.RequireClaim("email_verified", "true");
-    });
-
-    policies.AddPolicy("user-policy", p =>
-    {
-        p.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
-        p.RequireClaim("https://wutshot-test-api.com/registered", "true");
-        p.RequireClaim("email_verified", "true");
-        p.RequireRole("user", "admin");
-    });
-
-    policies.AddPolicy("launcher", p =>
-    {
-        p.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
-        p.RequireClaim("azp", "1MBhNBPqfSs8FYlaHoFLe2uRwa5BV5Qa");
-        p.RequireClaim("gty", "client-credentials");
-    });
-});
+//autorizace
+builder.Services.AddAuthorizationServer();
 
 //access token management
 builder.Services.AddAccessTokenManagement();
@@ -281,7 +241,7 @@ for (int i = 0; i < 20; i++)
 using (var scope = app.Services.CreateScope())
 {
     var jobClient = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
-    var routine = scope.ServiceProvider.GetRequiredService<TaskLauncher.WebApp.Server.Routines.FileDeletionRoutine>();
+    var routine = scope.ServiceProvider.GetRequiredService<FileDeletionRoutine>();
     jobClient.RemoveIfExists(nameof(FileDeletionRoutine));
     //jobClient.AddOrUpdate(nameof(FileDeletionRoutine), () => routine.Perform(), Cron.Minutely);
     

@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.ContainerLauncher.Extensions;

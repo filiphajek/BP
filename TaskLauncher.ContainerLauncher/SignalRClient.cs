@@ -2,9 +2,7 @@
 using Microsoft.Extensions.Options;
 using TaskLauncher.Common.Auth0;
 using TaskLauncher.Common.Configuration;
-using TaskLauncher.Common.Messages;
 using TaskLauncher.Common.Models;
-using TaskLauncher.Common.Services;
 using TaskLauncher.ContainerLauncher.Extensions;
 
 namespace TaskLauncher.ContainerLauncher;

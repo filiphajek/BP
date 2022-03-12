@@ -1,7 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using TaskLauncher.Api.DAL;
+﻿using TaskLauncher.Api.DAL;
 using TaskLauncher.Common.Services;
-using TaskLauncher.ManagementApi;
 
 namespace TaskLauncher.WebApp.Server.Routines;
 
@@ -19,7 +17,6 @@ public class FileDeletionRoutine : IRoutine
     public void Perform()
     {
         var config = dbContext.Configs.Single(i => i.Key == "autofileremove");
-        Console.WriteLine("Deleting files");
         fileStorageService.RemoveFilesIfOlderThanAsync(int.Parse(config.Value)).Wait();
     }
 }

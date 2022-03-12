@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace TaskLauncher.Common.RawRabbit;
+namespace TaskLauncher.Common.TypedRawRabbit;
 
 public static class RawRabbitExtensions
 {

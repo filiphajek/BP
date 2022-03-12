@@ -3,7 +3,7 @@ using RawRabbit.Common;
 using RawRabbit.Context;
 using RawRabbit.Operations.Abstraction;
 
-namespace TaskLauncher.Common.RawRabbit;
+namespace TaskLauncher.Common.TypedRawRabbit;
 
 public interface IBaseRabbitMQClient<TMessageContext> : IBusClient<TMessageContext>
     where TMessageContext : IMessageContext
@@ -17,12 +17,12 @@ public class BaseRabbitMQClient<TMessageContext> : BaseBusClient<TMessageContext
 {
     private readonly IRawRabbitConfigurationBuilder configurationBuilder;
 
-    public BaseRabbitMQClient(IRawRabbitConfigurationBuilder configurationBuilder, 
-        IConfigurationEvaluator configEval, 
-        ISubscriber<TMessageContext> subscriber, 
-        IPublisher publisher, 
-        IResponder<TMessageContext> responder, 
-        IRequester requester) 
+    public BaseRabbitMQClient(IRawRabbitConfigurationBuilder configurationBuilder,
+        IConfigurationEvaluator configEval,
+        ISubscriber<TMessageContext> subscriber,
+        IPublisher publisher,
+        IResponder<TMessageContext> responder,
+        IRequester requester)
         : base(configEval, subscriber, publisher, responder, requester)
     {
         this.configurationBuilder = configurationBuilder;

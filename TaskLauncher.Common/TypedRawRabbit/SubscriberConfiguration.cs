@@ -1,6 +1,6 @@
 ﻿using RawRabbit.Configuration.Exchange;
 
-namespace TaskLauncher.Common.RawRabbit;
+namespace TaskLauncher.Common.TypedRawRabbit;
 
 public class SubscriberConfiguration
 {

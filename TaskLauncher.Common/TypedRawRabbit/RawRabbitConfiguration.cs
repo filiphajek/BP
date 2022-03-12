@@ -1,4 +1,4 @@
-﻿namespace TaskLauncher.Common.RawRabbit;
+﻿namespace TaskLauncher.Common.TypedRawRabbit;
 
 public class RawRabbitConfiguration
 {
