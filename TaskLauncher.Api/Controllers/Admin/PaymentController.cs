@@ -15,7 +15,7 @@ public class PaymentController : AdminODataController<PaymentResponse>
     {
         if (string.IsNullOrEmpty(userId))
         {
-            return Ok(context.Payments.IgnoreQueryFilters());
+            return Ok(context.Payments.IgnoreQueryFilters().ProjectToType<PaymentResponse>());
         }
         return Ok(context.Payments.IgnoreQueryFilters().Where(i => i.UserId == userId).ProjectToType<PaymentResponse>());
     }

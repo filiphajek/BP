@@ -34,6 +34,7 @@ static IEdmModel GetAdminEdmModel()
     ODataConventionModelBuilder builder = new();
     builder.EntitySet<PaymentResponse>("Payment");
     builder.EntitySet<TaskResponse>("Task");
+    builder.EntitySet<BanResponse>("Ban");
     return builder.GetEdmModel();
 }
 

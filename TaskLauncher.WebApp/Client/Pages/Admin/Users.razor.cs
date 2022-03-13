@@ -22,7 +22,7 @@ public partial class Users
 
         Action<IGridColumnCollection<Auth0.ManagementApi.Models.User>> columns = c =>
         {
-            c.Add(o => o.Email).Encoded(false).Sanitized(false).RenderValueAs(o =>  $"<a href='profile/{o.UserId}'>{o.Email}</a>");
+            c.Add(o => o.Email).Encoded(false).Sanitized(false).RenderValueAs(o =>  $"<a href='users/{o.UserId}'>{o.Email}</a>");
             c.Add(o => o.NickName);
         };
 

@@ -11,7 +11,6 @@ using TaskLauncher.Common.Extensions;
 
 namespace TaskLauncher.Api.Controllers;
 
-[Authorize(Policy = "admin-policy")]
 public class BanController : BaseController
 {
     private readonly AppDbContext context;
@@ -23,14 +22,17 @@ public class BanController : BaseController
         this.clientFactory = clientFactory;
     }
 
+    [Authorize(Policy = "user-policy")]
     [HttpGet]
-    public async Task<IActionResult> GetAllAsync(string? userId = null)
+    public async Task<IActionResult> GetBanAsync()
     {
-        if (userId is null)
-            return Ok(await context.Bans.ToListAsync());
-        return Ok(await context.Bans.Where(i => i.UserId == userId).ToListAsync());
+        if(!User.TryGetAuth0Id(out var userId))
+            return Unauthorized();
+
+        return Ok(await context.Bans.OrderByDescending(i => i.Started).FirstOrDefaultAsync());
     }
 
+    [Authorize(Policy = "admin-policy")]
     [HttpPost]
     public async Task<IActionResult> BanUserAsync(BanUserRequest request)
     {
@@ -52,6 +54,7 @@ public class BanController : BaseController
         return Ok(tmp);
     }
 
+    [Authorize(Policy = "admin-policy")]
     [HttpPost("cancel")]
     public async Task<IActionResult> UnBanUserAsync(string id)
     {
@@ -78,6 +81,7 @@ public class BanController : BaseController
         return Ok(tmp);
     }
 
+    [Authorize(Policy = "admin-policy")]
     [HttpDelete]
     public async Task<IActionResult> DeleteBanAsync(Guid id)
     {
