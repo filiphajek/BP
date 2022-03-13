@@ -53,7 +53,7 @@ public partial class UserDetail
             c.Add(o => o.Started);
             c.Add(o => o.Ended);
         };
-        string url = NavigationManager.BaseUri + $"odata/admin/ban";//?userId={Id}
+        string url = NavigationManager.BaseUri + $"odata/admin/ban?userId={Id}";
         var query = new QueryDictionary<StringValues>();
         banClient = new GridODataClient<BanResponse>(client, url, query, false, "banGrid", columns, 10)
             .ChangePageSize(true)
@@ -70,7 +70,7 @@ public partial class UserDetail
             c.Add(o => o.Time);
             c.Add(o => o.Id);
         };
-        string url2 = NavigationManager.BaseUri + $"odata/admin/payment";//?userId={Id}
+        string url2 = NavigationManager.BaseUri + $"odata/admin/payment?userId={Id}";
         var paymentClient = new GridODataClient<PaymentResponse>(client, url2, new QueryDictionary<StringValues>(), false, "paymentGrid", columns2, 10)
             .ChangePageSize(true)
             .Sortable()
@@ -112,7 +112,7 @@ public partial class UserDetail
 
     async Task UnBanUserAsync()
     {
-        var result = await client.PostAsJsonAsync($"api/ban/cancel?id={User.UserId.Remove(0, 6)}", new { });
+        var result = await client.PostAsJsonAsync($"api/ban/cancel?id={User.UserId}", new { });
         User = (await result.Content.ReadFromJsonAsync<UserModel>())!;
         await banClient.UpdateGrid();
         StateHasChanged();

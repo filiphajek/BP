@@ -2,7 +2,7 @@
 
 namespace TaskLauncher.Common.Extensions;
 
-public static class Auth0Extenstions
+public static class ClaimsPrincipalExtenstions
 {
     public static bool TryGetAuth0Id(this ClaimsPrincipal principal, out string id)
     {
@@ -12,11 +12,18 @@ public static class Auth0Extenstions
         if (subClaim is null)
             return false;
 
-        var split = subClaim.Value.Split("|");
-        if(split.Length != 2)
+        id = subClaim.Value;
+        return true;
+    }
+
+    public static bool TryGetClaimValue(this ClaimsPrincipal principal, string type, out string value)
+    {
+        value = string.Empty;
+        var subClaim = principal.Claims.FirstOrDefault(i => i.Type == type);
+        if (subClaim is null)
             return false;
-        
-        id = split.Last();
+
+        value = subClaim.Value;
         return true;
     }
 }

@@ -64,7 +64,7 @@ public partial class Tasks
                 NavigationManager.NavigateTo("tasks", true);
                 return;
             }
-            await GetTasks($"odata/admin/task?userId={Id.Remove(0, 6)}");
+            await GetTasks($"odata/admin/task?userId={Id}");
         }
     }
 }

@@ -50,7 +50,7 @@
         if (!tmp.Value)
             return;
 
-        await client.DeleteAsync("auth/user/" + User.UserId.Remove(0, 6));
+        await client.DeleteAsync("auth/user/" + User.UserId);
         NavigationManager.NavigateTo("/", true);
     }
 }

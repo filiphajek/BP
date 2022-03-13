@@ -209,14 +209,14 @@ public class AuthController : ControllerBase
             return BadRequest();
 
         //assign role
-        await auth0client.Users.AssignRolesAsync("auth0|" + userId, new AssignRolesRequest { Roles = new[] { "rol_6Vh7zpX3Z61sN307" } });
+        await auth0client.Users.AssignRolesAsync(userId, new AssignRolesRequest { Roles = new[] { "rol_6Vh7zpX3Z61sN307" } });
 
         //update profile
         var updateRequest = mapper.Map<UserUpdateRequest>(request);
         updateRequest.Email = null;
         updateRequest.PhoneNumber = null;
         updateRequest.AppMetadata = JsonConvert.DeserializeObject("{ 'registered': true }");
-        var result = await auth0client.Users.UpdateAsync("auth0|" + userId, updateRequest);
+        var result = await auth0client.Users.UpdateAsync(userId, updateRequest);
         if (result is null)
             return BadRequest(result);
 
@@ -236,7 +236,7 @@ public class AuthController : ControllerBase
         var auth0client = await apiClientFactory.GetClient();
         if (!User.TryGetAuth0Id(out var userId))
             return BadRequest();
-        userId = "auth0|" + userId;
+
         var job = await auth0client.Jobs.SendVerificationEmailAsync(new()
         {
             ClientId = config.ClientId,
@@ -255,7 +255,7 @@ public class AuthController : ControllerBase
             return Unauthorized();
 
         var auth0client = await apiClientFactory.GetClient();
-        await auth0client.Users.DeleteAsync("auth0|" + id);
+        await auth0client.Users.DeleteAsync(id);
 
         var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
         await HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);

@@ -58,7 +58,6 @@ public class BanController : BaseController
     [HttpPost("cancel")]
     public async Task<IActionResult> UnBanUserAsync(string id)
     {
-        id = "auth0|" + id;
         var auth0client = await clientFactory.GetClient();
 
         var user = await auth0client.Users.GetAsync(id);

@@ -236,7 +236,7 @@ for(int i = 0; i < 20; i++)
 
 for (int i = 0; i < 20; i++)
 {
-    taskCache.Enqueue("vip", new() { UserId = "622076411a44b70076f27000", Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"vip {i}" });
+    taskCache.Enqueue("vip", new() { UserId = "auth0|622076411a44b70076f27000", Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"vip {i}" });
 }
 
 using (var scope = app.Services.CreateScope())

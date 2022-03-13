@@ -4,11 +4,15 @@ using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Models;
 using System.Net.Http.Json;
 using TaskLauncher.Common.Enums;
+using Microsoft.AspNetCore.Components.Authorization;
 
 namespace TaskLauncher.WebApp.Client.Pages.Tasks;
 
 public partial class TaskDetail : IDisposable
 {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
     [Inject]
     protected NavigationManager navigationManager { get; set; }
 
@@ -32,7 +36,12 @@ public partial class TaskDetail : IDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/task/" + Id.ToString());
+        var state = await authenticationStateTask;
+        if(state.User.IsInRole("admin"))
+            Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/admin/task/" + Id.ToString());
+        else
+            Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/task/" + Id.ToString());
+
         if (Task is null)
         {
             navigationManager.NavigateTo("tasks");

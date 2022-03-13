@@ -23,11 +23,11 @@ public class Seeder
         if (await dbContext.Payments.IgnoreQueryFilters().AnyAsync())
             return;
 
-        //user1 6225224ff0bca300691d9bd8
-        //seededvip 6225226df7aa7a006a913c3b
-        //testuser 61b0e161678a0c00689644e0
-        //testadmin 622076411a44b70076f27000
-        foreach (var id in new[] { "6225224ff0bca300691d9bd8", "6225226df7aa7a006a913c3b", "61b0e161678a0c00689644e0", "622076411a44b70076f27000" })
+        //user1 auth0|6225224ff0bca300691d9bd8
+        //seededvip auth0|6225226df7aa7a006a913c3b
+        //testuser auth0|61b0e161678a0c00689644e0
+        //testadmin auth0|622076411a44b70076f27000
+        foreach (var id in new[] { "auth0|6225224ff0bca300691d9bd8", "auth0|6225226df7aa7a006a913c3b", "auth0|61b0e161678a0c00689644e0", "auth0|622076411a44b70076f27000" })
         {
             await SeedUser(id);
         }
