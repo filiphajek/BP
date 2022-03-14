@@ -92,19 +92,10 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpGet("user")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetUserData()
+    public IActionResult GetUserData()
     {
         if (User.Identity is null || !User.Identity.IsAuthenticated)
             return Ok(UserInfo.Anonymous);
-
-        var auth = await HttpContext.AuthenticateCookieAsync();
-        if (auth is null || auth.Principal is null)
-            return Ok(CreateUserInfo(User));
-
-        //aktualizace/pridani token balance v claimu
-        var balance = await context.TokenBalances.SingleAsync();
-        await AddClaimToPrincipal(new Claim("token_balance", balance.CurrentAmount.ToString()));
-
         return Ok(CreateUserInfo(User));
     }
 

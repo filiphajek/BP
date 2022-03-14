@@ -20,4 +20,17 @@ public static class UserExtensions
         model.Original = user;
         return model;
     }
+
+    public static UserClaimsModel GetUserClaims(this Auth0.AuthenticationApi.Models.UserInfo userInfo)
+    {
+        var hasTokenClaim = userInfo.AdditionalClaims.TryGetValue("token_balance", out var value);
+        var hasVipClaim = userInfo.AdditionalClaims.TryGetValue("vip", out var vip);
+        return new()
+        {
+            Blocked = false,
+            TokenBalance = hasTokenClaim ? value!.ToString() : "",
+            Vip = hasVipClaim ? bool.Parse(vip!.ToString()) : false,
+            EmailVerified = userInfo.EmailVerified!.Value
+        };
+    }
 }

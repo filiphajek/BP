@@ -29,6 +29,7 @@ await Host.CreateDefaultBuilder(args)
 
         //token services with cache
         services.AddDistributedMemoryCache();
+        services.AddSingleton(new CacheConfiguration<AccessToken> { AbsoluteExpiration = TimeSpan.FromHours(5) });
         services.AddSingleton<Cache<AccessToken>>();
         services.AddSingleton<ManagementTokenService>();
 
