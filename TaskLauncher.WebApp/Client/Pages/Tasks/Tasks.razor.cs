@@ -5,19 +5,23 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Primitives;
 using TaskLauncher.Api.Contracts.Responses;
+using TaskLauncher.WebApp.Client.Authentication;
+using TaskLauncher.WebApp.Client.Extensions;
 
 namespace TaskLauncher.WebApp.Client.Pages.Tasks;
 
 public partial class Tasks
 {
+    [Inject]
+    public HostAuthenticationStateProvider StateProvider { get; set; }
+
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     [Parameter]
     public string Id { get; set; }
 
-    [Inject]
-    protected HttpClient HttpClient { get; set; }
+    private HttpClient httpClient;
     
     [Inject]
     protected NavigationManager NavigationManager { get; set; }
@@ -38,7 +42,7 @@ public partial class Tasks
         string url = NavigationManager.BaseUri + path;
         var query = new QueryDictionary<StringValues>();
 
-        var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "taskGrid", columns, 10)
+        var client = new GridODataClient<TaskResponse>(httpClient, url, query, false, "taskGrid", columns, 10)
             .ChangePageSize(true)
             .Sortable()
             .Filterable()
@@ -52,6 +56,7 @@ public partial class Tasks
 
     protected async override Task OnParametersSetAsync()
     {
+        httpClient = HttpClientFactory.CreateApiClient();
         if (string.IsNullOrEmpty(Id))
         {
             await GetTasks("odata/user/task");

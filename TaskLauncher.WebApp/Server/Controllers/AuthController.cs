@@ -15,9 +15,12 @@ using System.Security.Claims;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Api.DAL;
+using TaskLauncher.Authorization;
 using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
+using TaskLauncher.WebApp.Server.Extensions;
+using TaskLauncher.WebApp.Server.Services;
 
 namespace TaskLauncher.WebApp.Server.Controllers;
 
@@ -31,18 +34,22 @@ public class AuthController : ControllerBase
     private readonly AppDbContext context;
     private readonly IHttpClientFactory clientFactory;
     private readonly ILogger<AuthController> logger;
+    private readonly IAuth0UserProvider userProvider;
     private readonly ManagementApiClientFactory apiClientFactory;
     private readonly IMapper mapper;
+    private readonly IAuth0UserProvider principalSynchronizer;
     private readonly Auth0ApiConfiguration config;
 
-    public AuthController(AppDbContext context, IHttpClientFactory clientFactory, ILogger<AuthController> logger, 
-        IOptions<Auth0ApiConfiguration> config, ManagementApiClientFactory apiClientFactory, IMapper mapper)
+    public AuthController(AppDbContext context, IHttpClientFactory clientFactory, ILogger<AuthController> logger, IAuth0UserProvider userProvider,
+        IOptions<Auth0ApiConfiguration> config, ManagementApiClientFactory apiClientFactory, IMapper mapper, IAuth0UserProvider principalSynchronizer)
     {
         this.context = context;
         this.clientFactory = clientFactory;
         this.logger = logger;
+        this.userProvider = userProvider;
         this.apiClientFactory = apiClientFactory;
         this.mapper = mapper;
+        this.principalSynchronizer = principalSynchronizer;
         this.config = config.Value;
     }
 
@@ -89,9 +96,14 @@ public class AuthController : ControllerBase
     {
         if (User.Identity is null || !User.Identity.IsAuthenticated)
             return Ok(UserInfo.Anonymous);
-        
-        if(User.Claims.Single(c => c.Type == "email_verified").Value == "false")
-            await RefreshPrincipal();
+
+        var auth = await HttpContext.AuthenticateCookieAsync();
+        if (auth is null || auth.Principal is null)
+            return Ok(CreateUserInfo(User));
+
+        //aktualizace/pridani token balance v claimu
+        var balance = await context.TokenBalances.SingleAsync();
+        await AddClaimToPrincipal(new Claim("token_balance", balance.CurrentAmount.ToString()));
 
         return Ok(CreateUserInfo(User));
     }
@@ -162,38 +174,29 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
-    private async Task RefreshPrincipal()
+    private async Task AddClaimToPrincipal(Claim claim)
     {
-        //refresh tokens
-        var client = new AuthenticationApiClient(new Uri($"https://{config.Domain}"));
-        var response = await client.GetTokenAsync(new Auth0.AuthenticationApi.Models.RefreshTokenRequest
+        var auth = await HttpContext.AuthenticateCookieAsync();
+
+        if (auth is null || auth.Principal is null)
+            return;
+
+        auth.AddOrUpdateClaim(claim); 
+        await HttpContext.SignInAsync(auth);
+    }
+
+    private async Task AddClaimsToPrincipal(IEnumerable<Claim> claims)
+    {
+        var auth = await HttpContext.AuthenticateCookieAsync();
+
+        if (auth is null || auth.Principal is null)
+            return;
+
+        foreach (var claim in claims)
         {
-            RefreshToken = await HttpContext.GetTokenAsync("refresh_token"),
-            Audience = "https://wutshot-test-api.com",
-            ClientId = config.ClientId,
-            ClientSecret = config.ClientSecret,
-            Scope = "openid profile email",
-            SigningAlgorithm = JwtSignatureAlgorithm.RS256
-        });
-
-        //refresh claimsprincipal
-        var auth = await HttpContext.AuthenticateAsync("Cookies");
-        auth.Properties!.UpdateTokenValue("refresh_token", response.RefreshToken);
-        auth.Properties!.UpdateTokenValue("access_token", response.AccessToken);
-        auth.Properties!.UpdateTokenValue("id_token", response.IdToken);
-
-        var claimsIdentity = (auth.Principal!.Identity as ClaimsIdentity)!;
-        var handler = new JwtSecurityTokenHandler();
-        var jsonToken = handler.ReadJwtToken(response.IdToken);
-
-        var claimsToRemove = claimsIdentity.Claims.Where(i => i.Type != ClaimTypes.NameIdentifier).Where(i => i.Type != ClaimTypes.Name).ToList();
-        foreach (var claim in claimsToRemove)
-        {
-            claimsIdentity.TryRemoveClaim(claim);
+            auth.AddOrUpdateClaim(claim);
         }
-        claimsIdentity.AddClaims(jsonToken.Claims);
-
-        await HttpContext.SignInAsync("Cookies", auth.Principal, auth.Properties);
+        await HttpContext.SignInAsync(auth);
     }
 
     /// <summary>
@@ -220,12 +223,13 @@ public class AuthController : ControllerBase
         if (result is null)
             return BadRequest(result);
 
-        await RefreshPrincipal();
-
         //init databaze
         var balanceConfig = await context.Configs.SingleAsync(i => i.Key == "starttokenbalance");
         await context.TokenBalances.AddAsync(new() { CurrentAmount = int.Parse(balanceConfig.Value), LastAdded = DateTime.Now, UserId = userId });
         await context.SaveChangesAsync();
+
+        await AddClaimsToPrincipal(new Claim[] { new Claim(TaskLauncherClaimTypes.Registered, "true"), new Claim("token_balance", "balanceConfig.Value") });
+
         return Ok();
     }
 
@@ -260,6 +264,13 @@ public class AuthController : ControllerBase
         var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
         await HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Ok();
+    }
+
+    [AllowAnonymous]
+    [HttpGet("testos")]
+    public IActionResult Test()
+    {
         return Ok();
     }
 }

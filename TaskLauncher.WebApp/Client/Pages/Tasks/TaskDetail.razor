@@ -1,6 +1,7 @@
 ﻿@page "/tasks/{id:guid}"
 @using TaskLauncher.Common.Enums
 @attribute [Authorize(Policy = "user-policy")]
+@inherits BasePage
 
 <SpinLoader IsLoading="@(isLoading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>

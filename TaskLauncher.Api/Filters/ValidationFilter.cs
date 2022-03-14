@@ -1,19 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Logging;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.Api.Filters;
-
-public class AuthFilter : IAuthorizationFilter
-{
-    public void OnAuthorization(AuthorizationFilterContext context)
-    {
-        var ban = context.HttpContext.User.Claims.SingleOrDefault(i => i.Type == "banid");
-        if(ban is not null) 
-            context.Result = new UnauthorizedResult();
-    }
-}
 
 public class ValidationFilter : IAsyncActionFilter
 {

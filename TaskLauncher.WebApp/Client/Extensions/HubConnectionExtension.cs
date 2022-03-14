@@ -11,3 +11,11 @@ public static class HubConnectionExtension
     public static IDisposable OnNotification(this HubConnection connection, Action<TaskModel> handler)
         => connection.On("Notify", handler);
 }
+
+public static class HttpClientFactoryExtesnions
+{
+    public static HttpClient CreateApiClient(this IHttpClientFactory factory)
+    {
+        return factory.CreateClient("apiclient");
+    }
+}

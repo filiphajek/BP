@@ -23,7 +23,7 @@ public class BanController : BaseController
     }
 
     [Authorize(Policy = "user-policy")]
-    [HttpGet]
+    [HttpGet("user")]
     public async Task<IActionResult> GetBanAsync()
     {
         if(!User.TryGetAuth0Id(out var userId))

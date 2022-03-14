@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace TaskLauncher.Authorization.Auth0;
 
-public class ManagementApiClientFactory
+public class ManagementApiClientFactory : IClientFactory<ManagementApiClient>
 {
     private readonly ManagementTokenService managementTokenService;
     private readonly ManagementApiClient client;

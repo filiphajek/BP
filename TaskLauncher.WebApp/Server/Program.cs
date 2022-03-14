@@ -26,6 +26,9 @@ using TaskLauncher.Common.TypedRawRabbit;
 using TaskLauncher.Authorization;
 using TaskLauncher.WebApp.Server.Routines;
 using TaskLauncher.Authorization.Auth0;
+using TaskLauncher.Api.Filters;
+using TaskLauncher.WebApp.Server.Filters;
+using TaskLauncher.WebApp.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,12 +59,16 @@ builder.Configuration.Bind(nameof(ServiceAddresses), serviceAddresses);
 builder.Services.AddSingleton(serviceAddresses);
 
 //pridani kontroleru s error stranky a pridani protokolu odata
-builder.Services.AddControllersWithViews()
-    .AddApplicationPart(typeof(TokenController).Assembly)
-    .AddOData(opt => opt
-    .AddRouteComponents("odata/user", GetUserEdmModel())
-    .AddRouteComponents("odata/admin", GetAdminEdmModel())
-    .Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<BanFilter>();
+    options.Filters.Add<ValidationFilter>();
+})
+.AddApplicationPart(typeof(TokenController).Assembly)
+.AddOData(opt => opt
+.AddRouteComponents("odata/user", GetUserEdmModel())
+.AddRouteComponents("odata/admin", GetAdminEdmModel())
+.Select().Expand().Filter().OrderBy().SetMaxTop(null).Count());
 
 builder.Services.AddRazorPages();
 
@@ -191,6 +198,10 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddScoped<Seeder>();
 builder.Services.AddScoped<Configurator>();
+
+builder.Services.AddHttpClient();
+builder.Services.InstallClientFactories();
+builder.Services.AddScoped<IAuth0UserProvider, Auth0UserProvider>();
 
 var app = builder.Build();
 

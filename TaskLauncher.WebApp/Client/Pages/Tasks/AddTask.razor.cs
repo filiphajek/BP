@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using TaskLauncher.Common.Extensions;
+using TaskLauncher.WebApp.Client.Extensions;
 using TaskLauncher.WebApp.Client.Models;
 
 namespace TaskLauncher.WebApp.Client.Pages.Tasks;
@@ -16,11 +17,13 @@ public partial class AddTask
     [Inject]
     protected NavigationManager navigationManager { get; set; }
 
-    [Inject]
-    protected HttpClient client { get; set; }
+    private HttpClient client;
 
-    [Inject]
-    protected HttpClient Client { get; set; }
+    protected override void OnInitialized()
+    {
+        client = HttpClientFactory.CreateApiClient();
+        base.OnInitialized();
+    }
 
     //vytvoreni tasku, poslani http dotazu se zadanym souborem
     private async Task Create()

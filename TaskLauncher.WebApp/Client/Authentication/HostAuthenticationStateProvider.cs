@@ -29,6 +29,14 @@ public class HostAuthenticationStateProvider : AuthenticationStateProvider
         this.client = client;
     }
 
+    public void MarkAsBanned()
+    {
+        var bannedIdentity = new ClaimsIdentity();
+        bannedIdentity.AddClaim(new Claim("banned", "true"));
+        AuthenticationState state = new(new(bannedIdentity));
+        NotifyAuthenticationStateChanged(Task.FromResult(state));
+    }
+
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         return new AuthenticationState(await GetUser(useCache: true));
@@ -71,7 +79,7 @@ public class HostAuthenticationStateProvider : AuthenticationStateProvider
     /// <summary>
     /// Ziskani uzivatelskych dat
     /// </summary>
-    private async Task<ClaimsPrincipal> FetchUser()
+    public async Task<ClaimsPrincipal> FetchUser()
     {
         UserInfo? user = await client.GetFromJsonAsync<UserInfo>("auth/user");
 

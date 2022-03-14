@@ -5,6 +5,7 @@ using TaskLauncher.Common.Models;
 using System.Net.Http.Json;
 using TaskLauncher.Common.Enums;
 using Microsoft.AspNetCore.Components.Authorization;
+using TaskLauncher.WebApp.Client.Extensions;
 
 namespace TaskLauncher.WebApp.Client.Pages.Tasks;
 
@@ -16,8 +17,7 @@ public partial class TaskDetail : IDisposable
     [Inject]
     protected NavigationManager navigationManager { get; set; }
 
-    [Inject]
-    protected HttpClient client { get; set; }
+    private HttpClient client;
 
     [Inject]
     protected ServiceAddresses serviceAddresses { get; set; }
@@ -36,6 +36,7 @@ public partial class TaskDetail : IDisposable
 
     protected override async Task OnParametersSetAsync()
     {
+        client = HttpClientFactory.CreateApiClient();
         var state = await authenticationStateTask;
         if(state.User.IsInRole("admin"))
             Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/admin/task/" + Id.ToString());

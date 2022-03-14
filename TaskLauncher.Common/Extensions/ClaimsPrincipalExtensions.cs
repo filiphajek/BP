@@ -2,7 +2,7 @@
 
 namespace TaskLauncher.Common.Extensions;
 
-public static class ClaimsPrincipalExtenstions
+public static class ClaimsPrincipalExtensions
 {
     public static bool TryGetAuth0Id(this ClaimsPrincipal principal, out string id)
     {
