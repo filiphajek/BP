@@ -18,23 +18,13 @@ public class BanHandler : DelegatingHandler
     {
         var responseMessage = await base.SendAsync(request, cancellationToken);
 
-        //TODO testnout to bez tohoto .. uz dostavam forbidem tak jako tak ne??????
-
-        //pokud je uzivatel zabanovany, odhlas ho a presmeruj ho na tuto stranku
+        //pokud je uzivatel zabanovany, odhlas ho a presmeruj ho na tuto stranku (alternativa pres authenticationStateProvider.FetchUser)
         if (responseMessage.StatusCode == HttpStatusCode.Forbidden)
         {
             authenticationStateProvider.MarkAsBanned();
             navigationManager.NavigateTo("/banned", true);
             return new HttpResponseMessage(HttpStatusCode.Forbidden);
         }
-        /*var authState = await authenticationStateProvider.FetchUser();
-        if(!authState.Identity!.IsAuthenticated)
-        {
-            authenticationStateProvider.MarkAsBanned();
-            navigationManager.NavigateTo("/banned", true);
-            return new HttpResponseMessage(HttpStatusCode.Forbidden);
-        }*/
-
         return responseMessage;
     }
 }

@@ -104,7 +104,7 @@ public partial class UserDetail
             new Dictionary<string, object>() { { "UserId", User.UserId } },
             new DialogOptions() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
 
-        var result = await client.PostAsJsonAsync("api/ban", new BanUserRequest { Reason = res.Reason, UserId = User.UserId });
+        var result = await client.PostAsJsonAsync("api/admin/ban", new BanUserRequest { Reason = res.Reason, UserId = User.UserId });
         User = (await result.Content.ReadFromJsonAsync<UserModel>())!;
         await banClient.UpdateGrid();
         StateHasChanged();
@@ -112,7 +112,7 @@ public partial class UserDetail
 
     async Task UnBanUserAsync()
     {
-        var result = await client.PostAsJsonAsync($"api/ban/cancel?id={User.UserId}", new { });
+        var result = await client.PostAsJsonAsync($"api/admin/ban/cancel?id={User.UserId}", new { });
         User = (await result.Content.ReadFromJsonAsync<UserModel>())!;
         await banClient.UpdateGrid();
         StateHasChanged();

@@ -81,7 +81,15 @@ public class HostAuthenticationStateProvider : AuthenticationStateProvider
     /// </summary>
     public async Task<ClaimsPrincipal> FetchUser()
     {
-        UserInfo? user = await client.GetFromJsonAsync<UserInfo>("auth/user");
+        var response = await client.GetAsync("auth/user");
+        if(response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            var bannedIdentity = new ClaimsIdentity();
+            bannedIdentity.AddClaim(new Claim("banned", "true"));
+            navigationManager.NavigateTo("/", true);
+            return new ClaimsPrincipal(bannedIdentity);
+        }
+        UserInfo? user = await response.Content.ReadFromJsonAsync<UserInfo>();
 
         if (user == null || !user.IsAuthenticated)
             return new ClaimsPrincipal(new ClaimsIdentity());
