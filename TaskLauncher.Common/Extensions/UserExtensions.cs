@@ -23,12 +23,11 @@ public static class UserExtensions
 
     public static UserClaimsModel GetUserClaims(this Auth0.AuthenticationApi.Models.UserInfo userInfo)
     {
-        var hasTokenClaim = userInfo.AdditionalClaims.TryGetValue("token_balance", out var value);
-        var hasVipClaim = userInfo.AdditionalClaims.TryGetValue("vip", out var vip);
+        var hasVipClaim = userInfo.AdditionalClaims.TryGetValue("https://wutshot-test-api.com/vip", out var vip);
         return new()
         {
             Blocked = false,
-            TokenBalance = hasTokenClaim ? value!.ToString() : "",
+            TokenBalance = "100",
             Vip = hasVipClaim ? bool.Parse(vip!.ToString()) : false,
             EmailVerified = userInfo.EmailVerified!.Value
         };

@@ -8,16 +8,21 @@ using TaskLauncher.Api.DAL;
 using TaskLauncher.Api.DAL.Entities;
 using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Extensions;
+using TaskLauncher.Common.Models;
+using TaskLauncher.Common.Services;
 
 namespace TaskLauncher.Api.Controllers;
 
 public class BanController : BaseController
 {
+    private readonly Cache<UserClaimsModel> cache;
     private readonly AppDbContext context;
     private readonly ManagementApiClientFactory clientFactory;
 
-    public BanController(ILogger<BanController> logger, AppDbContext context, ManagementApiClientFactory clientFactory) : base(logger)
+    public BanController(Cache<UserClaimsModel> cache, ILogger<BanController> logger, AppDbContext context, ManagementApiClientFactory clientFactory) 
+        : base(logger)
     {
+        this.cache = cache;
         this.context = context;
         this.clientFactory = clientFactory;
     }
@@ -51,7 +56,18 @@ public class BanController : BaseController
         })).GetModel();
 
         await context.SaveChangesAsync();
+        await UpdateCache(request.UserId, true);
         return Ok(tmp);
+    }
+
+    private async Task UpdateCache(string userId, bool blocked)
+    {
+        var cached = await cache.GetAsync(userId);
+        if (cached is not null)
+        {
+            cached.Blocked = blocked;
+            await cache.UpdateAsync(userId, cached);
+        }
     }
 
     [Authorize(Policy = "admin-policy")]
@@ -77,6 +93,7 @@ public class BanController : BaseController
             Blocked = false,
         })).GetModel();
 
+        await UpdateCache(id, false);
         return Ok(tmp);
     }
 

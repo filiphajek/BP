@@ -10,10 +10,8 @@ public class CacheConfiguration<T>
 
 public class Cache<T> where T : class
 {
-    private static readonly object cacheLock = new();
     private readonly IDistributedCache cache;
     private readonly CacheConfiguration<T> config;
-    private readonly SemaphoreSlim semaphore = new(1, 1);
 
     public Cache(IDistributedCache cache, CacheConfiguration<T> config)
     {
@@ -24,20 +22,13 @@ public class Cache<T> where T : class
     public void Add(string key, T obj)
     {
         var options = new DistributedCacheEntryOptions().SetAbsoluteExpiration(config.AbsoluteExpiration);
-
-        lock (cacheLock)
-        {
-            cache.SetString(key, JsonSerializer.Serialize(obj), options);
-        }
+        cache.SetString(key, JsonSerializer.Serialize(obj), options);
     }
 
     public async Task AddAsync(string key, T obj)
     {
         var options = new DistributedCacheEntryOptions().SetAbsoluteExpiration(config.AbsoluteExpiration);
-
-        await semaphore.WaitAsync();
         await cache.SetStringAsync(key, JsonSerializer.Serialize(obj), options);
-        semaphore.Release();
     }
 
     public T? Get(string key)
@@ -60,9 +51,9 @@ public class Cache<T> where T : class
         return null;
     }
 
-    public void Update(string key, T value)
+    public async Task UpdateAsync(string key, T value)
     {
-        cache.Remove(key);
-        Add(key, value);
+        await cache.RemoveAsync(key);
+        await AddAsync(key, value);
     }
 }

@@ -1,0 +1,22 @@
+﻿@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Extensions
+
+@if(!string.IsNullOrEmpty(balance))
+{
+    <p style="margin: 0px; margin-left: 20px"><b>Balance: @balance</b></p>
+}
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    string balance = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await authenticationStateTask;
+        state.User.TryGetClaimValue("token_balance", out balance);
+        StateHasChanged();
+    }
+}

@@ -24,7 +24,7 @@ public class BanFilter : IAsyncAuthorizationFilter
     private readonly ILogger<BanFilter> logger;
     private readonly AppDbContext dbContext;
 
-    public BanFilter(Cache<UserClaimsModel> cache,IAuth0UserProvider userProvider, ILogger<BanFilter> logger, AppDbContext dbContext)
+    public BanFilter(Cache<UserClaimsModel> cache, IAuth0UserProvider userProvider, ILogger<BanFilter> logger, AppDbContext dbContext)
     {
         this.cache = cache;
         this.userProvider = userProvider;
@@ -34,6 +34,7 @@ public class BanFilter : IAsyncAuthorizationFilter
 
     private async Task UpdateBalanceToken(AuthenticateResult auth)
     {
+        //bylo by fajn to nacachovat
         var balance = await dbContext.TokenBalances.SingleAsync();
         auth.AddOrUpdateClaim(new Claim("token_balance", balance.CurrentAmount.ToString()));
     }
@@ -44,7 +45,6 @@ public class BanFilter : IAsyncAuthorizationFilter
         {
             if (context.HttpContext.User.IsInRole("admin"))
             {
-                //bylo by fajn to nacachovat
                 var authRes = await context.HttpContext.AuthenticateCookieAsync();
                 await UpdateBalanceToken(authRes);
                 await context.HttpContext.SignInAsync(authRes);
@@ -90,12 +90,22 @@ public class BanFilter : IAsyncAuthorizationFilter
             if(!vipClaim || !emailClaim)
                 return;*/
 
+            if (cachedUserClaims.Blocked)
+            {
+                var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
+                await context.HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                context.Result = new StatusCodeResult(403);
+                return;
+            }
+
             var auth = await context.HttpContext.AuthenticateCookieAsync();
             if (auth is null || auth.Principal is null)
                 return;
 
             auth.AddOrUpdateClaim(new Claim(TaskLauncherClaimTypes.Vip, cachedUserClaims.Vip.ToString().ToLower()));
             auth.AddOrUpdateClaim(new Claim(TaskLauncherClaimTypes.EmailVerified, cachedUserClaims.EmailVerified.ToString().ToLower()));
+
             await UpdateBalanceToken(auth);
 
             await context.HttpContext.SignInAsync(auth);

@@ -29,7 +29,6 @@ using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Api.Filters;
 using TaskLauncher.WebApp.Server.Filters;
 using TaskLauncher.WebApp.Server.Services;
-using Auth0.AuthenticationApi.Models;
 using TaskLauncher.Common.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -88,7 +87,7 @@ builder.Configuration.Bind(nameof(Auth0ApiConfiguration), auth0config);
 //cache
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSingleton(new CacheConfiguration<AccessToken> { AbsoluteExpiration = TimeSpan.FromHours(5) });
-builder.Services.AddSingleton(new CacheConfiguration<UserClaimsModel> { AbsoluteExpiration = TimeSpan.FromSeconds(40) });
+builder.Services.AddSingleton(new CacheConfiguration<UserClaimsModel> { AbsoluteExpiration = TimeSpan.FromSeconds(20) });
 builder.Services.AddSingleton<Cache<AccessToken>>();
 builder.Services.AddSingleton<Cache<UserClaimsModel>>();
 
