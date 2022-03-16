@@ -1,0 +1,47 @@
+﻿@page "/profile"
+@using System.Security.Claims
+@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Extensions
+@using TaskLauncher.Common.Models
+@attribute [Authorize]
+@inject HttpClient client
+@inject DialogService DialogService
+@inject NavigationManager NavigationManager 
+
+<SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
+    <ContentTemplate>
+        
+        <ProfileComponent User=User />
+
+        <AuthorizeView Policy="can-cancel-account">
+            <Authorized>
+                <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
+            </Authorized>
+        </AuthorizeView>
+
+    </ContentTemplate>
+</SpinLoader>
+
+@code
+{
+    protected bool loading = true;
+    protected UserModel User { get; set; } = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        User = (await client.GetFromJsonAsync<UserModel>("api/user"))!;
+        loading = false;
+    }
+
+    async Task CancelAsync()
+    {
+        var tmp = await DialogService.Confirm("Are you sure?", "Accout deletion", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+        if (!tmp.HasValue)
+            return;
+        if (!tmp.Value)
+            return;
+
+        await client.DeleteAsync("auth/user/" + User.UserId);
+        NavigationManager.NavigateTo("/", true);
+    }
+}

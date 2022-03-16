@@ -1,0 +1,154 @@
+﻿using Mapster;
+using MapsterMapper;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Query;
+using Microsoft.EntityFrameworkCore;
+using TaskLauncher.Api.Contracts.Requests;
+using TaskLauncher.Api.Contracts.Responses;
+using TaskLauncher.Authorization;
+using TaskLauncher.Common.Enums;
+using TaskLauncher.Common.Extensions;
+using TaskLauncher.Common.Services;
+using TaskLauncher.App.DAL.Repositories;
+using TaskLauncher.App.DAL.Entities;
+using TaskLauncher.App.DAL;
+using TaskLauncher.App.Server.Controllers.Base;
+
+namespace TaskLauncher.App.Server.Controllers.User;
+
+public class TaskController : UserODataController<TaskResponse>
+{
+    private readonly IMapper mapper;
+    private readonly ITaskRepository taskRepository;
+    private readonly IEventRepository eventRepository;
+    private readonly ITokenBalanceRepository tokenRepository;
+    private readonly IPaymentRepository paymentRepository;
+    private readonly IFileStorageService fileStorageService;
+
+    public TaskController(AppDbContext context, IMapper mapper,
+        ITaskRepository taskRepository,
+        IEventRepository eventRepository,
+        ITokenBalanceRepository tokenRepository,
+        IPaymentRepository paymentRepository,
+        IFileStorageService fileStorageService) : base(context)
+    {
+        this.mapper = mapper;
+        this.taskRepository = taskRepository;
+        this.eventRepository = eventRepository;
+        this.tokenRepository = tokenRepository;
+        this.paymentRepository = paymentRepository;
+        this.fileStorageService = fileStorageService;
+    }
+
+    [HttpGet]
+    [EnableQuery]
+    public ActionResult<TaskResponse> Get()
+    {
+        return Ok(context.Tasks.AsQueryable().ProjectToType<TaskResponse>());
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<TaskDetailResponse>> GetDetail(Guid id)
+    {
+        var task = await context.Tasks.Include(i => i.Events).SingleOrDefaultAsync(i => i.Id == id);
+        if (task is null)
+            return NotFound();
+        return Ok(mapper.Map<TaskDetailResponse>(task));
+    }
+
+    private readonly SemaphoreSlim semaphoreSlim = new(1, 1);
+
+    /// <summary>
+    /// Vytvoreni noveho tasku
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<TaskResponse>> CreateTaskAsync([FromForm] TaskCreateRequest request, IFormFile file)
+    {
+        if (!User.TryGetAuth0Id(out var userId))
+            return Unauthorized();
+
+        double price = 0;
+        if (User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out bool vip) && vip)
+        {
+            var tmp = (await context.Configs.SingleAsync(i => i.Key == "normaltaskprice")).Value;
+            price = double.Parse(tmp);
+        }
+        else
+        {
+            var tmp = (await context.Configs.SingleAsync(i => i.Key == "viptaskprice")).Value;
+            price = double.Parse(tmp);
+        }
+
+        await semaphoreSlim.WaitAsync();
+        var token = await context.TokenBalances.SingleOrDefaultAsync();
+        if (token is null || token.CurrentAmount <= 0)
+            return BadRequest("No balance");
+
+        token.CurrentAmount -= price;
+        context.Update(token);
+        await context.SaveChangesAsync();
+        semaphoreSlim.Release();
+
+        var fileId = file.Name + DateTime.Now.Ticks.ToString();
+        using (var stream = file.OpenReadStream())
+        {
+            await fileStorageService.UploadFileAsync($"{userId}/{fileId}/task", stream);
+        }
+
+        var eventEntity = new EventEntity { Status = TaskState.InQueue, Time = DateTime.Now, UserId = userId };
+        TaskEntity task = new()
+        {
+            ActualStatus = TaskState.Created,
+            UserId = userId,
+            TaskFile = fileId,
+            Events = new List<EventEntity> { eventEntity }
+        };
+
+        var taskEntity = mapper.Map(request, task);
+        var result = await context.Tasks.AddAsync(taskEntity);
+        await context.Payments.AddAsync(new() { Price = price, Task = taskEntity, Time = DateTime.Now, UserId = userId });
+        await context.SaveChangesAsync();
+
+        //TODO add to cache
+
+        return Ok(mapper.Map<TaskResponse>(result));
+    }
+
+    /// <summary>
+    /// Aktualizace informaci o tasku
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<TaskResponse>> UpdateTaskAsync([FromRoute] Guid id, [FromBody] TaskUpdateRequest request)
+    {
+        var result = await taskRepository.GetAsync(new() { Id = id });
+        if (result is null)
+            return NotFound();
+        var tmp = mapper.Map(request, result);
+        await taskRepository.UpdateAsync(tmp);
+        return Ok(tmp);
+    }
+
+    /// <summary>
+    /// Smazani tasku
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> RemoveTaskAsync(Guid id)
+    {
+        if (!User.TryGetAuth0Id(out var userId))
+            return Unauthorized();
+
+        var task = await taskRepository.GetAsync(new() { Id = id });
+        if (task is null)
+            return BadRequest();
+
+        if (task.ActualStatus == TaskState.InQueue || task.ActualStatus == TaskState.Running)
+            return BadRequest();
+
+        var eventEntity = new EventEntity { Status = TaskState.Deleted, Time = DateTime.Now, UserId = userId, Task = task };
+
+        await eventRepository.AddAsync(eventEntity);
+        task.ActualStatus = TaskState.Deleted; // uplne smazat to muze pouze admin
+        await taskRepository.UpdateAsync(task);
+        return Ok();
+    }
+}

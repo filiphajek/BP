@@ -1,0 +1,43 @@
+﻿@page "/image/{UserId}"
+@using System.Text.RegularExpressions
+@using TaskLauncher.App.Client.Validators
+@inject DialogService dialogService
+
+<RadzenTemplateForm @ref="@form" TItem="ImageDialogResult" Data="@model" Submit="Submit">
+    <div class="row">
+        <div class="col-lg-6 d-flex">
+            <RadzenCard Style="width: 100%; overflow: hidden;">
+                <h4 class="h5">Image url</h4>
+                <RadzenTextBox Name="UrlTextBox" @bind-Value=@model.Url />
+                <ImageValidator Component="UrlTextBox" />
+            </RadzenCard>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12 text-right">
+            <RadzenButton Click="@((args) => dialogService.Close(new ImageDialogResult {Success = false}))" ButtonStyle="ButtonStyle.Secondary" Text="Cancel" Style="width: 120px" Class="mr-1" />
+            <RadzenButton ButtonType="Radzen.ButtonType.Submit" ButtonStyle="ButtonStyle.Success" Text="OK" Style="width: 120px" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+@code
+{
+    void Submit()
+    {
+        if (form.EditContext.Validate())
+        {
+            dialogService.Close(new ImageDialogResult { Url = model.Url, Success = true });
+        }
+    }
+
+    RadzenTemplateForm<ImageDialogResult> form;
+    ImageDialogResult model = new();
+
+    public class ImageDialogResult
+    {
+        public string Url { get; set; } = "";
+        public bool Success { get; set; }
+    }
+}

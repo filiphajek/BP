@@ -3,23 +3,6 @@ using TaskLauncher.Common.Enums;
 
 namespace TaskLauncher.Api.Contracts.Responses;
 
-public record AuthResponse(string access_token, string refresh_token, string id_token, string token_type, int expires_in);
-public record RefreshTokenResponse(string access_token, string scope, string token_type, int expires_in);
-
-public record TokenBalanceResponse
-{
-    public double CurrentAmount { get; set; }
-    public DateTime LastAdded { get; set; }
-}
-
-public record ConfigResponse
-{
-    public string Key { get; set; }
-    public string Value { get; set; }
-    public string Description { get; set; }
-    public bool CanDelete { get; set; } = true;
-}
-
 public record TaskResponse
 {
     [Key]
@@ -30,15 +13,4 @@ public record TaskResponse
     public string Name { get; set; }
     public string Description { get; set; }
     public TaskState ActualStatus { get; set; } = TaskState.Created;
-}
-
-public record TaskDetailResponse : TaskResponse
-{
-    public List<EventResponse> Events { get; set; } = new();
-}
-
-public record EventResponse
-{
-    public TaskState Status { get; set; }
-    public DateTime Time { get; set; }
 }
