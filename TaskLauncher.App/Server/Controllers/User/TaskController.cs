@@ -13,6 +13,8 @@ using TaskLauncher.App.DAL.Repositories;
 using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
+using TaskLauncher.App.Server.Tasks;
+using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Controllers.User;
 
@@ -24,13 +26,14 @@ public class TaskController : UserODataController<TaskResponse>
     private readonly ITokenBalanceRepository tokenRepository;
     private readonly IPaymentRepository paymentRepository;
     private readonly IFileStorageService fileStorageService;
+    private readonly Balancer balancer;
 
     public TaskController(AppDbContext context, IMapper mapper,
         ITaskRepository taskRepository,
         IEventRepository eventRepository,
         ITokenBalanceRepository tokenRepository,
         IPaymentRepository paymentRepository,
-        IFileStorageService fileStorageService) : base(context)
+        IFileStorageService fileStorageService, Balancer balancer) : base(context)
     {
         this.mapper = mapper;
         this.taskRepository = taskRepository;
@@ -38,6 +41,7 @@ public class TaskController : UserODataController<TaskResponse>
         this.tokenRepository = tokenRepository;
         this.paymentRepository = paymentRepository;
         this.fileStorageService = fileStorageService;
+        this.balancer = balancer;
     }
 
     [HttpGet]
@@ -109,7 +113,13 @@ public class TaskController : UserODataController<TaskResponse>
         await context.Payments.AddAsync(new() { Price = price, Task = taskEntity, Time = DateTime.Now, UserId = userId });
         await context.SaveChangesAsync();
 
-        //TODO add to cache
+        balancer.Enqueue(vip ? "vip" : "nonvip", new TaskModel
+        {
+            State = TaskState.Created,
+            Time = DateTime.Now,
+            TaskFilePath = task.TaskFile,
+            UserId = task.UserId
+        });
 
         return Ok(mapper.Map<TaskResponse>(result));
     }

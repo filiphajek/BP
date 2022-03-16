@@ -29,7 +29,7 @@ public static class ClaimsPrincipalExtensions
 
     public static bool TryGetClaimAsBool(this ClaimsPrincipal principal, string type, out bool value)
     {
-        value = default;
+        value = false;
         var subClaim = principal.Claims.FirstOrDefault(i => i.Type == type);
         if (subClaim is null)
             return false;
