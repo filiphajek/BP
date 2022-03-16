@@ -26,4 +26,24 @@ public static class ClaimsPrincipalExtensions
         value = subClaim.Value;
         return true;
     }
+
+    public static bool TryGetClaimAsBool(this ClaimsPrincipal principal, string type, out bool value)
+    {
+        value = default;
+        var subClaim = principal.Claims.FirstOrDefault(i => i.Type == type);
+        if (subClaim is null)
+            return false;
+
+        return bool.TryParse(subClaim.Value, out value);
+    }
+
+    public static bool TryGetClaimAsInt(this ClaimsPrincipal principal, string type, out int value)
+    {
+        value = default;
+        var subClaim = principal.Claims.FirstOrDefault(i => i.Type == type);
+        if (subClaim is null)
+            return false;
+
+        return int.TryParse(subClaim.Value, out value);
+    }
 }

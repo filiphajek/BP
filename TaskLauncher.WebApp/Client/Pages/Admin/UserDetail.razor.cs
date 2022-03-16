@@ -37,23 +37,35 @@ public partial class UserDetail
     protected bool isLoading = false;
     private CGrid<BanResponse> banGrid;
     private CGrid<PaymentResponse> paymentGrid;
+    private CGrid<TaskResponse> taskGrid;
     private IGridClient<BanResponse> banClient; 
 
+    int tokenBalance = 0;
+
+    protected async Task UpdateBalance()
+    {
+        var tmp = await client.PutAsJsonAsync("api/token", new UpdateBalanceRequest() { Amount = tokenBalance, UserId = User.UserId });
+        if(tmp.IsSuccessStatusCode)
+            User.TokenBalance = tokenBalance.ToString();
+    }
 
     protected async override Task OnParametersSetAsync()
     {
         loading = true;
         User = (await auth0client.Users.GetAsync(Id)).GetModel();
+        var balance = await client.GetFromJsonAsync<TokenBalanceResponse>($"api/token?userId={Id}");
+        User.TokenBalance = balance!.CurrentAmount.ToString();
+        tokenBalance = (int)balance!.CurrentAmount;
 
+        //TODO do jednotlivych komponent
         //bans
         Action<IGridColumnCollection<BanResponse>> columns = c =>
         {
-            c.Add(o => o.Email);
             c.Add(o => o.Description);
             c.Add(o => o.Started);
             c.Add(o => o.Ended);
         };
-        string url = NavigationManager.BaseUri + $"odata/admin/ban?userId={Id}";
+        string url = NavigationManager.BaseUri + $"odata/admin/ban?$filter=userid eq '{Id}'";
         var query = new QueryDictionary<StringValues>();
         banClient = new GridODataClient<BanResponse>(client, url, query, false, "banGrid", columns, 10)
             .ChangePageSize(true)
@@ -70,7 +82,7 @@ public partial class UserDetail
             c.Add(o => o.Time);
             c.Add(o => o.Id);
         };
-        string url2 = NavigationManager.BaseUri + $"odata/admin/payment?userId={Id}";
+        string url2 = NavigationManager.BaseUri + $"odata/admin/payment?$filter=userid eq '{Id}'";
         var paymentClient = new GridODataClient<PaymentResponse>(client, url2, new QueryDictionary<StringValues>(), false, "paymentGrid", columns2, 10)
             .ChangePageSize(true)
             .Sortable()
@@ -78,6 +90,23 @@ public partial class UserDetail
 
         paymentGrid = paymentClient.Grid;
         await paymentClient.UpdateGrid();
+
+        //tasks
+        Action<IGridColumnCollection<TaskResponse>> columns3 = c =>
+        {
+            c.Add(o => o.Id).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>Detail</a>");
+            c.Add(o => o.Name);
+            c.Add(o => o.Description);
+            c.Add(o => o.ActualStatus);
+        };
+        string url3 = NavigationManager.BaseUri + $"odata/admin/task?$filter=userid eq '{Id}'";
+        var taskClient = new GridODataClient<TaskResponse>(client, url3, new QueryDictionary<StringValues>(), false, "taskGrid", columns3, 10)
+            .ChangePageSize(true)
+            .Sortable()
+            .WithGridItemsCount();
+
+        taskGrid = taskClient.Grid;
+        await taskClient.UpdateGrid();
 
         loading = false;
     }

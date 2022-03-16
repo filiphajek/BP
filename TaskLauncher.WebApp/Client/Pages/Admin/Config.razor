@@ -2,63 +2,17 @@
 @using TaskLauncher.Api.Contracts.Requests
 @attribute [Authorize(Policy = "admin-policy")]
 
-<button class="btn btn-primary" @onclick="@(() => addConfig = !addConfig)">Add config</button>
-@if (addConfig)
-{
-    <div class="container">
-        <div class="row">
-            <RadzenTemplateForm TItem="AddOrUpdateConfigValueRequest" Data=@model Submit=@OnSubmit>
-                <RadzenFieldset>
-                    <div class="row justify-content-center">
-                        <div class="col-md-12 d-flex align-items-end justify-content-center" style="margin-top: 15px;">
-                            <RadzenLabel Text="Add new config value" style="font-size:30px; margin-bottom:15px" />
-                        </div>
-                    </div>
+<div class="container">
 
-                    <div class="row mb-5">
-                        <div class="col-md-1">
-                            <RadzenLabel Text="Key" />
-                            <small style="display: inline-block; color: red">*</small>
-                        </div>
-                        <div class="col">
-                            <RadzenTextBox style="display: inline-block" Name="Key" @bind-Value=@model.Key Class="w-100" />
-                            <RadzenRequiredValidator Component="Key" />
-                        </div>
-
-                        <div class="col-md-1">
-                            <RadzenLabel Text="Value" />
-                            <small style="display: inline-block; color: red">*</small>
-                        </div>
-                        <div class="col">
-                            <RadzenTextBox style="display: inline-block" Name="Value" @bind-Value=@model.Value Class="w-100" />
-                            <RadzenRequiredValidator Component="Value" />
-                        </div>
-                    </div>
-
-                    <div class="row mb-5">
-                        <div class="col-md-1">
-                            <RadzenLabel Text="Description" />
-                        </div>
-                        <div class="col">
-                            <RadzenTextBox style="display: inline-block" Name="Description" @bind-Value=@model.Description Class="w-100" />
-                        </div>
-                    </div>
-                </RadzenFieldset>
-            </RadzenTemplateForm>
-        </div>
-    </div>
-}
-
-@if (configs is null)
-{
-    <p>No configs</p>
-}
-else
-{
-    <div class="row px-3">
+    @if (configs is null)
+    {
+        <p>No configs</p>
+    }
+    else
+    {
         @foreach (var config in configs)
         {
-            <div class="col-md-6 col-lg-4 p-3">
+            <div class="row" style="margin: 10px; max-width:400px">
                 <RadzenCard>
                     <h4 class="mb-4">@config.Config.Key</h4>
                     <RadzenTextBox Change="@(_ => ValueChanged(config.Config.Key))" value="@config.Config.Value" Class="w-100" />
@@ -70,7 +24,7 @@ else
                 </RadzenCard>
             </div>
         }
-    </div>
-}
+    }
 
-<button class="btn btn-primary" @onclick="SaveChangesAsync">Save changes</button>
+    <button class="btn btn-primary" style="margin: 10px;" @onclick="SaveChangesAsync">Save changes</button>
+</div>

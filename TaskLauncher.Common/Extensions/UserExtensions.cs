@@ -18,6 +18,14 @@ public static class UserExtensions
         model.Vip = user.AppMetadata.vip.Value;
         model.Registered = user.AppMetadata.registered.Value;
         model.Original = user;
+
+        var tmp = user.UserMetadata.picture;
+        if(tmp is not null)
+        {
+            string? picture = user.UserMetadata.picture.Value;
+            if (picture is not null)
+                model.Picture = picture;
+        }
         return model;
     }
 

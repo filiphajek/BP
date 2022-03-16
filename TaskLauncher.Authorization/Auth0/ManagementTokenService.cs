@@ -57,6 +57,7 @@ public class ManagementTokenService
 
     private async Task<AccessToken> GetApiTokenClient(HttpClient client, bool audienceIsDomain)
     {
+        //TODO pozor na M2M tokeny -> lze kdyz tak vyuzit password grant
         string aud = $"https://{config.Domain}/api/v2/";
         if(!audienceIsDomain)
             aud = config.Audience;

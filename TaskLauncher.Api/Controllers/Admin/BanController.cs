@@ -27,13 +27,9 @@ public class BanController : AdminODataController<BanResponse>
         this.cache = cache;
     }
 
-    public override ActionResult<IQueryable<BanResponse>> Get(string userId = "")
+    public override ActionResult<IQueryable<BanResponse>> Get()
     {
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Ok(context.Bans.IgnoreQueryFilters().ProjectToType<BanResponse>());
-        }
-        return Ok(context.Bans.IgnoreQueryFilters().Where(i => i.UserId == userId).ProjectToType<BanResponse>());
+        return Ok(context.Bans.IgnoreQueryFilters().ProjectToType<BanResponse>());
     }
 
     [HttpGet("{id:guid}")]

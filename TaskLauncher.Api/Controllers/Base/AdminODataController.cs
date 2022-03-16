@@ -24,7 +24,7 @@ public abstract class AdminODataController<TResponse> : ControllerBase
 
     [HttpGet]
     [EnableQuery]
-    public abstract ActionResult<IQueryable<TResponse>> Get(string userId = "");
+    public abstract ActionResult<IQueryable<TResponse>> Get();
 }
 
 public abstract class AdminODataController<TEntity,TResponse> : ControllerBase

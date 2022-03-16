@@ -17,13 +17,9 @@ public class TaskController : AdminODataController<TaskResponse>
         this.mapper = mapper;
     }
 
-    public override ActionResult<IQueryable<TaskResponse>> Get(string userId = "")
+    public override ActionResult<IQueryable<TaskResponse>> Get()
     {
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Ok(context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>());
-        }
-        return Ok(context.Tasks.IgnoreQueryFilters().Where(i => i.UserId == userId).ProjectToType<TaskResponse>());
+        return Ok(context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>());
     }
 
     [HttpGet("{id:guid}")]

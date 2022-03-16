@@ -11,12 +11,8 @@ public class PaymentController : AdminODataController<PaymentResponse>
 {
     public PaymentController(AppDbContext context) : base(context) { }
 
-    public override ActionResult<IQueryable<PaymentResponse>> Get(string userId = "")
+    public override ActionResult<IQueryable<PaymentResponse>> Get()
     {
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Ok(context.Payments.IgnoreQueryFilters().ProjectToType<PaymentResponse>());
-        }
-        return Ok(context.Payments.IgnoreQueryFilters().Where(i => i.UserId == userId).ProjectToType<PaymentResponse>());
+        return Ok(context.Payments.IgnoreQueryFilters().ProjectToType<PaymentResponse>());
     }
 }

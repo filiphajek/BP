@@ -1,5 +1,7 @@
 ﻿@page "/profile"
 @using System.Security.Claims
+@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Extensions
 @using TaskLauncher.Common.Models
 @attribute [Authorize]
 @inject HttpClient client
@@ -25,20 +27,30 @@
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
+    [Inject]
+    public SpaManagementApiClient auth0client { get; set; }
+
     protected bool loading = true;
     protected UserModel User { get; set; } = new();
 
     protected async override Task OnInitializedAsync()
     {
         var principal = (await authenticationStateTask).User;
+        User = (await auth0client.Users.GetAsync(principal.Claims.SingleOrDefault(i => i.Type == ClaimTypes.NameIdentifier)!.Value)).GetModel();
+        User.TokenBalance = principal.TryGetClaimValue("token_balance", out var balance) ? balance : "";
+
+        /*string idPicture = "";
+        principal.TryGetClaimValue("picture", out idPicture);
+        var picture = principal.TryGetClaimValue(TaskLauncherClaimTypes.Picture, out var customPicture) ? customPicture : idPicture;
         User = new()
         {
             UserId = principal.Claims.SingleOrDefault(i => i.Type == ClaimTypes.NameIdentifier)!.Value,
             NickName = principal.Claims.SingleOrDefault(i => i.Type == "nickname")!.Value,
             Email = principal.Identity!.Name,
-            Picture = principal.Claims.SingleOrDefault(i => i.Type == "picture")!.Value,
-            Vip = bool.Parse(principal.Claims.SingleOrDefault(i => i.Type == "https://wutshot-test-api.com/vip")!.Value)
-        };
+            Picture = picture,
+            TokenBalance = principal.TryGetClaimValue("token_balance", out var balance) ? balance : "",
+            Vip = principal.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out var vip) ? vip : false,
+        };*/
         loading = false;
     }
 

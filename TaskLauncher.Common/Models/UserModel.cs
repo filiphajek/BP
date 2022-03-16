@@ -7,4 +7,5 @@ public class UserModel : User
     public User Original { get; set; }
     public bool Vip { get; set; }
     public bool Registered { get; set; }
+    public string TokenBalance { get; set; }
 }
