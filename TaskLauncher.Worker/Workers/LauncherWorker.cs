@@ -50,7 +50,11 @@ public class LauncherWorker : BackgroundService
         signalrClient.RegisterOnCancelTask(i =>
         {
             if (actualTask is not null && i.Id == actualTask.Id)
+            {
+                actualTask.State = TaskState.Cancelled;
+                signalrClient.Connection.InvokeGiveMeWork().Wait();
                 tokenSource.Cancel();
+            }
         });
         signalrClient.Connection.OnIsWorking(async () =>
         {
@@ -103,7 +107,7 @@ public class LauncherWorker : BackgroundService
         }
 
         //poslani informace o pripraveni tasku k spusteni
-        await UpdateTaskAsync(model, TaskState.Prepared, token);
+        await UpdateTaskAsync(model, TaskState.Ready, token);
 
         //kontrola zda neni task zrusen
         token.ThrowIfCancellationRequested();

@@ -20,9 +20,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TaskLauncher.Authorization", "TaskLauncher.Authorization\TaskLauncher.Authorization.csproj", "{4FC7297A-B80A-4A3B-A6C6-29F08C5FBB9B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskLauncher.App.Server", "TaskLauncher.App\Server\TaskLauncher.App.Server.csproj", "{1771751A-60E1-40F3-A83B-847A22112C6C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TaskLauncher.App.Server", "TaskLauncher.App\Server\TaskLauncher.App.Server.csproj", "{1771751A-60E1-40F3-A83B-847A22112C6C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskLauncher.App.Client", "TaskLauncher.App\Client\TaskLauncher.App.Client.csproj", "{B82A8E81-5B8D-4B7D-965C-08A0BCBAC754}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TaskLauncher.App.Client", "TaskLauncher.App\Client\TaskLauncher.App.Client.csproj", "{B82A8E81-5B8D-4B7D-965C-08A0BCBAC754}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskLauncher.Tests", "TaskLauncher.Tests\TaskLauncher.Tests.csproj", "{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -62,6 +64,10 @@ Global
 		{B82A8E81-5B8D-4B7D-965C-08A0BCBAC754}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B82A8E81-5B8D-4B7D-965C-08A0BCBAC754}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B82A8E81-5B8D-4B7D-965C-08A0BCBAC754}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

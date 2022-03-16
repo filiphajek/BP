@@ -51,7 +51,8 @@
                                     <GridComponent T="BanResponse" Grid="@banGrid"></GridComponent>
                                 </RadzenTabsItem>
                                 <RadzenTabsItem Text="Payments">
-                                    <GridComponent T="PaymentResponse" Grid="@paymentGrid"></GridComponent>
+                                    @*<GridComponent T="PaymentResponse" Grid="@paymentGrid"></GridComponent>*@
+                                    <PaymentsComponent UserId="@User.UserId"/>
                                 </RadzenTabsItem>
                                 <RadzenTabsItem Text="Tasks">
                                     <GridComponent T="TaskResponse" Grid="@taskGrid"></GridComponent>

@@ -10,6 +10,10 @@
 		<PackageReference Include="Hangfire.Core" Version="1.7.*" />
 		<PackageReference Include="Hangfire.SqlServer" Version="1.7.*" />
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.7.*" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.3">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="RoundRobin" Version="2.2.1" />
 		<PackageReference Include="Auth0.AuthenticationApi" Version="7.15.0" />
 		<PackageReference Include="Microsoft.AspNetCore.OData" Version="8.0.8" />

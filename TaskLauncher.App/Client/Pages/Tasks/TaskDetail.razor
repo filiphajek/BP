@@ -10,7 +10,7 @@
 
         <span>
             Status: @Task.ActualStatus &nbsp;
-            @if (Task.ActualStatus != TaskState.Finished && Task.ActualStatus != TaskState.Created)
+            @if (Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Created|| Task.ActualStatus == TaskState.Ready)
             {
                  <span>
                      <span class="spinner-border spinner-border-sm mr-1"></span>
@@ -20,11 +20,11 @@
 
         <br />
 
-        @if(Task.ActualStatus == TaskState.Finished || Task.ActualStatus == TaskState.Archived || Task.ActualStatus == TaskState.Downloaded)
+        @if(Task.ActualStatus == TaskState.Finished || Task.ActualStatus == TaskState.Downloaded)
         {
             <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
         }
-        <button @onclick="CancelTask" class="btn btn-danger"> @(Task.ActualStatus == TaskState.InQueue ? "Dequeue" : "Cancel") and restart</button>
+        <button @onclick="CancelTask" class="btn btn-danger"> @(Task.ActualStatus == TaskState.Created ? "Dequeue" : "Cancel") and restart</button>
 
         @if (message != "")
         {

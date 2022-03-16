@@ -6,7 +6,7 @@
 @using TaskLauncher.Common.Extensions
 @using TaskLauncher.Common.Models
 @attribute [Authorize]
-@inject HttpClient client
+@inject ApiClient client
 @inject DialogService DialogService
 @inject NavigationManager NavigationManager
 
@@ -24,7 +24,7 @@
                         <RadzenTabs TabPosition="TabPosition.Top" style="max-width: 1500px;" RenderMode="TabRenderMode.Client">
                             <Tabs>
                                 <RadzenTabsItem Text="Payments">
-                                    <GridComponent T="PaymentResponse" Grid="@paymentGrid"></GridComponent>
+                                    <PaymentsComponent/>
                                 </RadzenTabsItem>
                             </Tabs>
                         </RadzenTabs>
@@ -45,27 +45,10 @@
 {
     protected bool loading = true;
     protected UserModel User { get; set; } = new();
-    private CGrid<PaymentResponse> paymentGrid;
 
     protected async override Task OnInitializedAsync()
     {
         User = (await client.GetFromJsonAsync<UserModel>("api/user"))!;
-
-        Action<IGridColumnCollection<PaymentResponse>> columns = c =>
-        {
-            c.Add(o => o.Price);
-            c.Add(o => o.Time);
-            c.Add(o => o.Id);
-        };
-        string url = NavigationManager.BaseUri + $"odata/user/payment?$filter=userid eq '{User.UserId}'";
-        var paymentClient = new GridODataClient<PaymentResponse>(client, url, new QueryDictionary<StringValues>(), false, "paymentGrid", columns, 10)
-            .ChangePageSize(true)
-            .Sortable()
-            .WithGridItemsCount();
-
-        paymentGrid = paymentClient.Grid;
-        await paymentClient.UpdateGrid();
-
         loading = false;
     }
 

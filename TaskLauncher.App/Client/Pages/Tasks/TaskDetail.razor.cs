@@ -57,17 +57,7 @@ public partial class TaskDetail : IDisposable
     private void StatusChanged(TaskModel model)
     {
         Console.WriteLine($"Status changed: {model.State} on task: {model.Id}");
-        /*Task.ActualStatus = model.State;
-        if (model.State == TaskState.InQueue)
-        {
-            Task.Start = model.Time;
-            Task.End = null;
-        }
-        if (model.State == TaskState.Finished)
-        {
-            Task.End = model.Time;
-            isRunning = false;
-        }*/
+        Task.ActualStatus = model.State;
         StateHasChanged();
     }
 

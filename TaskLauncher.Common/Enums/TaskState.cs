@@ -3,12 +3,11 @@
 public enum TaskState
 {
     Created,
-    InQueue,
-    Prepared,
+    Ready,
     Running,
     Finished,
     Deleted,
     Cancelled,
-    Downloaded,
-    Archived
+    Crashed,
+    Downloaded
 }

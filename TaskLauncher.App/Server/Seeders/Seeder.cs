@@ -23,11 +23,10 @@ public class Seeder
         if (await dbContext.Payments.IgnoreQueryFilters().AnyAsync())
             return;
 
-        //user1 auth0|6225224ff0bca300691d9bd8
-        //seededvip auth0|6225226df7aa7a006a913c3b
+        //todo management api
         //testuser auth0|61b0e161678a0c00689644e0
         //testadmin auth0|622076411a44b70076f27000
-        foreach (var id in new[] { "auth0|6225224ff0bca300691d9bd8", "auth0|6225226df7aa7a006a913c3b", "auth0|61b0e161678a0c00689644e0", "auth0|622076411a44b70076f27000" })
+        foreach (var id in new[] { "auth0|61b0e161678a0c00689644e0", "auth0|622076411a44b70076f27000" })
         {
             await SeedUser(id);
         }
@@ -47,18 +46,28 @@ public class Seeder
     {
         int i = 0;
 
-        var fileName = $"seed{DateTime.Now.Ticks}";
-        await UploadFile(userId, fileName);
-
+        //soubory
+        var taskFileName = $"taskfile{i}";
+        var resultFileName = $"resultfile{i}";
+        await UploadFile(userId, taskFileName);
+        await UploadFile(userId, resultFileName);
+        
         //task1
-        var task1 = await dbContext.Tasks.AddAsync(new() { Name = $"Task {i++}", Description = "text", TaskFile = fileName, UserId = userId, ResultFile = "", ActualStatus = TaskState.InQueue });
-        await dbContext.Payments.AddAsync(new() { Price = 1, Time = DateTime.Now, UserId = userId, Task = task1.Entity });
+        var task1 = await dbContext.Tasks.AddAsync(new() { Name = $"Task {i++}", Description = "text", TaskFile = taskFileName, UserId = userId, ResultFile = resultFileName, ActualStatus = TaskState.Finished });
         await dbContext.Events.AddAsync(new() { Task = task1.Entity, Status = TaskState.Created, UserId = userId, Time = DateTime.Now });
-        await dbContext.Events.AddAsync(new() { Task = task1.Entity, Status = TaskState.InQueue, UserId = userId, Time = DateTime.Now.AddMinutes(10) });
+        await dbContext.Events.AddAsync(new() { Task = task1.Entity, Status = TaskState.Ready, UserId = userId, Time = DateTime.Now.AddMinutes(15) });
+        await dbContext.Events.AddAsync(new() { Task = task1.Entity, Status = TaskState.Running, UserId = userId, Time = DateTime.Now.AddMinutes(16) });
+        await dbContext.Events.AddAsync(new() { Task = task1.Entity, Status = TaskState.Finished, UserId = userId, Time = DateTime.Now.AddMinutes(20) });
+        
+        await dbContext.Payments.AddAsync(new() { Price = 1, Time = DateTime.Now, UserId = userId, Task = task1.Entity });
 
         //task2
-        var task2 = await dbContext.Tasks.AddAsync(new() { Name = $"Task {i++}", Description = "text", TaskFile = fileName, UserId = userId, ResultFile = "" });
+        var task2 = await dbContext.Tasks.AddAsync(new() { Name = $"Task {i++}", ActualStatus = TaskState.Finished, Description = "text", TaskFile = taskFileName, UserId = userId, ResultFile = resultFileName });
         await dbContext.Events.AddAsync(new() { Task = task2.Entity, Status = TaskState.Created, UserId = userId, Time = DateTime.Now });
+        await dbContext.Events.AddAsync(new() { Task = task2.Entity, Status = TaskState.Ready, UserId = userId, Time = DateTime.Now.AddMinutes(13) });
+        await dbContext.Events.AddAsync(new() { Task = task2.Entity, Status = TaskState.Running, UserId = userId, Time = DateTime.Now.AddMinutes(14) });
+        await dbContext.Events.AddAsync(new() { Task = task2.Entity, Status = TaskState.Finished, UserId = userId, Time = DateTime.Now.AddMinutes(21) });
+        
         await dbContext.Payments.AddAsync(new() { Price = 1, Time = DateTime.Now, UserId = userId, Task = task2.Entity });
 
         await dbContext.TokenBalances.AddAsync(new() { CurrentAmount = 98, LastAdded = DateTime.Now, UserId = userId });

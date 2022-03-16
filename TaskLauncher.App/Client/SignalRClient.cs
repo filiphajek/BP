@@ -37,6 +37,8 @@ public class SignalRClient : IAsyncDisposable
     {
         var tmp = Connection.OnNotification(i =>
         {
+            Console.WriteLine("New update");
+            Console.WriteLine(i.Id);
             if (OnTaskUpdate is not null)
             {
                 OnTaskUpdate.Invoke(i);

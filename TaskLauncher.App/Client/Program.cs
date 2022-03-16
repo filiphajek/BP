@@ -10,6 +10,7 @@ using Radzen;
 using TaskLauncher.Authorization;
 using TaskLauncher.App.Client.Services;
 using TaskLauncher.App.Client.Authentication;
+using Microsoft.Extensions.Http;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -53,6 +54,10 @@ builder.Services.AddTransient<BanHandler>();
 builder.Services.AddHttpClient("default", client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress));
 builder.Services.AddHttpClient("apiclient", client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
     .AddHttpMessageHandler<BanHandler>();
+
+builder.Services.AddHttpClient<ApiClient>(client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    .AddHttpMessageHandler<BanHandler>();
+
 builder.Services.AddTransient(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("default"));
 
 await builder.Build().RunAsync();

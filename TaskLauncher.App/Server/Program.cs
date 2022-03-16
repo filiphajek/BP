@@ -26,6 +26,8 @@ using TaskLauncher.App.Server.Routines;
 using TaskLauncher.App.Server.Extensions;
 using TaskLauncher.App.Server.Filters;
 using TaskLauncher.App.Server.Proxy;
+using TaskLauncher.App.DAL;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -234,20 +236,23 @@ app.UseEndpoints(endpoints =>
 
 app.UseHangfireDashboard("/hangfire");
 
+var balancer = app.Services.GetRequiredService<Balancer>();
 //backend testing
-var taskCache = app.Services.GetRequiredService<Balancer>();
-for (int i = 0; i < 20; i++)
+/*for (int i = 0; i < 20; i++)
 {
-    taskCache.Enqueue("nonvip", new() { Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"NON-vip {i}" });
+    balancer.Enqueue("nonvip", new() { Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"NON-vip {i}" });
 }
 
 for (int i = 0; i < 20; i++)
 {
-    taskCache.Enqueue("vip", new() { UserId = "auth0|622076411a44b70076f27000", Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"vip {i}" });
-}
+    balancer.Enqueue("vip", new() { UserId = "auth0|61b0e161678a0c00689644e0", Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"vip {i}" });
+}*/
 
 using (var scope = app.Services.CreateScope())
 {
+    var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
+    await seeder.SeedAsync();
+
     var jobClient = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
     var routine = scope.ServiceProvider.GetRequiredService<FileDeletionRoutine>();
     jobClient.RemoveIfExists(nameof(FileDeletionRoutine));
@@ -256,8 +261,20 @@ using (var scope = app.Services.CreateScope())
     var configurator = scope.ServiceProvider.GetRequiredService<Configurator>();
     await configurator.ConfigureDefaultsAsync();
 
-    var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
-    await seeder.SeedAsync();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    
+    var tasks = await dbContext.Tasks.IgnoreQueryFilters().Where(i => i.ActualStatus == TaskLauncher.Common.Enums.TaskState.Created).ToListAsync();
+    foreach(var task in tasks)
+    {
+        balancer.Enqueue("nonvip", new()
+        {
+            State = 0,
+            Id = task.Id,
+            TaskFilePath = task.TaskFile,
+            Time = DateTime.Now,
+            UserId = task.UserId
+        });
+    }
 }
 
 app.MapHangfireDashboard().RequireAuthorization("admin-policy");

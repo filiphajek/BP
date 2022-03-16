@@ -23,23 +23,18 @@ public class TaskController : UserODataController<TaskResponse>
     private readonly IMapper mapper;
     private readonly ITaskRepository taskRepository;
     private readonly IEventRepository eventRepository;
-    private readonly ITokenBalanceRepository tokenRepository;
-    private readonly IPaymentRepository paymentRepository;
     private readonly IFileStorageService fileStorageService;
     private readonly Balancer balancer;
 
     public TaskController(AppDbContext context, IMapper mapper,
         ITaskRepository taskRepository,
         IEventRepository eventRepository,
-        ITokenBalanceRepository tokenRepository,
-        IPaymentRepository paymentRepository,
-        IFileStorageService fileStorageService, Balancer balancer) : base(context)
+        IFileStorageService fileStorageService, 
+        Balancer balancer) : base(context)
     {
         this.mapper = mapper;
         this.taskRepository = taskRepository;
         this.eventRepository = eventRepository;
-        this.tokenRepository = tokenRepository;
-        this.paymentRepository = paymentRepository;
         this.fileStorageService = fileStorageService;
         this.balancer = balancer;
     }
@@ -99,7 +94,7 @@ public class TaskController : UserODataController<TaskResponse>
             await fileStorageService.UploadFileAsync($"{userId}/{fileId}/task", stream);
         }
 
-        var eventEntity = new EventEntity { Status = TaskState.InQueue, Time = DateTime.Now, UserId = userId };
+        var eventEntity = new EventEntity { Status = TaskState.Created, Time = DateTime.Now, UserId = userId };
         TaskEntity task = new()
         {
             ActualStatus = TaskState.Created,
@@ -115,6 +110,7 @@ public class TaskController : UserODataController<TaskResponse>
 
         balancer.Enqueue(vip ? "vip" : "nonvip", new TaskModel
         {
+            Id = task.Id,
             State = TaskState.Created,
             Time = DateTime.Now,
             TaskFilePath = task.TaskFile,
@@ -151,7 +147,7 @@ public class TaskController : UserODataController<TaskResponse>
         if (task is null)
             return BadRequest();
 
-        if (task.ActualStatus == TaskState.InQueue || task.ActualStatus == TaskState.Running)
+        if (task.ActualStatus == TaskState.Running)
             return BadRequest();
 
         var eventEntity = new EventEntity { Status = TaskState.Deleted, Time = DateTime.Now, UserId = userId, Task = task };
@@ -160,5 +156,40 @@ public class TaskController : UserODataController<TaskResponse>
         task.ActualStatus = TaskState.Deleted; // uplne smazat to muze pouze admin
         await taskRepository.UpdateAsync(task);
         return Ok();
+    }
+
+    /// <summary>
+    /// Zruseni tasku
+    /// </summary>
+    [HttpPost("cancel")]
+    public async Task<IActionResult> CancelTaskAsync(Guid taskId)
+    {
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
+        if (task is null)
+            return BadRequest();
+
+        balancer.CancelTask(taskId);
+        task.ActualStatus = TaskState.Cancelled;
+        context.Update(task);
+        await context.SaveChangesAsync();
+        return Ok();
+    }
+
+    /// <summary>
+    /// Stazeni vysledku tasku
+    /// </summary>
+    [HttpPost("file")]
+    public async Task<IActionResult> DownloadFileAsync(Guid taskId)
+    {
+        if (!User.TryGetAuth0Id(out var userId))
+            return Unauthorized();
+
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
+        if (task is null)
+            return NotFound();
+
+        MemoryStream stream = new();
+        await fileStorageService.DownloadFileAsync($"{userId}/{task.Id}/result", stream);
+        return File(stream, "application/octet-stream", task.Name);
     }
 }

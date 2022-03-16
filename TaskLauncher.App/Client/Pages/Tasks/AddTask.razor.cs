@@ -43,7 +43,7 @@ public partial class AddTask
             var response = await client.SendMultipartFormDataAsync("api/task", stream, Model, file.Name);
             if (response.IsSuccessStatusCode)
             {
-                navigationManager.NavigateTo("/tasks", true);
+                navigationManager.NavigateTo("/tasks");
             }
             else
             {

@@ -13,6 +13,7 @@ public class Balancer
     private readonly Dictionary<string, TaskQueue> taskQueues;
     private readonly ILogger<Balancer> logger;
     private readonly IHubContext<WorkerHub, IWorkerHub> workerHub;
+    private readonly HashSet<Guid> canceledTasks = new();
 
     public bool ClientsWithoutWork { get; set; }
 
@@ -34,6 +35,25 @@ public class Balancer
         this.workerHub = workerHub;
     }
 
+    public void CancelTask(Guid id)
+    {
+        canceledTasks.Add(id);
+    }
+
+    private bool TryDequeue(TaskQueue queue, out TaskModel? task)
+    {
+        if (queue.TryDequeue(out task, out _))
+        {
+            if (canceledTasks.Contains(task.Id))
+            {
+                task = null;
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
     public void Enqueue(string queue, TaskModel task)
     {
         if (taskQueues.TryGetValue(queue, out var taskQueue))
@@ -50,16 +70,16 @@ public class Balancer
     public async Task<TaskModel> GetNext(CancellationToken token = default)
     {
         var current = roundRobin.Next();
-        if (current.TryDequeue(out var task, out _))
-            return task;
+        if (TryDequeue(current, out var task))
+            return task!;
 
         //nahradit timerem?
         var name = current.Name;
         while (true)
         {
             var next = roundRobin.GetNextItem(current);
-            if (next.TryDequeue(out var task2, out _))
-                return task2;
+            if (TryDequeue(next, out var task2))
+                return task2!;
             if (name == next.Name)
             {
                 logger.LogInformation("Waiting for new tasks");

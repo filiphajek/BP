@@ -36,7 +36,7 @@ public partial class UserDetail
 
     protected bool isLoading = false;
     private CGrid<BanResponse> banGrid;
-    private CGrid<PaymentResponse> paymentGrid;
+    //private CGrid<PaymentResponse> paymentGrid;
     private CGrid<TaskResponse> taskGrid;
     private IGridClient<BanResponse> banClient; 
 
@@ -76,7 +76,7 @@ public partial class UserDetail
         await banClient.UpdateGrid();
 
         //payments
-        Action<IGridColumnCollection<PaymentResponse>> columns2 = c =>
+        /*Action<IGridColumnCollection<PaymentResponse>> columns2 = c =>
         {
             c.Add(o => o.Price);
             c.Add(o => o.Time);
@@ -89,7 +89,7 @@ public partial class UserDetail
             .WithGridItemsCount();
 
         paymentGrid = paymentClient.Grid;
-        await paymentClient.UpdateGrid();
+        await paymentClient.UpdateGrid();*/
 
         //tasks
         Action<IGridColumnCollection<TaskResponse>> columns3 = c =>
