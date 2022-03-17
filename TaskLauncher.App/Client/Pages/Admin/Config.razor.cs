@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Radzen.Blazor;
 using System.Net.Http.Json;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
@@ -7,69 +8,51 @@ namespace TaskLauncher.App.Client.Pages.Admin;
 
 public partial class Config
 {
-    public class ConfigItem
+    public record ConfigItem : ConfigResponse
     {
-        public bool Changed { get; set; } = false;
-        public ConfigResponse Config { get; }
+        public string OldValue { get; }
 
         public ConfigItem(ConfigResponse config)
         {
-            Config = config;
+            OldValue = config.Value;
+            Value = config.Value;
+            Key = config.Key;
+            Description = config.Description;
         }
+    }
+    public class ConfigurationModel
+    {
+        public List<ConfigItem>? Configs { get; set; } = new();
     }
 
     [Inject]
     public HttpClient Client { get; set; }
 
-    protected List<ConfigItem>? configs = new();
-
-    bool addConfig = false;
-
-    AddOrUpdateConfigValueRequest model = new();
+    ConfigurationModel model = new();
+    RadzenTemplateForm<ConfigurationModel> form;
 
     async Task SaveChangesAsync()
     {
-        foreach(var config in configs!)
+        if (!form.EditContext.Validate())
         {
-            if(config.Changed)
+            return;
+        }
+        foreach (var config in model.Configs!)
+        {
+            if(config.OldValue != config.Value)
             {
-                await Client.PostAsJsonAsync("api/config", new AddOrUpdateConfigValueRequest
+                await Client.PutAsJsonAsync("api/config", new UpdateConfigValueRequest
                 {
-                    Value = config.Config.Value,
-                    Key = config.Config.Key,
-                    Description = config.Config.Description
+                    Value = config.Value,
+                    Key = config.Key
                 });
             }
         }
     }
 
-    async Task RemoveConfigAsync(string key)
-    {
-        await Client.DeleteAsync($"api/config?key={key}");
-        configs!.Remove(configs.Single(i => i.Config.Key == key));
-    }
-
     protected override async Task OnInitializedAsync()
     {
         var tmp = await Client.GetFromJsonAsync<List<ConfigResponse>>("api/config");
-        configs = tmp!.Select(i => new ConfigItem(i)).ToList();
-    }
-
-    void ValueChanged(string key)
-    {
-        var tmp = configs!.Single(i => i.Config.Key == key);
-        tmp.Changed = true;
-    }
-
-    async Task OnSubmit()
-    {
-        if(configs!.SingleOrDefault(i => i.Config.Key == model.Key) is not null)
-        {
-            //error message
-            return;
-        }
-        var result = await Client.PostAsJsonAsync("api/config", model);
-        var newConfig = await result.Content.ReadFromJsonAsync<ConfigResponse>();
-        configs!.Add(new(newConfig!));
+        model.Configs = tmp!.Select(i => new ConfigItem(i)).ToList();
     }
 }

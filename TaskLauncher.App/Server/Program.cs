@@ -170,7 +170,7 @@ builder.Services.Configure<PriorityQueuesConfiguration>(builder.Configuration.Ge
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    //c.DocumentFilter<SwaggerFilter>();
+    c.DocumentFilter<SwaggerFilter>();
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskLauncher", Version = "v1" });
     //c.ExampleFilters();
     var securitySchema = new OpenApiSecurityScheme

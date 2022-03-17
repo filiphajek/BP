@@ -5,13 +5,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
-using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
 using TaskLauncher.App.Server.Routines;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Controllers;
 
+/// <summary>
+/// Kontroler, ktery slouzi pouze pro administatora
+/// Ziskava a nastavuje systemove hodnoty
+/// </summary>
 [Authorize(Policy = "admin-policy")]
 public class ConfigController : BaseController
 {
@@ -29,6 +33,9 @@ public class ConfigController : BaseController
         this.mapper = mapper;
     }
 
+    /// <summary>
+    /// Ziska vsechny konfiguracni hodnoty nebo pouze jednu hodnotu, pokud je specifikovan parametr 'key'
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetConfiguratioAsync(string? key = null)
     {
@@ -38,43 +45,43 @@ public class ConfigController : BaseController
             return Ok(list.Select(mapper.Map<ConfigResponse>));
         }
 
-        var config = await dbContext.Configs.SingleOrDefaultAsync(i => i.Key == key);
-        return Ok(mapper.Map<ConfigResponse>(config)); // je jedno ze to bude null
+        if(!Constants.Configuration.IsConfigurationValue(key))
+            return new BadRequestObjectResult(new { error = "This is not an configuration value" });
+
+        var config = await dbContext.Configs.SingleAsync(i => i.Key == key);
+        return Ok(mapper.Map<ConfigResponse>(config));
     }
 
-    [HttpPost]
-    public async Task<IActionResult> AddOrUpdateConfigurationValueAsync(AddOrUpdateConfigValueRequest request)
+    /// <summary>
+    /// Aktualizuje systemovou hodnotu
+    /// </summary>
+    [HttpPut]
+    public async Task<IActionResult> UpdateConfigurationValueAsync(UpdateConfigValueRequest request)
     {
         var config = await dbContext.Configs.SingleOrDefaultAsync(i => i.Key == request.Key);
         if (config is null)
+            return new BadRequestObjectResult(new { error = $"Configuration value '{request.Key}' does not exist" });
+
+        switch (config.Type)
         {
-            await dbContext.AddAsync(mapper.Map<ConfigEntity>(request));
-            await dbContext.SaveChangesAsync();
-            return Ok();
+            case Common.Enums.ConstantTypes.Number:
+                if(!int.TryParse(request.Value, out _))
+                    return new BadRequestObjectResult(new { error = "Value is not a number type" });
+                break;
+            case Common.Enums.ConstantTypes.String:
+                break;
+            default:
+                throw new NotSupportedException(nameof(config.Type));
         }
-        mapper.Map(request, config);
+        config.Value = request.Value;
         dbContext.Update(config);
         await dbContext.SaveChangesAsync();
 
-        if (request.Key == "autofileremove")
+        if (request.Key == Constants.Configuration.FileRemovalRoutine)
         {
             client.RemoveIfExists(nameof(FileDeletionRoutine));
             client.AddOrUpdate(nameof(FileDeletionRoutine), () => routine.Perform(), Cron.Minutely);
         }
-        return Ok();
-    }
-
-    [HttpDelete]
-    public async Task<IActionResult> RemoveConfigValue(string key)
-    {
-        var config = await dbContext.Configs.SingleOrDefaultAsync(i => i.Key == key);
-        if (config is null)
-            return BadRequest(new { message = "This key does not exist" });
-        if (!config.CanDelete)
-            return BadRequest(new { message = "Cant delete this value" });
-
-        dbContext.Remove(config);
-        await dbContext.SaveChangesAsync();
         return Ok();
     }
 }

@@ -1,30 +1,31 @@
 ﻿@page "/config"
 @using TaskLauncher.Api.Contracts.Requests
+@using TaskLauncher.App.Client.Validators
+@using TaskLauncher.Common.Enums
 @attribute [Authorize(Policy = "admin-policy")]
 
 <div class="container">
+    <RadzenTemplateForm @ref="@form" TItem="ConfigurationModel" Data="@model" Submit="SaveChangesAsync">
 
-    @if (configs is null)
-    {
-        <p>No configs</p>
-    }
-    else
-    {
-        @foreach (var config in configs)
+        @if (model.Configs is null)
         {
-            <div class="row" style="margin: 10px; max-width:400px">
-                <RadzenCard>
-                    <h4 class="mb-4">@config.Config.Key</h4>
-                    <RadzenTextBox Change="@(_ => ValueChanged(config.Config.Key))" value="@config.Config.Value" Class="w-100" />
-                    <p>@config.Config.Description</p>
-                    @if (config.Config.CanDelete)
-                    {
-                        <button class="btn btn-danger" @onclick="@(async () => await RemoveConfigAsync(@config.Config.Key))">Save changes</button>
-                    }
-                </RadzenCard>
-            </div>
+            <p>No configs</p>
         }
-    }
-
-    <button class="btn btn-primary" style="margin: 10px;" @onclick="SaveChangesAsync">Save changes</button>
+        else
+        {
+            @foreach (var config in model.Configs)
+            {
+                <div class="row" style="margin: 10px; max-width:400px">
+                    <RadzenCard>
+                        <h4 class="mb-4">@config.Key</h4>
+                        <p>Type: @config.Type</p>
+                        <RadzenTextBox Name="@(config.Key)" @bind-Value="@config.Value" Class="w-100" />
+                        <ConfigValidator Type="@config.Type" Component="@config.Key" />
+                        <p>@config.Description</p>
+                    </RadzenCard>
+                </div>
+            }
+        }
+        <RadzenButton ButtonType="Radzen.ButtonType.Submit" style="margin:10px" ButtonStyle="ButtonStyle.Secondary" Text="Save changes" />
+    </RadzenTemplateForm>
 </div>
