@@ -89,9 +89,10 @@ public class TaskController : UserODataController<TaskResponse>
         semaphoreSlim.Release();
 
         var fileId = file.Name + DateTime.Now.Ticks.ToString();
+        var path = $"{userId}/{fileId}/task";
         using (var stream = file.OpenReadStream())
         {
-            await fileStorageService.UploadFileAsync($"{userId}/{fileId}/task", stream);
+            await fileStorageService.UploadFileAsync(path, stream);
         }
 
         var eventEntity = new EventEntity { Status = TaskState.Created, Time = DateTime.Now, UserId = userId };
@@ -99,7 +100,8 @@ public class TaskController : UserODataController<TaskResponse>
         {
             ActualStatus = TaskState.Created,
             UserId = userId,
-            TaskFile = fileId,
+            TaskFile = path,
+            ResultFile = path,
             Events = new List<EventEntity> { eventEntity }
         };
 
@@ -150,10 +152,10 @@ public class TaskController : UserODataController<TaskResponse>
         if (task.ActualStatus == TaskState.Running)
             return BadRequest();
 
-        var eventEntity = new EventEntity { Status = TaskState.Deleted, Time = DateTime.Now, UserId = userId, Task = task };
+        var eventEntity = new EventEntity { Status = TaskState.Closed, Time = DateTime.Now, UserId = userId, Task = task };
 
         await eventRepository.AddAsync(eventEntity);
-        task.ActualStatus = TaskState.Deleted; // uplne smazat to muze pouze admin
+        task.ActualStatus = TaskState.Closed; // uplne smazat to muze pouze admin
         await taskRepository.UpdateAsync(task);
         return Ok();
     }
@@ -168,17 +170,21 @@ public class TaskController : UserODataController<TaskResponse>
         if (task is null)
             return BadRequest();
 
-        balancer.CancelTask(taskId);
-        task.ActualStatus = TaskState.Cancelled;
-        context.Update(task);
-        await context.SaveChangesAsync();
-        return Ok();
+        if (task.ActualStatus == TaskState.Created || task.ActualStatus == TaskState.Running || task.ActualStatus == TaskState.Ready)
+        {
+            balancer.CancelTask(taskId);
+            task.ActualStatus = TaskState.Cancelled;
+            context.Update(task);
+            await context.SaveChangesAsync();
+            return Ok();
+        }
+        return BadRequest();
     }
 
     /// <summary>
     /// Stazeni vysledku tasku
     /// </summary>
-    [HttpPost("file")]
+    [HttpGet("file")]
     public async Task<IActionResult> DownloadFileAsync(Guid taskId)
     {
         if (!User.TryGetAuth0Id(out var userId))
@@ -188,8 +194,74 @@ public class TaskController : UserODataController<TaskResponse>
         if (task is null)
             return NotFound();
 
-        MemoryStream stream = new();
-        await fileStorageService.DownloadFileAsync($"{userId}/{task.Id}/result", stream);
-        return File(stream, "application/octet-stream", task.Name);
+        if (task.ActualStatus == TaskState.Finished)
+        {
+            task.ActualStatus = TaskState.Downloaded;
+            context.Update(task);
+            await context.Events.AddAsync(new() { Task = task, Status = TaskState.Downloaded, Time = DateTime.Now, UserId = userId });
+            await context.SaveChangesAsync();
+            MemoryStream stream = new();
+            await fileStorageService.DownloadFileAsync(task.ResultFile, stream);
+            return File(stream, "application/octet-stream", task.Name);
+        }
+
+        if(task.ActualStatus == TaskState.Downloaded)
+        {
+            MemoryStream stream = new();
+            await fileStorageService.DownloadFileAsync(task.ResultFile, stream);
+            return File(stream, "application/octet-stream", task.Name);
+        }
+        return BadRequest();
+    }
+
+    [HttpPost("close")]
+    public async Task<IActionResult> CloseTaskAsync(Guid taskId)
+    {
+        if (!User.TryGetAuth0Id(out var userId))
+            return Unauthorized();
+
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
+        if (task is null)
+            return NotFound();
+
+        if (task.ActualStatus != TaskState.Downloaded)
+            return BadRequest();
+
+        task.ActualStatus = TaskState.Closed;
+        context.Update(task);
+        await context.Events.AddAsync(new() { Task = task, Status = TaskState.Closed, Time = DateTime.Now, UserId = userId });
+        await context.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpPost("restart")]
+    public async Task<IActionResult> RestartTaskAsync(Guid taskId)
+    {
+        if (!User.TryGetAuth0Id(out var userId))
+            return Unauthorized();
+
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
+        if (task is null)
+            return NotFound();
+
+        if (task.ActualStatus == TaskState.Cancelled || task.ActualStatus == TaskState.Crashed)
+        {
+            task.ActualStatus = TaskState.Created;
+            context.Update(task);
+            await context.Events.AddAsync(new() { Task = task, Status = TaskState.Created, Time = DateTime.Now, UserId = userId });
+            await context.SaveChangesAsync();
+
+            User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out bool vip);
+            balancer.Enqueue(vip ? "vip" : "nonvip", new TaskModel
+            {
+                Id = task.Id,
+                State = TaskState.Created,
+                Time = DateTime.Now,
+                TaskFilePath = task.TaskFile,
+                UserId = task.UserId
+            });
+            return Ok();
+        }
+        return BadRequest();
     }
 }

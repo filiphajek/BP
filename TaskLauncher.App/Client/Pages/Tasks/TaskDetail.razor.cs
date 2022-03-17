@@ -35,6 +35,8 @@ public partial class TaskDetail : IDisposable
     private bool isRunning = false;
     private bool isLoading = true;
 
+    private IDisposable eventSubscription;
+
     protected override async Task OnParametersSetAsync()
     {
         client = HttpClientFactory.CreateApiClient();
@@ -49,8 +51,22 @@ public partial class TaskDetail : IDisposable
             navigationManager.NavigateTo("tasks");
             return;
         }
+        
         signalRClient.OnTaskUpdate += StatusChanged;
+        eventSubscription = signalRClient.Connection.OnNewEvent(NewEvent);
         isLoading = false;
+    }
+
+    private void NewEvent(EventModel model)
+    {
+        if (Task.Events is null)
+            Task.Events = new();
+
+        Task.Events.Add(new EventResponse
+        {
+            Status = model.Status,
+            Time = model.Time
+        });
     }
 
     //aktualizace gui po prijmuti signalr zpravy
@@ -72,12 +88,14 @@ public partial class TaskDetail : IDisposable
     {
         if(Task.ActualStatus == TaskState.Finished)
         {
-            navigationManager.NavigateTo("api/file/" + Id.ToString(), true);
+            navigationManager.NavigateTo("api/task/file?taskId=" + Id.ToString(), true);
+            Task.ActualStatus = TaskState.Downloaded;
         }
     }
 
     public void Dispose()
     {
         signalRClient.OnTaskUpdate -= StatusChanged;
+        eventSubscription.Dispose();
     }
 }

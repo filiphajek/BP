@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using MapsterMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.App.DAL;
+using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.Server.Tasks;
 using TaskLauncher.Common.Models;
 
@@ -30,15 +32,23 @@ public interface IWorkerHub
 public class WorkerHub : Hub<IWorkerHub>
 {
     private readonly ILogger<WorkerHub> logger;
+    private readonly IMapper mapper;
     private readonly TaskCache cache;
     private readonly Balancer balancer;
     private readonly IServiceProvider provider;
     private readonly IHubContext<UserHub, IUserHub> userHubContext;
     private readonly SignalRMemoryStorage userConnectionsStorage;
 
-    public WorkerHub(ILogger<WorkerHub> logger, TaskCache cache, Balancer balancer, IServiceProvider provider, IHubContext<UserHub, IUserHub> userHubContext, SignalRMemoryStorage userConnectionsStorage)
+    public WorkerHub(ILogger<WorkerHub> logger, 
+        IMapper mapper,
+        TaskCache cache, 
+        Balancer balancer, 
+        IServiceProvider provider, 
+        IHubContext<UserHub, IUserHub> userHubContext, 
+        SignalRMemoryStorage userConnectionsStorage)
     {
         this.logger = logger;
+        this.mapper = mapper;
         this.cache = cache;
         this.balancer = balancer;
         this.provider = provider;
@@ -68,15 +78,21 @@ public class WorkerHub : Hub<IWorkerHub>
         }
     }
 
-    private async Task UpdateDatabase(TaskModel model)
+    private async Task<EventModel> UpdateDatabase(TaskModel model)
     {
         using var scope = provider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var task = await dbContext.Tasks.SingleAsync(i => i.Id == model.Id);
+
+        var task = await dbContext.Tasks.IgnoreQueryFilters().SingleAsync(i => i.Id == model.Id);
         task.ActualStatus = model.State;
         dbContext.Update(task);
-        var ev = await dbContext.Events.AddAsync(new() { Status = model.State, Task = task, Time = DateTime.Now, UserId = model.UserId });
+        var ev = new EventEntity() { Status = model.State, Task = task, Time = DateTime.Now, UserId = model.UserId };
+        await dbContext.Events.AddAsync(ev);
         await dbContext.SaveChangesAsync();
+        
+        var tmp = mapper.Map<EventModel>(ev);
+        tmp.TaskId = model.Id;
+        return tmp;
     }
 
     public async Task GiveMeWork()
@@ -87,13 +103,17 @@ public class WorkerHub : Hub<IWorkerHub>
 
     public async Task TaskStatusUpdate(TaskModel model)
     {
+        //update - lze udelat i jako http endpoint
+        var eventModel = await UpdateDatabase(model);
+
         if (model.UserId is not null)
         {
             var connections = userConnectionsStorage.GetConnections(model.UserId);
-            await userHubContext.Clients.Clients(connections).Notify(model);
+            await userHubContext.Clients.Clients(connections).SendEvent(eventModel);
+
+            if (model.State == Common.Enums.TaskState.Finished)
+                await userHubContext.Clients.Clients(connections).Notify(model);
         }
-        //update - lze udelat i jako http endpoint
-        //await UpdateDatabase(model);
 
         //update cache
         var cachedTask = cache[Context.ConnectionId];

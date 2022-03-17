@@ -36,6 +36,9 @@ else
 
         var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "queueGrid", columns, 10)
             .ChangePageSize(true)
+            .Sortable()
+            .Filterable()
+            .Searchable()
             .WithGridItemsCount();
 
         grid = client.Grid;

@@ -20,11 +20,25 @@
 
         <br />
 
+        @if (Task.ActualStatus == TaskState.Created || Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Ready)
+        {
+            <button @onclick="CancelTask" class="btn btn-danger">Cancel task</button>
+        }
+
         @if(Task.ActualStatus == TaskState.Finished || Task.ActualStatus == TaskState.Downloaded)
         {
             <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
         }
-        <button @onclick="CancelTask" class="btn btn-danger"> @(Task.ActualStatus == TaskState.Created ? "Dequeue" : "Cancel") and restart</button>
+
+        @if(Task.ActualStatus == TaskState.Downloaded)
+        {
+            <button class="btn btn-danger">Close task</button>
+        }
+
+        @if(Task.ActualStatus == TaskState.Cancelled)
+        {
+            <button class="btn btn-primary">Start task</button>
+        }
 
         @if (message != "")
         {

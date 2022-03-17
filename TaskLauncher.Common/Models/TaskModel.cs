@@ -11,3 +11,11 @@ public class TaskModel
     public string TaskFilePath { get; set; }
     public string ResultFilePath { get; set; }
 }
+
+public class EventModel
+{
+    public Guid Id { get; set; }
+    public TaskState Status { get; set; }
+    public DateTime Time { get; set; }
+    public Guid TaskId { get; set; }
+}

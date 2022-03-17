@@ -85,13 +85,20 @@ public class LauncherWorker : BackgroundService
     private async Task TestTaskExecution(TaskModel model, CancellationToken token)
     {
         isWorking = true;
+        await UpdateTaskAsync(model, TaskState.Ready, token);
         logger.LogInformation("Starting execution of task '{0}'", model.Id);
         logger.LogInformation("{0} {1} {2}", model.Id, model.State, model.TaskFilePath);
+        
+        await Task.Delay(1000, token);
+        
+        await UpdateTaskAsync(model, TaskState.Running, token);
+
         await Task.Delay(5000, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
-        model.State = TaskState.Finished;
+        //model.State = TaskState.Finished;
         isWorking = false;
-        await signalrClient.Connection.InvokeTaskStatusChanged(model);
+        await UpdateTaskAsync(model, TaskState.Finished, token);
+        //await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 
     private async Task TaskExecution(TaskModel model, CancellationToken token)
@@ -133,12 +140,12 @@ public class LauncherWorker : BackgroundService
         await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 
-    private async Task UpdateTaskAsync(TaskModel model, TaskState state, CancellationToken cancellationToken)
+    private async Task UpdateTaskAsync(TaskModel model, TaskState state, CancellationToken cancellationToken = default)
     {
         model.State = state;
         model.Time = DateTime.Now;
-        await httpClient.PutAsJsonAsync("launcher/task", new TaskStatusUpdateRequest { Id = model.Id, State = model.State, Time = model.Time }, cancellationToken);
-        //await signalrClient.Connection.InvokeTaskStatusChanged(model);
+        //await httpClient.PutAsJsonAsync("launcher/task", new TaskStatusUpdateRequest { Id = model.Id, State = model.State, Time = model.Time }, cancellationToken);
+        await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

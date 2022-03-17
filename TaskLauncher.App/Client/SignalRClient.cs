@@ -15,6 +15,7 @@ public class SignalRClient : IAsyncDisposable
 
     //vsechny registrace na odchytavani real-time zprav
     private readonly HashSet<IDisposable> registrations = new();
+    private readonly ILogger<SignalRClient> logger;
 
     //pokusy pro prihlaseni na signakr hub
     private int attemps = 0;
@@ -22,12 +23,18 @@ public class SignalRClient : IAsyncDisposable
 
     public event Action<TaskModel> OnTaskUpdate;
 
-    public SignalRClient(ServiceAddresses serviceAddresses)
+    public SignalRClient(ServiceAddresses serviceAddresses, ILogger<SignalRClient> logger, ILoggerProvider loggerProvider)
     {
         Connection = new HubConnectionBuilder()
             .WithUrl(serviceAddresses.HubAddress)
             .WithAutomaticReconnect()
+            .ConfigureLogging(i =>
+            {
+                i.AddProvider(loggerProvider);
+                i.SetMinimumLevel(LogLevel.Debug);
+            })
             .Build();
+        this.logger = logger;
     }
 
     /// <summary>
@@ -37,8 +44,7 @@ public class SignalRClient : IAsyncDisposable
     {
         var tmp = Connection.OnNotification(i =>
         {
-            Console.WriteLine("New update");
-            Console.WriteLine(i.Id);
+            logger.LogInformation("New task update '{0}'", i.Id);
             if (OnTaskUpdate is not null)
             {
                 OnTaskUpdate.Invoke(i);
@@ -68,11 +74,13 @@ public class SignalRClient : IAsyncDisposable
             }
             await Task.Delay(3000, cancellationToken);
         }
+        logger.LogInformation("Cant connect. Timeouted. Trying again");
         throw new TimeoutException();
     }
 
     public async ValueTask DisposeAsync()
     {
+        logger.LogInformation("SignalRClient is disposing");
         foreach (var disposable in registrations)
         {
             disposable.Dispose();

@@ -10,6 +10,9 @@ public static class HubConnectionExtension
 
     public static IDisposable OnNotification(this HubConnection connection, Action<TaskModel> handler)
         => connection.On("Notify", handler);
+
+    public static IDisposable OnNewEvent(this HubConnection connection, Action<EventModel> handler)
+        => connection.On("SendEvent", handler);
 }
 
 public static class HttpClientFactoryExtesnions

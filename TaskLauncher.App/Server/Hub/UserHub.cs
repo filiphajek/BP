@@ -9,6 +9,7 @@ namespace TaskLauncher.App.Server.Hub;
 public interface IUserHub
 {
     Task Notify(TaskModel model);
+    Task SendEvent(EventModel model);
 }
 
 [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
