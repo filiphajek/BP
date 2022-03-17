@@ -1,5 +1,6 @@
 ﻿using Auth0.ManagementApi.Models;
 using Mapster;
+using System.Security.Claims;
 using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.Common.Extensions;

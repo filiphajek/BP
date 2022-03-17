@@ -86,7 +86,7 @@ public partial class TaskDetail : IDisposable
 
     private void DownloadResultFile()
     {
-        if(Task.ActualStatus == TaskState.Finished)
+        if(Task.ActualStatus == TaskState.Finished || Task.ActualStatus == TaskState.Downloaded)
         {
             navigationManager.NavigateTo("api/task/file?taskId=" + Id.ToString(), true);
             Task.ActualStatus = TaskState.Downloaded;

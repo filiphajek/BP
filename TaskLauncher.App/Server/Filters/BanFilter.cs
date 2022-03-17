@@ -43,6 +43,9 @@ public class BanFilter : IAsyncAuthorizationFilter
     {
         if (context.HttpContext.User.TryGetAuth0Id(out var userId))
         {
+            if (context.HttpContext.User.TryGetClaimAsBool(TaskLauncherClaimTypes.Registered, out var value) && !value)
+                return;
+
             if (context.HttpContext.User.IsInRole("admin"))
             {
                 var authRes = await context.HttpContext.AuthenticateCookieAsync();

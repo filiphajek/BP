@@ -216,7 +216,12 @@ public class AuthController : ControllerBase
         await context.TokenBalances.AddAsync(new() { CurrentAmount = int.Parse(balanceConfig.Value), LastAdded = DateTime.Now, UserId = userId });
         await context.SaveChangesAsync();
 
-        await AddClaimsToPrincipal(new Claim[] { new Claim(TaskLauncherClaimTypes.Registered, "true"), new Claim("token_balance", "balanceConfig.Value") });
+        await AddClaimsToPrincipal(new Claim[] 
+        {
+            new Claim(ClaimTypes.Role, "user"),
+            new Claim(TaskLauncherClaimTypes.Registered, "true"), 
+            new Claim("token_balance", "balanceConfig.Value") 
+        });
 
         return Ok();
     }
