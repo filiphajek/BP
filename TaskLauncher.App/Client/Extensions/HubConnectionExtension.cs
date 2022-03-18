@@ -14,11 +14,3 @@ public static class HubConnectionExtension
     public static IDisposable OnNewEvent(this HubConnection connection, Action<EventModel> handler)
         => connection.On("SendEvent", handler);
 }
-
-public static class HttpClientFactoryExtesnions
-{
-    public static HttpClient CreateApiClient(this IHttpClientFactory factory)
-    {
-        return factory.CreateClient("apiclient");
-    }
-}

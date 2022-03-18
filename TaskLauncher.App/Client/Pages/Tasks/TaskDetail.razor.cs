@@ -18,13 +18,15 @@ public partial class TaskDetail : IDisposable
     [Inject]
     protected NavigationManager navigationManager { get; set; }
 
-    private HttpClient client;
 
     [Inject]
     protected ServiceAddresses serviceAddresses { get; set; }
 
     [Inject]
     protected SignalRClient signalRClient { get; set; }
+
+    [Inject]
+    protected ApiClient Client { get; set; }
 
     [Parameter]
     public Guid Id { get; set; }
@@ -39,12 +41,11 @@ public partial class TaskDetail : IDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        client = HttpClientFactory.CreateApiClient();
         var state = await authenticationStateTask;
         if(state.User.IsInRole("admin"))
-            Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/admin/task/" + Id.ToString());
+            Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/admin/task/" + Id.ToString());
         else
-            Task = await client.GetFromJsonAsync<TaskDetailResponse>("api/task/" + Id.ToString());
+            Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/task/" + Id.ToString());
 
         if (Task is null)
         {
@@ -79,7 +80,7 @@ public partial class TaskDetail : IDisposable
 
     private async Task CancelTask()
     {
-        var tmp = await client.DeleteAsync("api/task/" + Id.ToString());
+        var tmp = await Client.DeleteAsync("api/task/" + Id.ToString());
         if(tmp.IsSuccessStatusCode)
             navigationManager.NavigateTo("tasks", true);
     }

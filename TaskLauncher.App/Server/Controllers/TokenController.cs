@@ -24,19 +24,21 @@ public class TokenController : BaseController
         this.mapper = mapper;
     }
 
-    [Authorize(Policy = "user-policy")]
-    [HttpGet]
-    public async Task<ActionResult<TokenBalanceResponse>> GetTokenBalanceAsync(string? userId = null)
+    [Authorize(Policy = "admin-policy")]
+    [HttpGet("{userId}")]
+    public async Task<ActionResult<TokenBalanceResponse>> GetTokenBalanceAsync([FromRoute] string userId)
     {
-        TokenBalanceEntity? tokenBalance = null;
-        if (userId is null)
-            tokenBalance = (await tokenRepository.GetAllAsync()).SingleOrDefault();
-        else
-            tokenBalance = await context.TokenBalances.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.UserId == userId);
-
+        var tokenBalance = await context.TokenBalances.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.UserId == userId);
         if (tokenBalance is null)
             return BadRequest();
+        return Ok(mapper.Map<TokenBalanceResponse>(tokenBalance));
+    }
 
+    [Authorize(Policy = "user-policy")]
+    [HttpGet]
+    public async Task<ActionResult<TokenBalanceResponse>> GetTokenBalanceAsync()
+    {
+        var tokenBalance = await context.TokenBalances.SingleAsync();
         return Ok(mapper.Map<TokenBalanceResponse>(tokenBalance));
     }
 

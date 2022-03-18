@@ -1,13 +1,11 @@
 using GridBlazor;
-using GridShared;
-using GridShared.Utility;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Radzen;
 using System.Net.Http.Json;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
+using TaskLauncher.App.Client.Components;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
 using static TaskLauncher.App.Client.Pages.Admin.BanDialog;
@@ -23,7 +21,7 @@ public partial class UserDetail
     public DialogService DialogService { get; set; }
 
     [Inject]
-    protected HttpClient client { get; set; }
+    protected ApiClient client { get; set; }
 
     [Inject]
     public SpaManagementApiClient auth0client { get; set; }
@@ -35,10 +33,8 @@ public partial class UserDetail
     protected UserModel User { get; set; } = new();
 
     protected bool isLoading = false;
-    private CGrid<BanResponse> banGrid;
-    //private CGrid<PaymentResponse> paymentGrid;
-    private CGrid<TaskResponse> taskGrid;
-    private IGridClient<BanResponse> banClient; 
+
+    private BanComponent banComponent;
 
     int tokenBalance = 0;
 
@@ -53,61 +49,9 @@ public partial class UserDetail
     {
         loading = true;
         User = (await auth0client.Users.GetAsync(Id)).GetModel();
-        var balance = await client.GetFromJsonAsync<TokenBalanceResponse>($"api/token?userId={Id}");
+        var balance = await client.GetFromJsonAsync<TokenBalanceResponse>($"api/token/{Id}");
         User.TokenBalance = balance!.CurrentAmount.ToString();
         tokenBalance = (int)balance!.CurrentAmount;
-
-        //TODO do jednotlivych komponent
-        //bans
-        Action<IGridColumnCollection<BanResponse>> columns = c =>
-        {
-            c.Add(o => o.Description);
-            c.Add(o => o.Started);
-            c.Add(o => o.Ended);
-        };
-        string url = NavigationManager.BaseUri + $"odata/admin/ban?$filter=userid eq '{Id}'";
-        var query = new QueryDictionary<StringValues>();
-        banClient = new GridODataClient<BanResponse>(client, url, query, false, "banGrid", columns, 10)
-            .ChangePageSize(true)
-            .Sortable()
-            .WithGridItemsCount();
-
-        banGrid = banClient.Grid;
-        await banClient.UpdateGrid();
-
-        //payments
-        /*Action<IGridColumnCollection<PaymentResponse>> columns2 = c =>
-        {
-            c.Add(o => o.Price);
-            c.Add(o => o.Time);
-            c.Add(o => o.Id);
-        };
-        string url2 = NavigationManager.BaseUri + $"odata/admin/payment?$filter=userid eq '{Id}'";
-        var paymentClient = new GridODataClient<PaymentResponse>(client, url2, new QueryDictionary<StringValues>(), false, "paymentGrid", columns2, 10)
-            .ChangePageSize(true)
-            .Sortable()
-            .WithGridItemsCount();
-
-        paymentGrid = paymentClient.Grid;
-        await paymentClient.UpdateGrid();*/
-
-        //tasks
-        Action<IGridColumnCollection<TaskResponse>> columns3 = c =>
-        {
-            c.Add(o => o.Id).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>Detail</a>");
-            c.Add(o => o.Name);
-            c.Add(o => o.Description);
-            c.Add(o => o.ActualStatus);
-        };
-        string url3 = NavigationManager.BaseUri + $"odata/admin/task?$filter=userid eq '{Id}'";
-        var taskClient = new GridODataClient<TaskResponse>(client, url3, new QueryDictionary<StringValues>(), false, "taskGrid", columns3, 10)
-            .ChangePageSize(true)
-            .Sortable()
-            .WithGridItemsCount();
-
-        taskGrid = taskClient.Grid;
-        await taskClient.UpdateGrid();
-
         loading = false;
     }
 
@@ -135,7 +79,8 @@ public partial class UserDetail
 
         var result = await client.PostAsJsonAsync("api/admin/ban", new BanUserRequest { Reason = res.Reason, UserId = User.UserId });
         User = (await result.Content.ReadFromJsonAsync<UserModel>())!;
-        await banClient.UpdateGrid();
+        await banComponent.BanClient.UpdateGrid();
+        banComponent.Refresh();
         StateHasChanged();
     }
 
@@ -143,7 +88,8 @@ public partial class UserDetail
     {
         var result = await client.PostAsJsonAsync($"api/admin/ban/cancel?id={User.UserId}", new { });
         User = (await result.Content.ReadFromJsonAsync<UserModel>())!;
-        await banClient.UpdateGrid();
+        await banComponent.BanClient.UpdateGrid();
+        banComponent.Refresh();
         StateHasChanged();
     }
 }

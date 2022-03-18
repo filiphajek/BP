@@ -26,7 +26,7 @@ public partial class Config
     }
 
     [Inject]
-    public HttpClient Client { get; set; }
+    public ApiClient Client { get; set; }
 
     ConfigurationModel model = new();
     RadzenTemplateForm<ConfigurationModel> form;

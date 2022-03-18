@@ -48,14 +48,13 @@
                         <RadzenTabs TabPosition="TabPosition.Top" style="max-width: 1500px;" RenderMode="TabRenderMode.Client">
                             <Tabs>
                                 <RadzenTabsItem Text="Bans">
-                                    <GridComponent T="BanResponse" Grid="@banGrid"></GridComponent>
+                                    <BanComponent @ref="banComponent" UserId="@User.UserId"/>
                                 </RadzenTabsItem>
                                 <RadzenTabsItem Text="Payments">
-                                    @*<GridComponent T="PaymentResponse" Grid="@paymentGrid"></GridComponent>*@
                                     <PaymentsComponent UserId="@User.UserId"/>
                                 </RadzenTabsItem>
                                 <RadzenTabsItem Text="Tasks">
-                                    <GridComponent T="TaskResponse" Grid="@taskGrid"></GridComponent>
+                                    <TaskComponent UserId="@User.UserId"/>
                                 </RadzenTabsItem>
                             </Tabs>
                         </RadzenTabs>

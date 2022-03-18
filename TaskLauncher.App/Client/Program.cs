@@ -53,9 +53,6 @@ builder.Services.AddSingleton(sp => (HostAuthenticationStateProvider)sp.GetRequi
 //http klient
 builder.Services.AddTransient<BanHandler>();
 builder.Services.AddHttpClient("default", client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress));
-builder.Services.AddHttpClient("apiclient", client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
-    .AddHttpMessageHandler<BanHandler>();
-
 builder.Services.AddHttpClient<ApiClient>(client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
     .AddHttpMessageHandler<BanHandler>();
 

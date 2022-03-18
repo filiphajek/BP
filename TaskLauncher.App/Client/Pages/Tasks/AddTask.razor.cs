@@ -25,13 +25,8 @@ public partial class AddTask
     [Inject]
     protected NavigationManager navigationManager { get; set; }
 
-    private HttpClient client;
-
-    protected override void OnInitialized()
-    {
-        client = HttpClientFactory.CreateApiClient();
-        base.OnInitialized();
-    }
+    [Inject]
+    protected ApiClient Client { get; set; }
 
     //vytvoreni tasku, poslani http dotazu se zadanym souborem
     private async Task Create()
@@ -48,12 +43,12 @@ public partial class AddTask
 
         using (var stream = file.OpenReadStream())
         {
-            var response = await client.SendMultipartFormDataAsync("api/task", stream, Model, file.Name);
+            var response = await Client.SendMultipartFormDataAsync("api/task", stream, Model, file.Name);
             if (response.IsSuccessStatusCode)
             {
                 navigationManager.NavigateTo("/tasks");
-                var balance = await client.GetFromJsonAsync<TokenBalanceResponse>("api/token");
-                await TokenStore.UpdateBalanceAsync(balance.CurrentAmount.ToString());
+                var balance = await Client.GetFromJsonAsync<TokenBalanceResponse>("api/token");
+                await TokenStore.UpdateBalanceAsync(balance!.CurrentAmount.ToString());
             }
             else
             {

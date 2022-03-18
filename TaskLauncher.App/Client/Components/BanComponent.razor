@@ -1,0 +1,43 @@
+﻿@using Microsoft.Extensions.Primitives
+@using TaskLauncher.Api.Contracts.Responses
+@inject NavigationManager NavigationManager
+@inject ApiClient client
+
+<GridComponent T="BanResponse" Grid="@banGrid"></GridComponent>
+
+@code{
+    public IGridClient<BanResponse> BanClient { get; private set; }
+
+    [Parameter]
+    public string UserId { get; set; } = "";
+
+    private CGrid<BanResponse> banGrid;
+
+    Action<IGridColumnCollection<BanResponse>> columns = c =>
+    {
+        c.Add(o => o.Description);
+        c.Add(o => o.Started);
+        c.Add(o => o.Ended);
+    };
+
+    protected async override Task OnParametersSetAsync()
+    {
+        string url = NavigationManager.BaseUri + $"odata/admin/ban?$filter=userid eq '{UserId}'";
+        if(string.IsNullOrEmpty(UserId))
+        {
+            url = "odata/user/ban";
+        }
+        BanClient = new GridODataClient<BanResponse>(client, url, new QueryDictionary<StringValues>(), false, "banGrid", columns, 10)
+            .ChangePageSize(true)
+            .Sortable()
+            .WithGridItemsCount();
+
+        banGrid = BanClient.Grid;
+        await BanClient.UpdateGrid();
+    }
+
+    public void Refresh()
+    {
+        StateHasChanged();
+    }
+}

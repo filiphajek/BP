@@ -2,7 +2,7 @@
 @using Microsoft.Extensions.Primitives
 @using TaskLauncher.Api.Contracts.Responses
 @inject NavigationManager NavigationManager
-@inject HttpClient HttpClient
+@inject ApiClient HttpClient
 @attribute [Authorize(Policy = "admin-policy")]
 
 <PageTitle>Task queue</PageTitle>
