@@ -37,7 +37,7 @@ public static class AuthorizationExtensions
             });
             policies.AddPolicy(TaskLauncherPolicies.UserPolicy, p =>
             {
-                p.RequireRole(TaskLauncherRoles.User, TaskLauncherRoles.Admin);
+                p.RequireRole(TaskLauncherRoles.User);
                 p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
                 p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
             });
@@ -69,7 +69,7 @@ public static class AuthorizationExtensions
             });
             policies.AddPolicy(TaskLauncherPolicies.AdminPolicy, p =>
             {
-                p.AddAuthenticationSchemes("Cookies", "Bearer");
+                p.AddAuthenticationSchemes(AuthorizationConstants.CookieAuth, AuthorizationConstants.BearerAuth);
                 p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
                 p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
                 p.RequireRole(TaskLauncherRoles.Admin);
@@ -79,7 +79,7 @@ public static class AuthorizationExtensions
                 p.AddAuthenticationSchemes(AuthorizationConstants.CookieAuth, AuthorizationConstants.BearerAuth);
                 p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
                 p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
-                p.RequireRole(TaskLauncherRoles.User, TaskLauncherRoles.Admin);
+                p.RequireRole(TaskLauncherRoles.User);
             });
             policies.AddPolicy("launcher", p =>
             {

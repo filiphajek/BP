@@ -1,7 +1,12 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
+using System.Net.Http.Json;
+using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.Client.Extensions;
 using TaskLauncher.App.Client.Models;
+using TaskLauncher.App.Client.Store;
+using TaskLauncher.Authorization;
 using TaskLauncher.Common.Extensions;
 
 namespace TaskLauncher.App.Client.Pages.Tasks;
@@ -13,6 +18,9 @@ public partial class AddTask
     protected List<string> errorMessages = new();
     private string fileName;
     private IBrowserFile file;
+
+    [Inject]
+    public TokenStore TokenStore { get; set; }
 
     [Inject]
     protected NavigationManager navigationManager { get; set; }
@@ -44,6 +52,8 @@ public partial class AddTask
             if (response.IsSuccessStatusCode)
             {
                 navigationManager.NavigateTo("/tasks");
+                var balance = await client.GetFromJsonAsync<TokenBalanceResponse>("api/token");
+                await TokenStore.UpdateBalanceAsync(balance.CurrentAmount.ToString());
             }
             else
             {

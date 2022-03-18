@@ -7,14 +7,12 @@ using Microsoft.Extensions.Primitives;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.Client.Authentication;
 using TaskLauncher.App.Client.Extensions;
+using TaskLauncher.App.Client.Store;
 
 namespace TaskLauncher.App.Client.Pages.Tasks;
 
 public partial class Tasks
 {
-    [Inject]
-    public HostAuthenticationStateProvider StateProvider { get; set; }
-
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 

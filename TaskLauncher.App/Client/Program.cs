@@ -10,7 +10,8 @@ using Radzen;
 using TaskLauncher.Authorization;
 using TaskLauncher.App.Client.Services;
 using TaskLauncher.App.Client.Authentication;
-using Microsoft.Extensions.Http;
+using Blazored.LocalStorage;
+using TaskLauncher.App.Client.Store;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -59,5 +60,9 @@ builder.Services.AddHttpClient<ApiClient>(client => client.BaseAddress = new Uri
     .AddHttpMessageHandler<BanHandler>();
 
 builder.Services.AddTransient(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("default"));
+
+//local storage
+builder.Services.AddBlazoredLocalStorage();
+builder.Services.AddScoped<TokenStore>();
 
 await builder.Build().RunAsync();
