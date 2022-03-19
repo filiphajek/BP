@@ -30,10 +30,10 @@
 
                 <div class="form-group" style="margin-top:10px; margin-bottom:10px">
                     <div class="input-group align-items-md-center">
-                        <RadzenLabel Text="Add tokens" style="margin-right: 10px"/>
-                        <RadzenNumeric TValue="int" Min="0" Max="1000" @bind-Value="@tokenBalance" style="max-width: 200px; margin-right: 10px" Class="w-100" />
+                        <RadzenLabel Text="Add tokens" style="margin-right: 10px" />
+                        <RadzenNumeric ReadOnly="userIsNotVerifiedOrRegistered" TValue="int" Min="0" Max="1000" @bind-Value="@tokenBalance" style="max-width: 200px; margin-right: 10px" Class="w-100" />
                         <div style="margin-left: 2px; vertical-align:central; display:block">
-                            <button class="btn btn-block btn-success" @onclick="UpdateBalance">
+                            <button disabled="@userIsNotVerifiedOrRegistered" class="btn btn-block btn-success" @onclick="UpdateBalance">
                                 <span class="oi oi-plus" aria-hidden="true"></span>
                             </button>
                         </div>
@@ -42,25 +42,28 @@
 
             </div>
 
-            <div class="card">
-                <div class="card-body">
-                    <div class="row">
-                        <RadzenTabs TabPosition="TabPosition.Top" style="max-width: 1500px;" RenderMode="TabRenderMode.Client">
-                            <Tabs>
-                                <RadzenTabsItem Text="Bans">
-                                    <BanComponent @ref="banComponent" UserId="@User.UserId"/>
-                                </RadzenTabsItem>
-                                <RadzenTabsItem Text="Payments">
-                                    <PaymentsComponent UserId="@User.UserId"/>
-                                </RadzenTabsItem>
-                                <RadzenTabsItem Text="Tasks">
-                                    <TaskComponent UserId="@User.UserId"/>
-                                </RadzenTabsItem>
-                            </Tabs>
-                        </RadzenTabs>
+            @if (User.Registered)
+            {
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <RadzenTabs TabPosition="TabPosition.Top" style="max-width: 1500px;" RenderMode="TabRenderMode.Client">
+                                <Tabs>
+                                    <RadzenTabsItem Text="Bans">
+                                        <BanComponent @ref="banComponent" UserId="@User.UserId" />
+                                    </RadzenTabsItem>
+                                    <RadzenTabsItem Text="Payments">
+                                        <PaymentsComponent UserId="@User.UserId" />
+                                    </RadzenTabsItem>
+                                    <RadzenTabsItem Text="Tasks">
+                                        <TaskComponent UserId="@User.UserId" />
+                                    </RadzenTabsItem>
+                                </Tabs>
+                            </RadzenTabs>
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
         </div>
 
     </ContentTemplate>

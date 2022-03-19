@@ -9,7 +9,6 @@ using TaskLauncher.Authorization;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Services;
-using TaskLauncher.App.DAL.Repositories;
 using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
@@ -21,20 +20,12 @@ namespace TaskLauncher.App.Server.Controllers.User;
 public class TaskController : UserODataController<TaskResponse>
 {
     private readonly IMapper mapper;
-    private readonly ITaskRepository taskRepository;
-    private readonly IEventRepository eventRepository;
     private readonly IFileStorageService fileStorageService;
     private readonly Balancer balancer;
 
-    public TaskController(AppDbContext context, IMapper mapper,
-        ITaskRepository taskRepository,
-        IEventRepository eventRepository,
-        IFileStorageService fileStorageService, 
-        Balancer balancer) : base(context)
+    public TaskController(AppDbContext context, IMapper mapper, IFileStorageService fileStorageService, Balancer balancer) : base(context)
     {
         this.mapper = mapper;
-        this.taskRepository = taskRepository;
-        this.eventRepository = eventRepository;
         this.fileStorageService = fileStorageService;
         this.balancer = balancer;
     }
@@ -157,7 +148,7 @@ public class TaskController : UserODataController<TaskResponse>
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
 
-        var task = await taskRepository.GetAsync(new() { Id = id });
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
             return BadRequest();
 

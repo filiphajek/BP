@@ -38,6 +38,8 @@ public partial class UserDetail
 
     int tokenBalance = 0;
 
+    bool userIsNotVerifiedOrRegistered = false;
+
     protected async Task UpdateBalance()
     {
         var tmp = await client.PutAsJsonAsync("api/token", new UpdateBalanceRequest() { Amount = tokenBalance, UserId = User.UserId });
@@ -49,9 +51,15 @@ public partial class UserDetail
     {
         loading = true;
         User = (await auth0client.Users.GetAsync(Id)).GetModel();
-        var balance = await client.GetFromJsonAsync<TokenBalanceResponse>($"api/token/{Id}");
-        User.TokenBalance = balance!.CurrentAmount.ToString();
-        tokenBalance = (int)balance!.CurrentAmount;
+
+        if (!User.Registered || !User.EmailVerified!.Value)
+            userIsNotVerifiedOrRegistered = true;
+        else
+        {
+            var balance = await client.GetFromJsonAsync<TokenBalanceResponse>($"api/token/{Id}");
+            User.TokenBalance = balance!.CurrentAmount.ToString();
+            tokenBalance = (int)balance!.CurrentAmount;
+        }
         loading = false;
     }
 

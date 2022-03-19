@@ -43,19 +43,19 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row" style="margin-top:30px"/>
+                    <div class="row" style="margin-top:30px" />
                     <div class="row">
                         <RadzenLabel Text="Name:" />
                         <div class="form-group">
                             <RadzenTextBox Value="@User.FullName" ReadOnly="true" />
                         </div>
                     </div>
-                    <div class="row" style="margin-top:30px"/>
+                    <div class="row" style="margin-top:30px" />
                     <div class="row">
                         <RadzenLabel Text="Nickname:" />
                         <div class="form-group">
                             <div class="align-items-md-center">
-                                <RadzenTextBox ReadOnly="@isReadOnly" @onmouseenter=@((args) => isReadOnly = ReadOnly ? true : false) @onmouseleave=@((args) => isReadOnly = true) @bind-Value="@User.NickName"/>
+                                <RadzenTextBox ReadOnly="@isReadOnly" @onmouseenter=@((args) => isReadOnly = ReadOnly ? true : false) @onmouseleave=@((args) => isReadOnly = true) @bind-Value="@User.NickName" />
                                 <div style="margin-left: 2px; vertical-align:central; display:inline-block">
                                     @if (!ReadOnly)
                                     {
@@ -90,17 +90,33 @@
 
             <div class="row">
                 <div class="col">
-                    @if(User.Vip)
+                    @if (User.Vip)
                     {
                         <p><b>Account is vip</b></p>
                     }
                 </div>
             </div>
+            @if (!User.Registered)
+            {
+                <div class="row">
+                    <div class="col">
+                        <p class="alert-danger"><b>User is not fully registered</b></p>
+                    </div>
+                </div>
+            }
+            @if (!User.EmailVerified!.Value)
+            {
+                <div class="row">
+                    <div class="col">
+                        <p class="alert-danger"><b>User is not verified</b></p>
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </div>
 
-@code{
+@code {
     [Parameter]
     public bool ReadOnly { get; set; } = false;
 
@@ -113,7 +129,7 @@
     async Task Upload()
     {
         ImageDialogResult? res = await DialogService.OpenAsync<ImageDialog>("Choose new image", null, new DialogOptions() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
-        if(res is not null && res.Success)
+        if (res is not null && res.Success)
         {
             var response = await client.PutAsJsonAsync($"api/user/picture?url={res.Url}", new { });
             User.Picture = (await response.Content.ReadFromJsonAsync<UserModel>())!.Picture;

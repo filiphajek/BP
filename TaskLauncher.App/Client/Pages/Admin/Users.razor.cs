@@ -23,10 +23,11 @@ public partial class Users
 
         Action<IGridColumnCollection<UserModel>> columns = c =>
         {
+            c.Add().Encoded(false).Sanitized(false).SetWidth("5%").SetCrudHidden(true).RenderValueAs(o => $"<img width='30' height='30' style='border-radius:50%' src='{o.Picture}' />");
             c.Add(o => o.Email).Encoded(false).Sanitized(false).RenderValueAs(o =>  $"<a href='users/{o.UserId}'>{o.Email}</a>");
             c.Add(o => o.NickName).Titled("Nickname");
-            c.Add(o => o.Blocked).RenderValueAs(o => o.Blocked.HasValue ? o.Blocked.Value.ToString() : "False").Titled("Is blocked").Sortable(true).Filterable(true);
-            c.Add(o => o.Vip).Titled("Is vip").Sortable(true).Filterable(true);
+            c.Add(o => o.Blocked).RenderValueAs(o => o.Blocked.HasValue ? o.Blocked.Value.ToString() : "False").Titled("Is blocked").Sortable(true).Filterable(true).Css("center-align");//.SetWidth(20);
+            c.Add(o => o.Vip).Titled("Is vip").Sortable(true).Filterable(true).Css("center-align");//.SetWidth(20);
         };
 
         var query = new QueryDictionary<StringValues>();

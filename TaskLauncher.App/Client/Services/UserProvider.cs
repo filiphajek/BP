@@ -24,7 +24,7 @@ public class UserProvider : IUserProvider
     {
         PaginationInfo pagination = new();
 
-        if(query.Count > 3)
+        if(query.Count >= 3)
             return new GridCoreServer<UserModel>(cachedUsers, query, true, "usersGrid", columns, 10).Sortable().ItemsToDisplay;
 
         if (query.TryGetValue("grid-page", out var page) && query.TryGetValue("grid-pagesize", out var size))

@@ -5,10 +5,10 @@ public enum TaskState
     Created,
     Ready,
     Running,
-    FinishedSuccess,
-    FinishedFailure,
-    Closed,
     Cancelled,
     Crashed,
-    Downloaded
+    FinishedSuccess,
+    FinishedFailure,
+    Downloaded,
+    Closed,
 }

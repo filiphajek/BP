@@ -4,9 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
-using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.DAL;
-using TaskLauncher.App.DAL.Repositories;
 using TaskLauncher.App.Server.Controllers.Base;
 
 namespace TaskLauncher.App.Server.Controllers;
@@ -14,13 +12,11 @@ namespace TaskLauncher.App.Server.Controllers;
 public class TokenController : BaseController
 {
     private readonly AppDbContext context;
-    private readonly ITokenBalanceRepository tokenRepository;
     private readonly IMapper mapper;
 
-    public TokenController(AppDbContext context, ITokenBalanceRepository tokenRepository, IMapper mapper, ILogger<TokenController> logger) : base(logger)
+    public TokenController(AppDbContext context, IMapper mapper, ILogger<TokenController> logger) : base(logger)
     {
         this.context = context;
-        this.tokenRepository = tokenRepository;
         this.mapper = mapper;
     }
 
@@ -54,7 +50,8 @@ public class TokenController : BaseController
             return BadRequest();
 
         balance.CurrentAmount = request.Amount;
-        await tokenRepository.UpdateAsync(balance);
+        context.Update(balance);
+        await context.SaveChangesAsync();
         semaphoreSlim.Release();
         return Ok();
     }

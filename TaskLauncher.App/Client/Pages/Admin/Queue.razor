@@ -23,22 +23,21 @@ else
 
     Action<IGridColumnCollection<TaskResponse>> columns = c =>
     {
-        c.Add(o => o.Id).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>Detail</a>");
-        c.Add(o => o.Description);
-        c.Add(o => o.ActualStatus);
-        c.Add(o => o.TaskFile);
+        c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
+        c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description).Filterable(true);
+        c.Add(o => o.CreationDate).Titled("Creation date").Sortable(true).Filterable(true);
+        c.Add(o => o.ActualStatus).Titled("Status").Sortable(false).Filterable(false);
+        c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus));
     };
 
     protected override async Task OnParametersSetAsync()
     {
-        string url = NavigationManager.BaseUri + "odata/admin/task?$orderby=ActualStatus desc";
+        string url = NavigationManager.BaseUri + "odata/admin/task?$orderby=ActualStatus asc";
         var query = new QueryDictionary<StringValues>();
 
         var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "queueGrid", columns, 10)
             .ChangePageSize(true)
-            .Sortable()
-            .Filterable()
-            .Searchable()
+            .WithMultipleFilters()
             .WithGridItemsCount();
 
         grid = client.Grid;
