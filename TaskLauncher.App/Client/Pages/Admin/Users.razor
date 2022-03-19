@@ -1,4 +1,5 @@
 ﻿@page "/users"
+@using TaskLauncher.Common.Models
 @attribute [Authorize(Policy = "admin-policy")]
 
 <div style="margin-bottom: 20px;">
@@ -7,7 +8,7 @@
 
 @if (task.IsCompleted)
 {
-    <GridComponent T="Auth0.ManagementApi.Models.User" Grid="@grid"></GridComponent>
+    <GridComponent T="UserModel" Grid="@grid"></GridComponent>
 }
 else
 {

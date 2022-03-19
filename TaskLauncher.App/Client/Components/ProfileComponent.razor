@@ -54,9 +54,9 @@
                     <div class="row">
                         <RadzenLabel Text="Nickname:" />
                         <div class="form-group">
-                            <div class="input-group align-items-md-center">
+                            <div class="align-items-md-center">
                                 <RadzenTextBox ReadOnly="@isReadOnly" @onmouseenter=@((args) => isReadOnly = ReadOnly ? true : false) @onmouseleave=@((args) => isReadOnly = true) @bind-Value="@User.NickName"/>
-                                <div style="margin-left: 2px; vertical-align:central; display:block">
+                                <div style="margin-left: 2px; vertical-align:central; display:inline-block">
                                     @if (!ReadOnly)
                                     {
                                         <button @onclick="UpdateNickName" disabled="@isBusy" class="btn btn-block btn-success">

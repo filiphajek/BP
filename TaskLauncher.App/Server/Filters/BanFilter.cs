@@ -46,14 +46,6 @@ public class BanFilter : IAsyncAuthorizationFilter
             if (context.HttpContext.User.TryGetClaimAsBool(TaskLauncherClaimTypes.Registered, out var value) && !value)
                 return;
 
-            if (context.HttpContext.User.IsInRole("admin"))
-            {
-                var authRes = await context.HttpContext.AuthenticateCookieAsync();
-                await UpdateBalanceToken(authRes);
-                await context.HttpContext.SignInAsync(authRes);
-                return;
-            }
-
             UserClaimsModel? cachedUserClaims = await cache.GetAsync(userId);
             if (cachedUserClaims is null)
             {

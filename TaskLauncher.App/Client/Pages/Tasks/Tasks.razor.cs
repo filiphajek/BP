@@ -31,10 +31,10 @@ public partial class Tasks : IDisposable
 
     Action<IGridColumnCollection<TaskResponse>> columns = c =>
     {
-        c.Add(o => o.Id).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Titled("Name");
-        c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description);
-        c.Add(o => o.CreationDate).Titled("Creation date");
-        c.Add(o => o.ActualStatus).Titled("Status");
+        c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
+        c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description).Filterable(true);
+        c.Add(o => o.CreationDate).Titled("Creation date").Sortable(true).Filterable(true);
+        c.Add(o => o.ActualStatus).Titled("Status").Sortable(true).Filterable(true);
         c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus));
     };
 
@@ -45,8 +45,6 @@ public partial class Tasks : IDisposable
 
         var client = new GridODataClient<TaskResponse>(Client, url, query, false, "taskGrid", columns, 10)
             .ChangePageSize(true)
-            .Sortable()
-            .Filterable()
             .WithMultipleFilters()
             .WithGridItemsCount();
 

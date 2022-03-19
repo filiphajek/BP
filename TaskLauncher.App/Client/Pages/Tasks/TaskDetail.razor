@@ -28,12 +28,6 @@
                     <div class="text-center">
                         <span>
                             Status: <b>@Task.ActualStatus &nbsp</b>
-                            @if (Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Created || Task.ActualStatus == TaskState.Ready)
-                            {
-                                <span>
-                                    <span class="spinner-border spinner-border-sm mr-1"></span>
-                                </span>
-                            }
                         </span>
 
                         @if (Task.ActualStatus == TaskState.Created || Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Ready)

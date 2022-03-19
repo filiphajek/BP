@@ -1,8 +1,11 @@
 ﻿using Auth0.ManagementApi.Models;
+using Auth0.ManagementApi.Paging;
 using GridCore.Server;
 using GridShared;
 using GridShared.Utility;
 using Microsoft.Extensions.Primitives;
+using TaskLauncher.Common.Extensions;
+using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Client.Services;
 
@@ -15,12 +18,23 @@ public class UserProvider : IUserProvider
         this.auth0client = auth0client;
     }
 
-    public async Task<ItemsDTO<User>> GetUsers(Action<IGridColumnCollection<User>> columns, QueryDictionary<StringValues> query)
-    {
-        var users = (await auth0client.Users.GetAllAsync(new())).ToList();
+    private readonly List<UserModel> cachedUsers = new();
 
-        var server = new GridCoreServer<User>(users, query, true, "usersGrid", columns).Sortable();
-        var items = server.ItemsToDisplay;
-        return items;
+    public async Task<ItemsDTO<UserModel>> GetUsers(Action<IGridColumnCollection<UserModel>> columns, QueryDictionary<StringValues> query)
+    {
+        PaginationInfo pagination = new();
+
+        if(query.Count > 3)
+            return new GridCoreServer<UserModel>(cachedUsers, query, true, "usersGrid", columns, 10).Sortable().ItemsToDisplay;
+
+        if (query.TryGetValue("grid-page", out var page) && query.TryGetValue("grid-pagesize", out var size))
+            pagination = new PaginationInfo(int.Parse(page), int.Parse(size));
+
+        var users = (await auth0client.Users.GetAllAsync(new() { }, pagination)).Select(i => i.GetModel()).Where(i => !i.IsAdmin);
+        cachedUsers.Clear();
+        cachedUsers.AddRange(users);
+
+        var server = new GridCoreServer<UserModel>(users, query, true, "usersGrid", columns, 10).Sortable();
+        return server.ItemsToDisplay;
     }
 }

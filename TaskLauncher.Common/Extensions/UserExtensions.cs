@@ -19,6 +19,7 @@ public static class UserExtensions
         model.Vip = user.AppMetadata.vip.Value;
         model.Registered = user.AppMetadata.registered.Value;
         model.Original = user;
+        model.IsAdmin = user.AppMetadata.isadmin.Value;
 
         var tmp = user.UserMetadata.picture;
         if(tmp is not null)

@@ -14,7 +14,6 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Controllers.User;
 
-[Authorize(Policy = TaskLauncherPolicies.UserPolicy)]
 public class UserController : BaseController
 {
     private readonly AppDbContext context;
@@ -29,6 +28,7 @@ public class UserController : BaseController
     /// <summary>
     /// Smazani uctu a vsech spojenych dat
     /// </summary>
+    [Authorize(Policy = TaskLauncherPolicies.CanCancelAccount)]
     [HttpDelete]
     public async Task<IActionResult> GetBanAsync()
     {
@@ -54,7 +54,7 @@ public class UserController : BaseController
     /// <summary>
     /// Ziska vsechny aktualni informace o prihlasenem uzivateli
     /// </summary>
-    [Authorize(Policy = "user-policy")]
+    [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
     [HttpGet]
     public async Task<ActionResult<UserModel>> GetUserData()
     {
@@ -68,7 +68,7 @@ public class UserController : BaseController
         return Ok(user);
     }
 
-    [Authorize(Policy = "user-policy")]
+    [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
     [HttpPut("picture")]
     public async Task<ActionResult<UserModel>> UpdateUserPicture(string url)
     {
@@ -83,7 +83,7 @@ public class UserController : BaseController
         return Ok(user);
     }
 
-    [Authorize(Policy = "user-policy")]
+    [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
     [HttpPut("nickname")]
     public async Task<ActionResult<UserModel>> UpdateUserNickname(string value)
     {

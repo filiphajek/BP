@@ -5,7 +5,7 @@
 @using TaskLauncher.Authorization
 @using TaskLauncher.Common.Extensions
 @using TaskLauncher.Common.Models
-@attribute [Authorize]
+@attribute [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
 @inject ApiClient client
 @inject DialogService DialogService
 @inject NavigationManager NavigationManager
@@ -26,19 +26,23 @@
                 </AuthorizeView>
             </div>
 
-            <div class="card">
-                <div class="card-body">
-                    <div class="row">
-                        <RadzenTabs TabPosition="TabPosition.Top" style="max-width: 1500px;" RenderMode="TabRenderMode.Client">
-                            <Tabs>
-                                <RadzenTabsItem Text="Payments">
-                                    <PaymentsComponent/>
-                                </RadzenTabsItem>
-                            </Tabs>
-                        </RadzenTabs>
+            <AuthorizeView Policy="@TaskLauncherPolicies.UserPolicy">
+                <Authorized>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <RadzenTabs TabPosition="TabPosition.Top" style="max-width: 1500px;" RenderMode="TabRenderMode.Client">
+                                    <Tabs>
+                                        <RadzenTabsItem Text="Payments">
+                                            <PaymentsComponent />
+                                        </RadzenTabsItem>
+                                    </Tabs>
+                                </RadzenTabs>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </Authorized>
+            </AuthorizeView>
         </div>
 
     </ContentTemplate>

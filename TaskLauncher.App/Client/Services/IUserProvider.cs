@@ -2,10 +2,11 @@
 using GridShared;
 using GridShared.Utility;
 using Microsoft.Extensions.Primitives;
+using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Client.Services;
 
 public interface IUserProvider
 {
-    Task<ItemsDTO<User>> GetUsers(Action<IGridColumnCollection<User>> columns, QueryDictionary<StringValues> query);
+    Task<ItemsDTO<UserModel>> GetUsers(Action<IGridColumnCollection<UserModel>> columns, QueryDictionary<StringValues> query);
 }
