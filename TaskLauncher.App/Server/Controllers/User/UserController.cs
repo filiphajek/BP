@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Auth0.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -23,13 +26,29 @@ public class UserController : BaseController
         this.apiClientFactory = apiClientFactory;
     }
 
-    [HttpGet("ban")]
+    /// <summary>
+    /// Smazani uctu a vsech spojenych dat
+    /// </summary>
+    [HttpDelete]
     public async Task<IActionResult> GetBanAsync()
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
 
-        return Ok(await context.Bans.OrderByDescending(i => i.Started).FirstOrDefaultAsync());
+        var auth0client = await apiClientFactory.GetClient();
+        await auth0client.Users.DeleteAsync(userId);
+
+        context.Payments.RemoveRange(await context.Payments.ToListAsync());
+        context.Tasks.RemoveRange(await context.Tasks.ToListAsync());
+        context.TokenBalances.RemoveRange(await context.TokenBalances.ToListAsync());
+        context.Bans.RemoveRange(await context.Bans.ToListAsync());
+        context.Events.RemoveRange(await context.Events.ToListAsync());
+        await context.SaveChangesAsync();
+
+        var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
+        await HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Ok();
     }
 
     /// <summary>

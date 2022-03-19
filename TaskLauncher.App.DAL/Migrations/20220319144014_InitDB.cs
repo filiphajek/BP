@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace TaskLauncher.Api.DAL.Migrations
+namespace TaskLauncher.App.DAL.Migrations
 {
-    public partial class DbInit : Migration
+    public partial class InitDB : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -14,6 +14,7 @@ namespace TaskLauncher.Api.DAL.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     UserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Started = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Ended = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -29,22 +30,13 @@ namespace TaskLauncher.Api.DAL.Migrations
                 columns: table => new
                 {
                     Key = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    Value = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Configs", x => x.Key);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "IpBans",
-                columns: table => new
-                {
-                    Ip = table.Column<string>(type: "nvarchar(450)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_IpBans", x => x.Ip);
                 });
 
             migrationBuilder.CreateTable(
@@ -57,7 +49,8 @@ namespace TaskLauncher.Api.DAL.Migrations
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ActualStatus = table.Column<int>(type: "int", nullable: false),
                     TaskFile = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ResultFile = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    ResultFile = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreationDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -142,9 +135,6 @@ namespace TaskLauncher.Api.DAL.Migrations
 
             migrationBuilder.DropTable(
                 name: "Events");
-
-            migrationBuilder.DropTable(
-                name: "IpBans");
 
             migrationBuilder.DropTable(
                 name: "Payments");

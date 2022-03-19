@@ -6,6 +6,8 @@ using System.Net.Http.Json;
 using TaskLauncher.Common.Enums;
 using Microsoft.AspNetCore.Components.Authorization;
 using TaskLauncher.App.Client.Extensions;
+using Radzen;
+using static TaskLauncher.App.Client.Pages.Tasks.EditTaskDialog;
 
 namespace TaskLauncher.App.Client.Pages.Tasks;
 
@@ -15,8 +17,10 @@ public partial class TaskDetail : IDisposable
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     [Inject]
-    protected NavigationManager navigationManager { get; set; }
+    public DialogService DialogService { get; set; }
 
+    [Inject]
+    protected NavigationManager navigationManager { get; set; }
 
     [Inject]
     protected ServiceAddresses serviceAddresses { get; set; }
@@ -57,6 +61,21 @@ public partial class TaskDetail : IDisposable
         isLoading = false;
     }
 
+    async Task UpdateAsync()
+    {
+        TaskEditDialogResult? result = await DialogService.OpenAsync<EditTaskDialog>("Edit task", new() { { "Task", Task } }, new() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
+        if (result is not null)
+        {
+            var response = await Client.PutAsJsonAsync("api/task/" + Task.Id.ToString(), result.TaskUpdate);
+            if(response.IsSuccessStatusCode)
+            {
+                Task.Name = result.TaskUpdate.Name;
+                Task.Description = result.TaskUpdate.Description;
+            }
+        }
+    }
+
+
     private void NewEvent(EventModel model)
     {
         if (Task.Events is null)
@@ -86,7 +105,7 @@ public partial class TaskDetail : IDisposable
 
     private void DownloadResultFile()
     {
-        if(Task.ActualStatus == TaskState.Finished || Task.ActualStatus == TaskState.Downloaded)
+        if(Task.ActualStatus == TaskState.FinishedSuccess || Task.ActualStatus == TaskState.Downloaded)
         {
             navigationManager.NavigateTo("api/task/file?taskId=" + Id.ToString(), true);
             Task.ActualStatus = TaskState.Downloaded;

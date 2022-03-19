@@ -9,28 +9,32 @@ using TaskLauncher.App.DAL;
 
 #nullable disable
 
-namespace TaskLauncher.Api.DAL.Migrations
+namespace TaskLauncher.App.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20220308154359_DbInit")]
-    partial class DbInit
+    [Migration("20220319144014_InitDB")]
+    partial class InitDB
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.2")
+                .HasAnnotation("ProductVersion", "6.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.BanEntity", b =>
+            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.BanEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -49,10 +53,17 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.ToTable("Bans");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.ConfigEntity", b =>
+            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.ConfigEntity", b =>
                 {
                     b.Property<string>("Key")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
 
                     b.Property<string>("Value")
                         .IsRequired()
@@ -63,7 +74,7 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.ToTable("Configs");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.EventEntity", b =>
+            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.EventEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -89,17 +100,7 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.ToTable("Events");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.IpBanEntity", b =>
-                {
-                    b.Property<string>("Ip")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Ip");
-
-                    b.ToTable("IpBans");
-                });
-
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.PaymentEntity", b =>
+            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.PaymentEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -125,7 +126,7 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.ToTable("Payments");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.TaskEntity", b =>
+            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.TaskEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -133,6 +134,9 @@ namespace TaskLauncher.Api.DAL.Migrations
 
                     b.Property<int>("ActualStatus")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
@@ -158,7 +162,7 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.ToTable("Tasks");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.TokenBalanceEntity", b =>
+            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.TokenBalanceEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -185,9 +189,9 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.ToTable("TokenBalances");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.EventEntity", b =>
+            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.EventEntity", b =>
                 {
-                    b.HasOne("TaskLauncher.Api.DAL.Entities.TaskEntity", "Task")
+                    b.HasOne("TaskLauncher.App.DAL.Entities.TaskEntity", "Task")
                         .WithMany("Events")
                         .HasForeignKey("TaskId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -196,9 +200,9 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.Navigation("Task");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.PaymentEntity", b =>
+            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.PaymentEntity", b =>
                 {
-                    b.HasOne("TaskLauncher.Api.DAL.Entities.TaskEntity", "Task")
+                    b.HasOne("TaskLauncher.App.DAL.Entities.TaskEntity", "Task")
                         .WithMany()
                         .HasForeignKey("TaskId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -207,7 +211,7 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.Navigation("Task");
                 });
 
-            modelBuilder.Entity("TaskLauncher.Api.DAL.Entities.TaskEntity", b =>
+            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.TaskEntity", b =>
                 {
                     b.Navigation("Events");
                 });

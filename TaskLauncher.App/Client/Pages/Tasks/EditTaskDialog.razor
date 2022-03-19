@@ -1,0 +1,46 @@
+﻿@page "/tasks/{id:guid}/edit"
+@using TaskLauncher.Api.Contracts.Requests
+@using TaskLauncher.Api.Contracts.Responses
+
+@inject DialogService dialogService
+
+<div class="row">
+    <RadzenCard Style="width: 100%;">
+        <h4 class="h5">New name</h4>
+        <RadzenTextBox @bind-Value=@model.Name />
+        <div class="row" style="margin:5px" />
+        <h4 class="h5">Update description</h4>
+        <RadzenTextArea @bind-Value=@model.Description />
+    </RadzenCard>
+</div>
+
+<div class="row d-flex justify-content-between align-items-center" style="margin-top:10px">
+    <RadzenButton Click="@((args) => dialogService.Close(new TaskEditDialogResult {TaskUpdate = model, Success = false}))" ButtonStyle="ButtonStyle.Secondary" Text="Cancel" Style="width: 120px" Class="mr-1" />
+    <RadzenButton Click="@((args) => dialogService.Close(new TaskEditDialogResult {TaskUpdate = model, Success = true}))" ButtonType="Radzen.ButtonType.Submit" ButtonStyle="ButtonStyle.Success" Text="OK" Style="width: 120px" />
+</div>
+
+@code
+{
+    [Parameter]
+    public Guid Id { get; set; } = Guid.Empty;
+
+    [Parameter]
+    public TaskResponse Task { get; set; }
+
+    TaskUpdateRequest model = new();
+
+    public class TaskEditDialogResult
+    {
+        public TaskUpdateRequest TaskUpdate { get; set; }
+        public bool Success { get; set; }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Id == default && Task is not null)
+        {
+            model.Name = Task.Name;
+            model.Description = Task.Description;
+        }
+    }
+}

@@ -123,7 +123,7 @@ public class LauncherWorker : BackgroundService
         {
             await fileService.UploadFileAsync(model.ResultFilePath, resultFile, token);
         }
-        await UpdateTaskAsync(model, TaskState.Finished, token);
+        await UpdateTaskAsync(model, TaskState.FinishedSuccess, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
 
         isWorking = false;

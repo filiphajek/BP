@@ -12,13 +12,17 @@
 
                     @*TODO pokud neni na status znacka -> mit tu jen header at se mi to nerozhodi*@
                     <h1 class="card-title text-center d-flex justify-content-between align-items-center">
-                        <TaskLauncher.App.Client.Components.TaskStatus State="Task.ActualStatus" />
+                        <div style="margin:0px; padding:0px; margin-left:15px">
+                            <TaskLauncher.App.Client.Components.TaskStatus State="Task.ActualStatus"/>
+                        </div>
                         @Task.Name
-                        <button style="font-size:1em; visibility:hidden">Add</button>
+                        <span>
+                            <span class="oi oi-pencil btn" style="font-size:1em; margin-right:15px" @onclick="UpdateAsync"></span>
+                        </span>
                     </h1>
 
                     <div class="row" style="margin: 15px">
-                        <RadzenTextArea style="padding-left:30px" @bind-Value="Task.Description" />
+                        <RadzenTextBox style="padding-left:30px" ReadOnly="true" @bind-Value="Task.Description" />
                     </div>
 
                     <div class="text-center">
@@ -37,7 +41,7 @@
                             <button @onclick="CancelTask" class="btn btn-danger">Cancel task</button>
                         }
 
-                        @if (Task.ActualStatus == TaskState.Finished || Task.ActualStatus == TaskState.Downloaded)
+                        @if (Task.ActualStatus == TaskState.FinishedSuccess || Task.ActualStatus == TaskState.Downloaded)
                         {
                             <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
                         }

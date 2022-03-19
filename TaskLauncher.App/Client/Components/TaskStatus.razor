@@ -5,12 +5,12 @@
     <SpinLoader IsLoading="@(true)" Spinner="SpinnerType.CircleFade" Size="1.1em"/>
 }
 
-@if (State == TaskState.Finished || State == TaskState.Downloaded)
+@if (State == TaskState.FinishedSuccess || State == TaskState.Downloaded)
 {
     <span class="oi oi-circle-check" style="color:green; font-size:1.5em"></span>
 }
 
-@if (State == TaskState.Cancelled)
+@if (State == TaskState.Cancelled || State == TaskState.FinishedFailure)
 {
     <span class="oi oi-circle-x" style="color:red; font-size:1.5em"></span>
 }

@@ -18,6 +18,14 @@
                 <ProfileComponent User=User />
             </div>
 
+            <div class="row" style="margin:10px; width:150px">
+                <AuthorizeView Policy="can-cancel-account">
+                    <Authorized>
+                        <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+
             <div class="card">
                 <div class="card-body">
                     <div class="row">
@@ -32,11 +40,6 @@
                 </div>
             </div>
         </div>
-        <AuthorizeView Policy="can-cancel-account">
-            <Authorized>
-                <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
-            </Authorized>
-        </AuthorizeView>
 
     </ContentTemplate>
 </SpinLoader>
@@ -60,7 +63,7 @@
         if (!tmp.Value)
             return;
 
-        await client.DeleteAsync("auth/user/" + User.UserId);
+        await client.DeleteAsync("api/user");
         NavigationManager.NavigateTo("/", true);
     }
 }

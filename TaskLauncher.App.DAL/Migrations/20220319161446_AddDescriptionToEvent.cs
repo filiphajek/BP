@@ -2,22 +2,15 @@
 
 #nullable disable
 
-namespace TaskLauncher.Api.DAL.Migrations
+namespace TaskLauncher.App.DAL.Migrations
 {
-    public partial class UpdateConfigEntity : Migration
+    public partial class AddDescriptionToEvent : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<bool>(
-                name: "CanDelete",
-                table: "Configs",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
-
             migrationBuilder.AddColumn<string>(
                 name: "Description",
-                table: "Configs",
+                table: "Events",
                 type: "nvarchar(max)",
                 nullable: false,
                 defaultValue: "");
@@ -26,12 +19,8 @@ namespace TaskLauncher.Api.DAL.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "CanDelete",
-                table: "Configs");
-
-            migrationBuilder.DropColumn(
                 name: "Description",
-                table: "Configs");
+                table: "Events");
         }
     }
 }

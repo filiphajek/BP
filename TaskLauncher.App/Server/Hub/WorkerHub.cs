@@ -110,7 +110,7 @@ public class WorkerHub : Hub<IWorkerHub>
             var connections = userConnectionsStorage.GetConnections(model.UserId);
             await userHubContext.Clients.Clients(connections).SendEvent(eventModel);
 
-            if (model.State == Common.Enums.TaskState.Finished)
+            if (model.State == Common.Enums.TaskState.FinishedSuccess)
                 await userHubContext.Clients.Clients(connections).Notify(model);
         }
 
@@ -119,7 +119,7 @@ public class WorkerHub : Hub<IWorkerHub>
         cachedTask!.State = model.State;
 
         //toto mit jako novou message, mit update message a pak send new work message
-        if (model.State == Common.Enums.TaskState.Finished)
+        if (model.State == Common.Enums.TaskState.FinishedSuccess)
         {
             logger.LogInformation("Worker '{0}' finished task '{1}'", Context.ConnectionId, model.Id);
             //take new task
@@ -141,7 +141,7 @@ public class WorkerHub : Hub<IWorkerHub>
         //is task finished?
         if (cache.TryGetValue(Context.ConnectionId, out var model))
         {
-            if (model.State != Common.Enums.TaskState.Finished)
+            if (model.State != Common.Enums.TaskState.FinishedSuccess)
             {
                 logger.LogInformation("Worker '{0}' crashed. Task '{1}' will be requeued ", Context.ConnectionId, model.Id);
                 model.State = Common.Enums.TaskState.Cancelled;

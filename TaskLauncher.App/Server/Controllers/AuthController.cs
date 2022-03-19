@@ -56,13 +56,6 @@ public class AuthController : ControllerBase
     [HttpGet("login")]
     public async Task Login()
     {
-        var ip = await context.IpBans.SingleOrDefaultAsync(i => i.Ip == HttpContext.Connection.RemoteIpAddress!.ToString());
-        if (ip is not null)
-        {
-            HttpContext.Response.StatusCode = 402;
-            return;
-        }
-
         var authenticationProperties = new AuthenticationProperties()
         {
             IsPersistent = false,
@@ -240,30 +233,5 @@ public class AuthController : ControllerBase
             UserId = userId,
         });
         return Ok(job);
-    }
-
-    [Authorize(Policy = "can-cancel-account")]
-    [HttpDelete("user/{id}")]
-    public async Task<IActionResult> CancelAccountAsync(string id)
-    {
-        if (!User.TryGetAuth0Id(out var userId))
-            return Unauthorized();
-        if (id != userId)
-            return Unauthorized();
-
-        var auth0client = await apiClientFactory.GetClient();
-        await auth0client.Users.DeleteAsync(id);
-
-        var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
-        await HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return Ok();
-    }
-
-    [AllowAnonymous]
-    [HttpGet("testos")]
-    public IActionResult Test()
-    {
-        return Ok();
     }
 }

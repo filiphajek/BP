@@ -10,5 +10,6 @@ public record TaskEntity : BaseEntity, IUserKeyProtection
     public TaskState ActualStatus { get; set; } = TaskState.Created;
     public string TaskFile { get; set; } = string.Empty;
     public string ResultFile { get; set; } = string.Empty;
+    public DateTime CreationDate { get; set; }
     public ICollection<EventEntity> Events { get; set; }
 }

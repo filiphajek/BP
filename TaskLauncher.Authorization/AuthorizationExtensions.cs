@@ -10,8 +10,7 @@ public static class AuthorizationExtensions
     public static void AddAuthorizationHandlers<TAssembly>(this IServiceCollection services)
     {
         var handlers = typeof(TAssembly).Assembly.ExportedTypes
-            .Where(type => type.IsAssignableTo(typeof(AuthorizationHandler<>)))
-            .Where(type => type.IsSealed);
+            .Where(type => type.IsAssignableTo(typeof(IAuthorizationHandler)));
         foreach (var handler in handlers)
         {
             services.AddSingleton(typeof(IAuthorizationHandler), handler);

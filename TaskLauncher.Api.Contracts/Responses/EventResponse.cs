@@ -6,4 +6,5 @@ public record EventResponse
 {
     public TaskState Status { get; set; }
     public DateTime Time { get; set; }
+    public string Description { get; set; } = "";
 }

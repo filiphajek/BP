@@ -17,12 +17,10 @@ public class AppDbContext : DbContext
     public DbSet<PaymentEntity> Payments { get; set; }
     public DbSet<TokenBalanceEntity> TokenBalances { get; set; }
     public DbSet<BanEntity> Bans { get; set; }
-    public DbSet<IpBanEntity> IpBans { get; set; }
     public DbSet<ConfigEntity> Configs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<IpBanEntity>().HasKey(i => new { i.Ip });
         modelBuilder.Entity<ConfigEntity>().HasKey(i => new { i.Key });
 
         modelBuilder.Entity<EventEntity>().HasQueryFilter(i => i.UserId == service.GetUserId());

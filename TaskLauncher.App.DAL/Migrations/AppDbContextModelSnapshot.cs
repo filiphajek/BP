@@ -8,7 +8,7 @@ using TaskLauncher.App.DAL;
 
 #nullable disable
 
-namespace TaskLauncher.Api.DAL.Migrations
+namespace TaskLauncher.App.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
@@ -78,6 +78,10 @@ namespace TaskLauncher.Api.DAL.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -96,16 +100,6 @@ namespace TaskLauncher.Api.DAL.Migrations
                     b.HasIndex("TaskId");
 
                     b.ToTable("Events");
-                });
-
-            modelBuilder.Entity("TaskLauncher.App.DAL.Entities.IpBanEntity", b =>
-                {
-                    b.Property<string>("Ip")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Ip");
-
-                    b.ToTable("IpBans");
                 });
 
             modelBuilder.Entity("TaskLauncher.App.DAL.Entities.PaymentEntity", b =>
@@ -142,6 +136,9 @@ namespace TaskLauncher.Api.DAL.Migrations
 
                     b.Property<int>("ActualStatus")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");

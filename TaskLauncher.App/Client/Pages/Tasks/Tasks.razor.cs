@@ -5,17 +5,20 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Primitives;
 using TaskLauncher.Api.Contracts.Responses;
-using TaskLauncher.App.Client.Extensions;
+using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Client.Pages.Tasks;
 
-public partial class Tasks
+public partial class Tasks : IDisposable
 {
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     [Parameter]
     public string Id { get; set; }
+
+    [Inject]
+    protected SignalRClient signalRClient { get; set; }
 
     [Inject]
     protected ApiClient Client { get; set; }
@@ -28,10 +31,11 @@ public partial class Tasks
 
     Action<IGridColumnCollection<TaskResponse>> columns = c =>
     {
-        c.Add(o => o.Id).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>Detail</a>");
-        c.Add(o => o.Description);
-        c.Add(o => o.ActualStatus);
-        c.Add(o => o.TaskFile);
+        c.Add(o => o.Id).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Titled("Name");
+        c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description);
+        c.Add(o => o.CreationDate).Titled("Creation date");
+        c.Add(o => o.ActualStatus).Titled("Status");
+        c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus));
     };
 
     async Task GetTasks(string path)
@@ -56,6 +60,7 @@ public partial class Tasks
         if (string.IsNullOrEmpty(Id))
         {
             await GetTasks("odata/user/task");
+            signalRClient.OnTaskUpdate += OnTaskUpdate;
         }
         else
         {
@@ -67,5 +72,19 @@ public partial class Tasks
             }
             await GetTasks($"odata/admin/task?userId={Id}");
         }
+    }
+
+    private void OnTaskUpdate(TaskModel model)
+    {
+        var item = grid.Items.SingleOrDefault(i => i.Id == model.Id);
+        if (item is not null)
+        {
+            item.ActualStatus = model.State;
+        }
+    }
+
+    public void Dispose()
+    {
+        signalRClient.OnTaskUpdate -= OnTaskUpdate;
     }
 }

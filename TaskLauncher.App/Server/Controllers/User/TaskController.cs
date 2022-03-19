@@ -96,19 +96,21 @@ public class TaskController : UserODataController<TaskResponse>
         await context.SaveChangesAsync();
         semaphoreSlim.Release();
 
-        var fileId = file.Name + DateTime.Now.Ticks.ToString();
+        var creationDate = DateTime.Now;
+        var fileId = file.Name + creationDate.Ticks.ToString();
         var path = $"{userId}/{fileId}/task";
         using (var stream = file.OpenReadStream())
         {
             await fileStorageService.UploadFileAsync(path, stream);
         }
 
-        var eventEntity = new EventEntity { Status = TaskState.Created, Time = DateTime.Now, UserId = userId };
+        var eventEntity = new EventEntity { Status = TaskState.Created, Time = creationDate, UserId = userId };
         TaskEntity task = new()
         {
             ActualStatus = TaskState.Created,
             UserId = userId,
             TaskFile = path,
+            CreationDate = creationDate,
             ResultFile = path,
             Events = new List<EventEntity> { eventEntity }
         };
@@ -122,7 +124,7 @@ public class TaskController : UserODataController<TaskResponse>
         {
             Id = task.Id,
             State = TaskState.Created,
-            Time = DateTime.Now,
+            Time = creationDate,
             TaskFilePath = task.TaskFile,
             ResultFilePath = task.ResultFile,
             UserId = task.UserId
@@ -137,11 +139,12 @@ public class TaskController : UserODataController<TaskResponse>
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<TaskResponse>> UpdateTaskAsync([FromRoute] Guid id, [FromBody] TaskUpdateRequest request)
     {
-        var result = await taskRepository.GetAsync(new() { Id = id });
-        if (result is null)
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
+        if (task is null)
             return NotFound();
-        var tmp = mapper.Map(request, result);
-        await taskRepository.UpdateAsync(tmp);
+        var tmp = mapper.Map(request, task);
+        context.Update(tmp);
+        await context.SaveChangesAsync();
         return Ok(tmp);
     }
 
@@ -203,7 +206,7 @@ public class TaskController : UserODataController<TaskResponse>
         if (task is null)
             return NotFound();
 
-        if (task.ActualStatus == TaskState.Finished)
+        if (task.ActualStatus == TaskState.FinishedSuccess)
         {
             task.ActualStatus = TaskState.Downloaded;
             context.Update(task);
