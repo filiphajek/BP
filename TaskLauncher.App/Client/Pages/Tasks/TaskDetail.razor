@@ -1,60 +1,93 @@
 ﻿@page "/tasks/{id:guid}"
+@using TaskLauncher.Authorization
 @using TaskLauncher.Common.Enums
-@attribute [Authorize(Policy = "user-policy")]
+@attribute [Authorize(Policy = TaskLauncherPolicies.CanViewTaskPolicy)]
 
 <SpinLoader IsLoading="@(isLoading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
-        <h1>@Task.Name</h1>
-        <p>@Task.Description</p>
 
-        <span>
-            Status: @Task.ActualStatus &nbsp;
-            @if (Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Created|| Task.ActualStatus == TaskState.Ready)
-            {
-                 <span>
-                     <span class="spinner-border spinner-border-sm mr-1"></span>
-                 </span>
-            }
-        </span>
+        <div class="container">
+            <div class="card">
+                <div class="card-body">
 
-        <br />
+                    @*TODO pokud neni na status znacka -> mit tu jen header at se mi to nerozhodi*@
+                    <h1 class="card-title text-center d-flex justify-content-between align-items-center">
+                        <TaskLauncher.App.Client.Components.TaskStatus State="Task.ActualStatus" />
+                        @Task.Name
+                        <button style="font-size:1em; visibility:hidden">Add</button>
+                    </h1>
 
-        @if (Task.ActualStatus == TaskState.Created || Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Ready)
-        {
-            <button @onclick="CancelTask" class="btn btn-danger">Cancel task</button>
-        }
+                    <div class="row" style="margin: 15px">
+                        <RadzenTextArea style="padding-left:30px" @bind-Value="Task.Description" />
+                    </div>
 
-        @if(Task.ActualStatus == TaskState.Finished || Task.ActualStatus == TaskState.Downloaded)
-        {
-            <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
-        }
+                    <div class="text-center">
+                        <span>
+                            Status: <b>@Task.ActualStatus &nbsp</b>
+                            @if (Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Created || Task.ActualStatus == TaskState.Ready)
+                            {
+                                <span>
+                                    <span class="spinner-border spinner-border-sm mr-1"></span>
+                                </span>
+                            }
+                        </span>
 
-        @if(Task.ActualStatus == TaskState.Downloaded)
-        {
-            <button class="btn btn-danger">Close task</button>
-        }
+                        @if (Task.ActualStatus == TaskState.Created || Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Ready)
+                        {
+                            <button @onclick="CancelTask" class="btn btn-danger">Cancel task</button>
+                        }
 
-        @if(Task.ActualStatus == TaskState.Cancelled)
-        {
-            <button class="btn btn-primary">Start task</button>
-        }
+                        @if (Task.ActualStatus == TaskState.Finished || Task.ActualStatus == TaskState.Downloaded)
+                        {
+                            <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
+                        }
 
-        @if (message != "")
-        {
-            <p>@message</p>
-        }
+                        @if (Task.ActualStatus == TaskState.Downloaded)
+                        {
+                            <button class="btn btn-danger">Close task</button>
+                        }
 
-        <br />
+                        @if (Task.ActualStatus == TaskState.Cancelled)
+                        {
+                            <button class="btn btn-primary">Start task again</button>
+                        }
 
-        @if (Task.Events is not null)
-        {
-            <p><b>History</b></p>
-            @foreach (var book in Task.Events)
-            {
-                <p>Status changed to <b>@book.Status</b> at <b>@book.Time</b></p>
-            }
-        }
+                        @if (message != "")
+                        {
+                            <p>@message</p>
+                        }
+                    </div>
+
+                    <div class="row card-body" style="margin:0px">
+
+                        <div class="col-md-5 card card-body" style="margin-right:5px">
+                            @if (Task.Events is not null)
+                            {
+                                <div class="card-title">
+                                    <h4>History</h4>
+                                </div>
+                                @foreach (var ev in Task.Events)
+                                {
+                                    <p style="margin-bottom:5px">Status changed to <b>@ev.Status</b> at <b>@ev.Time</b></p>
+                                }
+                            }
+                        </div>
+
+                        <div class="col-md-5 card card-body" style="margin-left:5px">
+                            <div class="card-title">
+                                <h4>Payment</h4>
+                            </div>
+                            <p>Task cost <b>@Task.Payment.Price</b> tokens</p>
+                            <p>Payment has been processed and token balance was updated (at @Task.Payment.Time)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer text-muted text-center">
+                    2 days ago
+                </div>
+            </div>
+        </div>
 
     </ContentTemplate>
 </SpinLoader>
-

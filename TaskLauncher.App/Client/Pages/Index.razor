@@ -1,49 +1,7 @@
 ﻿@page "/"
-@using System.Security.Claims
-@inject SignalRClient signalRClient
-@inject IToastService toastService
-@inject NavigationManager navigationManager
 
 <PageTitle>Index</PageTitle>
 
 <p><b>Welcome to Task Launcher</b></p>
 
 <EmailVerification/>
-
-@code{
-    //dat do rootu
-    [CascadingParameter]
-    private Task<AuthenticationState> authenticationStateTask { get; set; }
-
-    protected async override Task OnInitializedAsync()
-    {
-        var state = await authenticationStateTask;
-
-        if(!IsRegistered(state.User) && state.User.Identity!.IsAuthenticated)
-        {
-            navigationManager.NavigateTo("registration");
-            return;
-        }
-
-        if(state.User.Identity!.IsAuthenticated)
-        {
-            if(signalRClient.Connection.State != Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
-            {
-                await signalRClient.TryToConnect();
-                signalRClient.RegisterOnTaskUpdate(i => toastService.ShowSuccess($"Task finished {i.Id}"));
-            }
-        }
-    }
-
-    private bool IsRegistered(ClaimsPrincipal? principal)
-    {
-        if (principal is null)
-            return false;
-        
-        var claim = principal.Claims.FirstOrDefault(i => i.Type == "https://wutshot-test-api.com/registered");
-        if(claim is null)
-            return false;
-        
-        return claim.Value == "true";
-    }
-}

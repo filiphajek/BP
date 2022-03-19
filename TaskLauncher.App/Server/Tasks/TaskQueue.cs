@@ -1,8 +1,9 @@
-﻿using TaskLauncher.Common.Models;
+﻿using System.Collections.Concurrent;
+using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Tasks;
 
-public class TaskQueue : PriorityQueue<TaskModel, DateTime>
+public class TaskQueue : ConcurrentQueue<TaskModel>
 {
     public string Name { get; init; }
 

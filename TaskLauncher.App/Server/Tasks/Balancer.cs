@@ -19,36 +19,35 @@ public class Balancer
 
     public Balancer(ILogger<Balancer> logger, IOptions<PriorityQueuesConfiguration> options, IHubContext<WorkerHub, IWorkerHub> workerHub)
     {
-        //taskQueues = options.Value.Queues.ToDictionary(i => i.Key, i => new TaskQueue(i.Key));
-        //var newWay = new RoundRobinList<TaskQueue>(taskQueues.Values, options.Value.Queues.Select(i => i.Value).ToArray());
-
         taskQueues = options.Value.Queues.ToDictionary(i => i.Key, i => new TaskQueue(i.Key));
-        var cancelQueue = new TaskQueue("cancel");
-        taskQueues.Add(cancelQueue.Name, cancelQueue);
-        roundRobin = new RoundRobinList<TaskQueue>(taskQueues.Values);
-        foreach (var (Queue, Priority) in taskQueues.Values.Zip(options.Value.Queues.Values))
-        {
-            roundRobin.IncreaseWeight(Queue, Priority);
-        }
-        roundRobin.IncreaseWeight(cancelQueue, 10);
+        roundRobin = new RoundRobinList<TaskQueue>(taskQueues.Values, options.Value.Queues.Select(i => i.Value).ToArray());
         this.logger = logger;
         this.workerHub = workerHub;
     }
 
-    public void CancelTask(Guid id)
+    private readonly SemaphoreSlim semaphore = new(1, 1);
+
+    public bool CancelTask(Guid id)
     {
+        //TODO semafor tu a pak v TryDequeue metode -> budu moct garantovat ze opravdu vyradim task z fronty
         canceledTasks.Add(id);
+        return true;
+        /*foreach (var queue in taskQueues.Values)
+        {
+            if (queue.Contains(model))
+            {
+                canceledTasks.Add(model.Id);
+                return;
+            }
+        }*/
     }
 
     private bool TryDequeue(TaskQueue queue, out TaskModel? task)
     {
-        if (queue.TryDequeue(out task, out _))
+        while (queue.TryDequeue(out task))
         {
             if (canceledTasks.Contains(task.Id))
-            {
-                task = null;
-                return false;
-            }
+                continue;
             return true;
         }
         return false;
@@ -58,7 +57,7 @@ public class Balancer
     {
         if (taskQueues.TryGetValue(queue, out var taskQueue))
         {
-            taskQueue.Enqueue(task, task.Time);
+            taskQueue.Enqueue(task);
             if (ClientsWithoutWork)
             {
                 workerHub.Clients.All.IsWorking().Wait();

@@ -1,0 +1,21 @@
+﻿@using TaskLauncher.Common.Enums
+
+@if (State == TaskState.Running || State == TaskState.Created || State == TaskState.Ready)
+{
+    <SpinLoader IsLoading="@(true)" Spinner="SpinnerType.CircleFade" Size="1.1em"/>
+}
+
+@if (State == TaskState.Finished || State == TaskState.Downloaded)
+{
+    <span class="oi oi-circle-check" style="color:green; font-size:1.5em"></span>
+}
+
+@if (State == TaskState.Cancelled)
+{
+    <span class="oi oi-circle-x" style="color:red; font-size:1.5em"></span>
+}
+
+@code{
+    [Parameter]
+    public TaskState State { get; set; }
+}

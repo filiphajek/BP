@@ -3,13 +3,12 @@ using Microsoft.Extensions.Logging;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Services;
 using IdentityModel.Client;
-using TaskLauncher.Api.Contracts.Requests;
-using System.Net.Http.Json;
 using TaskLauncher.Common.Models;
 using Microsoft.Extensions.Options;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Worker.Extensions;
+using TaskLauncher.Worker.Services;
 
 namespace TaskLauncher.Worker.Workers;
 
@@ -42,11 +41,23 @@ public class LauncherWorker : BackgroundService
         this.signalrClient = signalrClient;
     }
 
+    //TODO synchonizace pomoci semaforu? pri update zprave na server a cancel zprave ze serveru
+    //TODO zachytit a zalogovat cancel exceptiony -> melo by byt ok ale testnout https://docs.microsoft.com/en-us/dotnet/core/compatibility/core-libraries/6.0/hosting-exception-handling
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        //TODO zachytit a zalogovat cancel exceptiony -> melo by byt ok ale testnout https://docs.microsoft.com/en-us/dotnet/core/compatibility/core-libraries/6.0/hosting-exception-handling
         tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        signalrClient.RegisterOnReceivedTask(async i => await TestTaskExecution(i, tokenSource.Token));
+        signalrClient.RegisterOnReceivedTask(async i =>
+        {
+            try
+            {
+                await TaskExecution(i, tokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex.ToString());
+            }
+        }); // todo try catch
         signalrClient.RegisterOnCancelTask(i =>
         {
             if (actualTask is not null && i.Id == actualTask.Id)
@@ -62,8 +73,6 @@ public class LauncherWorker : BackgroundService
             if (!isWorking)
                 await signalrClient.Connection.InvokeGiveMeWork();
         });
-
-        await Task.Delay(5000, stoppingToken);
 
         //ziskani autorizacniho tokenu k web api
         var token = await managementTokenService.GetApiToken(new(), "task-api", false);
@@ -82,25 +91,6 @@ public class LauncherWorker : BackgroundService
         }
     }
 
-    private async Task TestTaskExecution(TaskModel model, CancellationToken token)
-    {
-        isWorking = true;
-        await UpdateTaskAsync(model, TaskState.Ready, token);
-        logger.LogInformation("Starting execution of task '{0}'", model.Id);
-        logger.LogInformation("{0} {1} {2}", model.Id, model.State, model.TaskFilePath);
-        
-        await Task.Delay(1000, token);
-        
-        await UpdateTaskAsync(model, TaskState.Running, token);
-
-        await Task.Delay(5000, token);
-        logger.LogInformation("Task '{0}' finished", model.Id);
-        //model.State = TaskState.Finished;
-        isWorking = false;
-        await UpdateTaskAsync(model, TaskState.Finished, token);
-        //await signalrClient.Connection.InvokeTaskStatusChanged(model);
-    }
-
     private async Task TaskExecution(TaskModel model, CancellationToken token)
     {
         isWorking = true;
@@ -108,9 +98,9 @@ public class LauncherWorker : BackgroundService
         logger.LogInformation("Starting execution of task '{0}'", model.Id);
 
         //stazeni souboru
-        using (var file = File.Create("tmp/task.txt"))
+        using (var file = File.Create("task.txt"))
         {
-            await fileService.DownloadFileAsync(model.TaskFilePath, file);
+            await fileService.DownloadFileAsync(model.TaskFilePath, file, token);
         }
 
         //poslani informace o pripraveni tasku k spusteni
@@ -129,15 +119,15 @@ public class LauncherWorker : BackgroundService
         await launcher.WaitContainer(tmp.ContainerId, token);
 
         //upload souboru s vysledkem
-        using (var resultFile = File.Open("tmp/task.txt", FileMode.Open))
+        using (var resultFile = File.Open("task.txt", FileMode.Open))
         {
-            await fileService.UploadFileAsync(model.ResultFilePath, resultFile);
+            await fileService.UploadFileAsync(model.ResultFilePath, resultFile, token);
         }
         await UpdateTaskAsync(model, TaskState.Finished, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
 
         isWorking = false;
-        await signalrClient.Connection.InvokeTaskStatusChanged(model);
+        //await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 
     private async Task UpdateTaskAsync(TaskModel model, TaskState state, CancellationToken cancellationToken = default)

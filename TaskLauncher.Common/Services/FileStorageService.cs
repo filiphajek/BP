@@ -6,10 +6,10 @@ namespace TaskLauncher.Common.Services;
 
 public interface IFileStorageService
 {
-    Task DownloadFileAsync(string path, Stream stream);
-    Task UploadFileAsync(string path, Stream stream);
-    Task RemoveFileAsync(string path);
-    Task RemoveFilesIfOlderThanAsync(int days);
+    Task DownloadFileAsync(string path, Stream stream, CancellationToken cancellationToken = default);
+    Task UploadFileAsync(string path, Stream stream, CancellationToken cancellationToken = default);
+    Task RemoveFileAsync(string path, CancellationToken cancellationToken = default);
+    Task RemoveFilesIfOlderThanAsync(int days, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -26,23 +26,23 @@ public class FileStorageService : IFileStorageService
         this.configuration = configuration.Value;
     }
 
-    public async Task DownloadFileAsync(string path, Stream stream)
+    public async Task DownloadFileAsync(string path, Stream stream, CancellationToken cancellationToken = default)
     {
-        await storageClient.DownloadObjectAsync(configuration.BucketName, path, stream);
+        await storageClient.DownloadObjectAsync(configuration.BucketName, path, stream, cancellationToken: cancellationToken);
         stream.Position = 0;
     }
 
-    public async Task UploadFileAsync(string path, Stream stream)
+    public async Task UploadFileAsync(string path, Stream stream, CancellationToken cancellationToken = default)
     {
-        await storageClient.UploadObjectAsync(configuration.BucketName, path, "text/plain", stream);
+        await storageClient.UploadObjectAsync(configuration.BucketName, path, "text/plain", stream, cancellationToken: cancellationToken);
     }
 
-    public async Task RemoveFileAsync(string path)
+    public async Task RemoveFileAsync(string path, CancellationToken cancellationToken = default)
     {
-        await storageClient.DeleteObjectAsync(configuration.BucketName, path);
+        await storageClient.DeleteObjectAsync(configuration.BucketName, path, cancellationToken: cancellationToken);
     }
 
-    public async Task RemoveFilesIfOlderThanAsync(int days)
+    public async Task RemoveFilesIfOlderThanAsync(int days, CancellationToken cancellationToken = default)
     {
         await foreach (var item in storageClient.ListObjectsAsync(configuration.BucketName))
         {
@@ -53,7 +53,7 @@ public class FileStorageService : IFileStorageService
             var tmp = DateTime.Now - item.TimeCreated.Value;
             if (tmp.Days > days)
             {
-                await storageClient.DeleteObjectAsync(item);
+                await storageClient.DeleteObjectAsync(item, cancellationToken: cancellationToken);
             }
         }
     }

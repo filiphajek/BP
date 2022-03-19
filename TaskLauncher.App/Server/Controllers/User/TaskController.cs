@@ -49,6 +49,14 @@ public class TaskController : UserODataController<TaskResponse>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<TaskDetailResponse>> GetDetail(Guid id)
     {
+        var payment = await context.Payments.Include(i => i.Task).ThenInclude(i => i.Events).SingleOrDefaultAsync(i => i.Task.Id == id);
+        if (payment is not null)
+        {
+            var taskResponse = mapper.Map<TaskDetailResponse>(payment.Task);
+            taskResponse.Payment = mapper.Map<SimplePaymentResponse>(payment);
+            return Ok(taskResponse);
+        }
+
         var task = await context.Tasks.Include(i => i.Events).SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
             return NotFound();
@@ -116,6 +124,7 @@ public class TaskController : UserODataController<TaskResponse>
             State = TaskState.Created,
             Time = DateTime.Now,
             TaskFilePath = task.TaskFile,
+            ResultFilePath = task.ResultFile,
             UserId = task.UserId
         });
 
@@ -137,10 +146,10 @@ public class TaskController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Smazani tasku
+    /// Smazani/uzavreni tasku
     /// </summary>
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> RemoveTaskAsync(Guid id)
+    public async Task<IActionResult> CloseTaskAsync(Guid id)
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
@@ -149,14 +158,13 @@ public class TaskController : UserODataController<TaskResponse>
         if (task is null)
             return BadRequest();
 
-        if (task.ActualStatus == TaskState.Running)
+        if (task.ActualStatus != TaskState.Downloaded)
             return BadRequest();
 
-        var eventEntity = new EventEntity { Status = TaskState.Closed, Time = DateTime.Now, UserId = userId, Task = task };
-
-        await eventRepository.AddAsync(eventEntity);
-        task.ActualStatus = TaskState.Closed; // uplne smazat to muze pouze admin
-        await taskRepository.UpdateAsync(task);
+        task.ActualStatus = TaskState.Closed;
+        context.Update(task);
+        await context.Events.AddAsync(new() { Task = task, Status = TaskState.Closed, Time = DateTime.Now, UserId = userId });
+        await context.SaveChangesAsync();
         return Ok();
     }
 
@@ -170,9 +178,10 @@ public class TaskController : UserODataController<TaskResponse>
         if (task is null)
             return BadRequest();
 
-        if (task.ActualStatus == TaskState.Created || task.ActualStatus == TaskState.Running || task.ActualStatus == TaskState.Ready)
+        if (task.ActualStatus == TaskState.Created)
         {
-            balancer.CancelTask(taskId);
+            if (!balancer.CancelTask(taskId))
+                return new BadRequestObjectResult(new { error = "Try again" });
             task.ActualStatus = TaskState.Cancelled;
             context.Update(task);
             await context.SaveChangesAsync();
@@ -214,26 +223,9 @@ public class TaskController : UserODataController<TaskResponse>
         return BadRequest();
     }
 
-    [HttpPost("close")]
-    public async Task<IActionResult> CloseTaskAsync(Guid taskId)
-    {
-        if (!User.TryGetAuth0Id(out var userId))
-            return Unauthorized();
-
-        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
-        if (task is null)
-            return NotFound();
-
-        if (task.ActualStatus != TaskState.Downloaded)
-            return BadRequest();
-
-        task.ActualStatus = TaskState.Closed;
-        context.Update(task);
-        await context.Events.AddAsync(new() { Task = task, Status = TaskState.Closed, Time = DateTime.Now, UserId = userId });
-        await context.SaveChangesAsync();
-        return Ok();
-    }
-
+    /// <summary>
+    /// Restartuje task pokud je ve stavu zruseno
+    /// </summary>
     [HttpPost("restart")]
     public async Task<IActionResult> RestartTaskAsync(Guid taskId)
     {
@@ -244,7 +236,7 @@ public class TaskController : UserODataController<TaskResponse>
         if (task is null)
             return NotFound();
 
-        if (task.ActualStatus == TaskState.Cancelled || task.ActualStatus == TaskState.Crashed)
+        if (task.ActualStatus == TaskState.Cancelled)
         {
             task.ActualStatus = TaskState.Created;
             context.Update(task);

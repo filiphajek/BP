@@ -271,6 +271,7 @@ using (var scope = app.Services.CreateScope())
             State = 0,
             Id = task.Id,
             TaskFilePath = task.TaskFile,
+            ResultFilePath = task.ResultFile,
             Time = DateTime.Now,
             UserId = task.UserId
         });

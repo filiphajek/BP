@@ -7,4 +7,5 @@ public static class TaskLauncherPolicies
     public const string UserNotRegistered = "not-registered";
     public const string UserPolicy = "user-policy";
     public const string AdminPolicy = "admin-policy";
+    public const string CanViewTaskPolicy = "can-view-task-policy";
 }

@@ -70,7 +70,6 @@ public class WorkerHub : Hub<IWorkerHub>
         catch (OperationCanceledException)
         {
             balancer.ClientsWithoutWork = true;
-            //balancer.Enqueue("vip", new() { Id = Guid.NewGuid(), State = Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = "vip" });
         }
         finally
         {

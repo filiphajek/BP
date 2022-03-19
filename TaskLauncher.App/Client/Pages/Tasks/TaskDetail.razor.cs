@@ -5,7 +5,6 @@ using TaskLauncher.Common.Models;
 using System.Net.Http.Json;
 using TaskLauncher.Common.Enums;
 using Microsoft.AspNetCore.Components.Authorization;
-using TaskLauncher.App.Client;
 using TaskLauncher.App.Client.Extensions;
 
 namespace TaskLauncher.App.Client.Pages.Tasks;

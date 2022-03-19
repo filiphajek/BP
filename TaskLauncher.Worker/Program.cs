@@ -5,11 +5,13 @@ using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Services;
 using TaskLauncher.Worker;
+using TaskLauncher.Worker.Services;
 using TaskLauncher.Worker.Workers;
 
 await Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(builder =>
     {
+        builder.AddCommandLine(args);
     })
     .ConfigureServices((context, services) =>
     {
@@ -21,9 +23,14 @@ await Host.CreateDefaultBuilder(args)
         {
             BaseAddress = sp.GetRequiredService<ServiceAddresses>().WebApiAddressUri
         });
+        var isTest = context.Configuration.GetValue<bool>("test");
+
+        if(isTest)
+            services.AddSingleton<ITaskLauncherService, TestTaskLauncherService>();
+        else
+            services.AddSingleton<ITaskLauncherService, TaskLauncherService>();
 
         services.AddSingleton<IFileStorageService, FileStorageService>();
-        services.AddSingleton<ITaskLauncherService, TaskLauncherService>();
         services.AddSingleton<SignalRClient>();
 
         //token services with cache

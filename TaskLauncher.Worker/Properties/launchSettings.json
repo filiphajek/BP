@@ -1,7 +1,8 @@
 {
   "profiles": {
     "ContainerLauncher": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "test=true"
     },
     "Docker": {
       "commandName": "Docker"
