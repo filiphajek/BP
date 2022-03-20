@@ -1,4 +1,5 @@
 ﻿using Auth0.AspNetCore.Authentication;
+using Auth0.ManagementApi.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -96,5 +97,16 @@ public class UserController : BaseController
             NickName = value
         })).GetModel();
         return Ok(user);
+    }
+
+    [Authorize(Policy = TaskLauncherPolicies.UserPolicy)]
+    [HttpGet("admincontact")]
+    public async Task<ActionResult<AssignedUser>> GetContactToAdmin()
+    {
+        Random random = new(DateTime.Now.Millisecond);
+        var auth0client = await apiClientFactory.GetClient();
+        var admins = (await auth0client.Roles.GetUsersAsync("rol_biIw4J5bu8EQIReX")).ToList();
+        var next = random.Next(admins.Count);
+        return Ok(admins.ElementAt(next));
     }
 }

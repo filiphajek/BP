@@ -1,0 +1,20 @@
+﻿@using Auth0.ManagementApi.Models
+@inject ApiClient httpClient
+
+<AuthorizeView Roles="user">
+    <Authorized>
+        <div class="navbar fixed-bottom">
+            <p class="navbar-brand" style="margin:30px; color: white; font-size: 15px; text-align:center">Contact the administrator <br/> <b><a href = "mailto: @admin.Email">@admin.Email</b></p>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code
+{
+    AssignedUser admin = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        admin = await httpClient.GetFromJsonAsync<AssignedUser>("api/user/admincontact")!;
+    }
+}
