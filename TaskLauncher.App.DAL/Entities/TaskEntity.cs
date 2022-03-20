@@ -12,4 +12,5 @@ public record TaskEntity : BaseEntity, IUserKeyProtection
     public string ResultFile { get; set; } = string.Empty;
     public DateTime CreationDate { get; set; }
     public ICollection<EventEntity> Events { get; set; }
+    public bool IsPriority { get; set; }
 }

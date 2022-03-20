@@ -14,6 +14,8 @@ using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
 using TaskLauncher.App.Server.Tasks;
 using TaskLauncher.Common.Models;
+using System.Text.RegularExpressions;
+using RegExtract;
 
 namespace TaskLauncher.App.Server.Controllers.User;
 
@@ -55,6 +57,7 @@ public class TaskController : UserODataController<TaskResponse>
     }
 
     private readonly SemaphoreSlim semaphoreSlim = new(1, 1);
+    private static string pattern = @"(?<=\()(\d+)(?=\))";
 
     /// <summary>
     /// Vytvoreni noveho tasku
@@ -64,6 +67,15 @@ public class TaskController : UserODataController<TaskResponse>
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
+
+        if (await context.Tasks.AnyAsync(i => i.Name == request.Name))
+        {
+            int tmp = 0;
+            if(Regex.IsMatch(request.Name, pattern))
+                tmp = request.Name.Extract<int>(pattern);
+            tmp++;
+            request.Name = Regex.Replace(request.Name, pattern, tmp.ToString());
+        }
 
         double price = 0;
         if (User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out bool vip) && vip)
@@ -98,6 +110,7 @@ public class TaskController : UserODataController<TaskResponse>
         var eventEntity = new EventEntity { Status = TaskState.Created, Time = creationDate, UserId = userId };
         TaskEntity task = new()
         {
+            IsPriority = vip,
             ActualStatus = TaskState.Created,
             UserId = userId,
             TaskFile = path,

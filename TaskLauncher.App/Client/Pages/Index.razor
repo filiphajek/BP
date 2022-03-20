@@ -7,30 +7,90 @@
 
 <PageTitle>Index</PageTitle>
 
-<p><b>Welcome to Task Launcher</b></p>
-
-<EmailVerification />
-
 <AuthorizeView Policy="@TaskLauncherPolicies.CanViewGraphsPolicy">
     <Authorized>
         <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
             <ContentTemplate>
                 <div class="container">
                     <div class="row">
-                        <div class="col-sm-12 col-lg-6 offset-lg-3 my-5">
-                            <RadzenChart>
-                                <RadzenDonutSeries Data="@data" CategoryProperty="Description" ValueProperty="Number">
-                                    <TitleTemplate>
-                                        <div class="rz-donut-content">
-                                            <div style="margin:20px">Finished tasks: <b>@model.FinishedTaskCount</b></div>
-                                        </div>
-                                    </TitleTemplate>
-                                </RadzenDonutSeries>
-                            </RadzenChart>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-title" style="margin:20px 0 0 20px">
+                                    <h4>Finished tasks: <b>@model.FinishedTaskCount</b></h4>
+                                    <button class="btn btn-primary">Switch to vip</button>
+                                </div>
+                                <div class="card-body">
+                                    <RadzenChart>
+                                        <RadzenDonutSeries Data="@data" CategoryProperty="Description" ValueProperty="Number" />
+                                    </RadzenChart>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-title" style="margin:20px 0 0 20px">
+                                    <h4>Count of tasks in last 30 days</h4>
+                                    <button class="btn btn-primary">Switch to vip</button>
+                                </div>
+                                <div class="card-body">
+                                    <RadzenChart>
+                                        <RadzenColumnSeries Data="@data2" CategoryProperty="Date" Title="Tasks" LineType="LineType.Dashed" ValueProperty="Count" />
+                                        <RadzenColumnOptions Radius="5" />
+                                        <RadzenValueAxis>
+                                            <RadzenGridLines Visible="true" />
+                                            <RadzenAxisTitle Text="Count" />
+                                        </RadzenValueAxis>
+                                        <RadzenCategoryAxis>
+                                            <RadzenAxisTitle Text="Day" />
+                                        </RadzenCategoryAxis>
+                                    </RadzenChart>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-top:20px; margin-bottom:20px">
+                        <div class="col">
+                            <div class="card">
+                                <div class="card-title text-center">
+                                    <h4 style="margin-top:10px; margin-bottom:0px">Task times</h4>
+                                </div>
+                                <div class="card-body">
+                                    <RadzenChart>
+                                        @if (nonViptimes.Count != 0)
+                                        {
+                                            <RadzenLineSeries Data="@nonViptimes" CategoryProperty="Index" Title="Cpu time" LineType="LineType.Dashed" ValueProperty="CpuTime">
+                                                <RadzenMarkers MarkerType="MarkerType.Square" />
+                                            </RadzenLineSeries>
+                                            <RadzenLineSeries Data="@nonViptimes" CategoryProperty="Index" Title="Queue time" LineType="LineType.Dashed" ValueProperty="TimeInQueue">
+                                                <RadzenMarkers MarkerType="MarkerType.Square" />
+                                            </RadzenLineSeries>
+                                        }
+                                        @if (vipTimes.Count != 0)
+                                        {
+                                            <RadzenLineSeries Data="@vipTimes" CategoryProperty="Index" Title="Queue time" ValueProperty="TimeInQueue">
+                                                <RadzenMarkers MarkerType="MarkerType.Circle" />
+                                            </RadzenLineSeries>
+                                            <RadzenLineSeries Data="@vipTimes" CategoryProperty="Index" Title="Cpu time" ValueProperty="CpuTime">
+                                                <RadzenMarkers MarkerType="MarkerType.Circle" />
+                                            </RadzenLineSeries>
+                                        }
+                                        <RadzenValueAxis>
+                                            <RadzenGridLines Visible="true" />
+                                            <RadzenAxisTitle Text="Time in minutes" />
+                                        </RadzenValueAxis>
+                                    </RadzenChart>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </ContentTemplate>
         </SpinLoader>
     </Authorized>
+    <NotAuthorized>
+        <p><b>Welcome to Task Launcher</b></p>
+    </NotAuthorized>
 </AuthorizeView>
+
+<EmailVerification />

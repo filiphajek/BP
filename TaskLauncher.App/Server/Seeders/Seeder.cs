@@ -52,7 +52,13 @@ public class Seeder
             FailedTasks = 2,
             CrashedTasks = 1,
             TimeoutedTasks = 1,
-            SuccessTasks = 12
+            SuccessTasks = 12,
+            IsVip = false
+        });
+        await dbContext.Stats.AddAsync(new()
+        {
+            UserId = id,
+            IsVip = true
         });
     }
 
