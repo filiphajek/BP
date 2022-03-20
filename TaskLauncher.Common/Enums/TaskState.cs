@@ -7,6 +7,7 @@ public enum TaskState
     Running,
     Cancelled,
     Crashed,
+    Timeouted,
     FinishedSuccess,
     FinishedFailure,
     Downloaded,

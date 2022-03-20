@@ -29,8 +29,8 @@ public class Seeder
         foreach (var id in new[] { "auth0|61b0e161678a0c00689644e0", "auth0|622076411a44b70076f27000" })
         {
             await SeedUser(id);
+            await SeedStats(id);
         }
-
         await dbContext.SaveChangesAsync();
     }
 
@@ -40,6 +40,20 @@ public class Seeder
         using var writer = new StreamWriter(stream);
         writer.WriteLine("seeded");
         await fileStorageService.UploadFileAsync(fileName, stream);
+    }
+
+    private async Task SeedStats(string id)
+    {
+        await dbContext.Stats.AddAsync(new()
+        {
+            UserId = id,
+            AllTaskCount = 20,
+            FinishedTaskCount = 16,
+            FailedTasks = 2,
+            CrashedTasks = 1,
+            TimeoutedTasks = 1,
+            SuccessTasks = 12
+        });
     }
 
     private async Task SeedUser(string userId)

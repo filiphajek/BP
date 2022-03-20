@@ -1,7 +1,36 @@
 ﻿@page "/"
+@using TaskLauncher.Api.Contracts.Responses
+@inject ApiClient client
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using TaskLauncher.Authorization
 
 <PageTitle>Index</PageTitle>
 
 <p><b>Welcome to Task Launcher</b></p>
 
-<EmailVerification/>
+<EmailVerification />
+
+<AuthorizeView Policy="@TaskLauncherPolicies.CanViewGraphsPolicy">
+    <Authorized>
+        <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
+            <ContentTemplate>
+                <div class="container">
+                    <div class="row">
+                        <div class="col-sm-12 col-lg-6 offset-lg-3 my-5">
+                            <RadzenChart>
+                                <RadzenDonutSeries Data="@data" CategoryProperty="Description" ValueProperty="Number">
+                                    <TitleTemplate>
+                                        <div class="rz-donut-content">
+                                            <div style="margin:20px">Finished tasks: <b>@model.FinishedTaskCount</b></div>
+                                        </div>
+                                    </TitleTemplate>
+                                </RadzenDonutSeries>
+                            </RadzenChart>
+                        </div>
+                    </div>
+                </div>
+            </ContentTemplate>
+        </SpinLoader>
+    </Authorized>
+</AuthorizeView>

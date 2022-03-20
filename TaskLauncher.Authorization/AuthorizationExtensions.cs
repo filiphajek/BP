@@ -58,6 +58,12 @@ public static class AuthorizationExtensions
                 p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
                 p.RequireRole(TaskLauncherRoles.Admin, TaskLauncherRoles.User);
             });
+            policies.AddPolicy(TaskLauncherPolicies.CanViewGraphsPolicy, p =>
+            {
+                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
+                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
+                p.RequireRole(TaskLauncherRoles.Admin, TaskLauncherRoles.User);
+            });
         });
     }
 

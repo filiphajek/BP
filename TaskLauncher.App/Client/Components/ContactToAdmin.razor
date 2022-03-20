@@ -1,10 +1,11 @@
 ﻿@using Auth0.ManagementApi.Models
+@using TaskLauncher.Authorization
 @inject ApiClient httpClient
 
 <AuthorizeView Roles="user">
     <Authorized>
         <div class="navbar fixed-bottom">
-            <p class="navbar-brand" style="margin:30px; color: white; font-size: 15px; text-align:center">Contact the administrator <br/> <b><a href = "mailto: @admin.Email">@admin.Email</b></p>
+            <p class="navbar-brand" style="margin:30px; color: white; font-size: 15px; text-align:center">Contact the administrator <br/> <b><a href="mailto: @admin.Email">@admin.Email</a></b></p>
         </div>
     </Authorized>
 </AuthorizeView>
@@ -12,9 +13,14 @@
 @code
 {
     AssignedUser admin = new();
+    
+    [CascadingParameter]
+    public Task<AuthenticationState> authenticationStateTask { get; set; } = null!;
 
     protected async override Task OnInitializedAsync()
     {
-        admin = await httpClient.GetFromJsonAsync<AssignedUser>("api/user/admincontact")!;
+        var state = await authenticationStateTask;
+        if (state.User.IsInRole(TaskLauncherRoles.User))
+            admin = (await httpClient.GetFromJsonAsync<AssignedUser>("api/user/admincontact"))!;
     }
 }
