@@ -3,6 +3,7 @@ using TaskLauncher.Api.Contracts.Responses;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using TaskLauncher.Authorization;
+using TaskLauncher.Common.Extensions;
 
 namespace TaskLauncher.App.Client.Pages;
 
@@ -16,12 +17,23 @@ public partial class Index
     List<DayTaskCountDataItem> data2 = new();
 
     bool loading = false;
+    bool switchVip1 = false;
+    bool switchVip2 = false;
+    bool hasVipTasks = false;
 
     protected override async Task OnInitializedAsync()
     {
         var state = await authenticationStateTask;
         if (!state.User.Identity!.IsAuthenticated)
             return;
+
+        if (!state.User.TryGetClaimAsBool(TaskLauncherClaimTypes.Registered, out var registered) || !registered)
+            return;
+        if (!state.User.TryGetClaimAsBool(TaskLauncherClaimTypes.EmailVerified, out var verified) || !verified)
+            return;
+
+        state.User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out switchVip1);
+        switchVip2 = switchVip1;
 
         loading = true;
         if (state.User.IsInRole(TaskLauncherRoles.User))
@@ -38,6 +50,18 @@ public partial class Index
         loading = false;
     }
 
+    void SwitchDonutGraph()
+    {
+        switchVip1 = !switchVip1;
+        model = overallStats.Single(i => i.IsVip = switchVip1);
+    }
+
+    void SwitchColumnGraph()
+    {
+        switchVip2 = !switchVip2;
+        model = overallStats.Single(i => i.IsVip = switchVip2);
+    }
+
     async Task LoadTaskCountPerDay(string path)
     {
         var days = (await client.GetFromJsonAsync<List<DayTaskCountResponse>>(path))!;
@@ -52,8 +76,12 @@ public partial class Index
                 }
             }
         }
-        var firstDay = data2.IndexOf(data2.First(i => i.Count != 0));
-        data2.RemoveRange(0, firstDay);
+        var firstDay = data2.FirstOrDefault(i => i.Count != 0);
+        if(firstDay is not null)
+        {
+            var firstDayIndex = data2.IndexOf(firstDay);
+            data2.RemoveRange(0, firstDayIndex);
+        }
     }
 
     List<TaskStatDataItem> nonViptimes = new();
@@ -67,9 +95,13 @@ public partial class Index
         nonViptimes = times.Where(i => !i.IsVip).Select(i => new TaskStatDataItem(i.CpuTime.TotalMinutes, i.TimeInQueue.TotalMinutes, (++k).ToString())).ToList();
     }
 
+    List<UserStatResponse> overallStats = new();
+
     async Task LoadOverallStats(string path)
     {
-        model = (await client.GetFromJsonAsync<List<UserStatResponse>>(path))!.Single(i => !i.IsVip);
+        overallStats = (await client.GetFromJsonAsync<List<UserStatResponse>>(path))!;
+        model = overallStats.Single(i => !i.IsVip);
+        hasVipTasks = overallStats.Single(i => i.IsVip).AllTaskCount != 0; 
         data = new DataItem[] { new("Success", model.SuccessTasks), new("Failed", model.FailedTasks), new("Crashed", model.CrashedTasks), new("Timeouted", model.TimeoutedTasks) };
     }
 

@@ -207,6 +207,8 @@ public class AuthController : ControllerBase
         //init databaze
         var balanceConfig = await context.Configs.SingleAsync(i => i.Key == "starttokenbalance");
         await context.TokenBalances.AddAsync(new() { CurrentAmount = int.Parse(balanceConfig.Value), LastAdded = DateTime.Now, UserId = userId });
+        await context.Stats.AddAsync(new() { UserId = userId, IsVip = true });
+        await context.Stats.AddAsync(new() { UserId = userId, IsVip = false });
         await context.SaveChangesAsync();
 
         await AddClaimsToPrincipal(new Claim[] 

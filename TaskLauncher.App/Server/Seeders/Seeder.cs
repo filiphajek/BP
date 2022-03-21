@@ -25,8 +25,8 @@ public class Seeder
 
         //todo management api
         //testuser auth0|61b0e161678a0c00689644e0
-        //testadmin auth0|622076411a44b70076f27000
-        foreach (var id in new[] { "auth0|61b0e161678a0c00689644e0", "auth0|622076411a44b70076f27000" })
+        //test auth0|6237cead647a36006ba3d618
+        foreach (var id in new[] { "auth0|6237cead647a36006ba3d618", "auth0|61b0e161678a0c00689644e0" })
         {
             await SeedUser(id);
             await SeedStats(id);

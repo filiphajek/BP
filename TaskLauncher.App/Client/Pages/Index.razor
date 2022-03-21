@@ -17,7 +17,7 @@
                             <div class="card">
                                 <div class="card-title" style="margin:20px 0 0 20px">
                                     <h4>Finished tasks: <b>@model.FinishedTaskCount</b></h4>
-                                    <button class="btn btn-primary">Switch to vip</button>
+                                    <button disabled="@(!hasVipTasks)" class="btn btn-primary" @onclick="SwitchDonutGraph">Switch to @(switchVip1 ? "normal" : "vip") task</button>
                                 </div>
                                 <div class="card-body">
                                     <RadzenChart>
@@ -30,7 +30,7 @@
                             <div class="card">
                                 <div class="card-title" style="margin:20px 0 0 20px">
                                     <h4>Count of tasks in last 30 days</h4>
-                                    <button class="btn btn-primary">Switch to vip</button>
+                                    <button disabled="@(!hasVipTasks)" class="btn btn-primary" @onclick="SwitchColumnGraph">Switch to @(switchVip2 ? "normal" : "vip") task</button>
                                 </div>
                                 <div class="card-body">
                                     <RadzenChart>
@@ -79,6 +79,7 @@
                                             <RadzenGridLines Visible="true" />
                                             <RadzenAxisTitle Text="Time in minutes" />
                                         </RadzenValueAxis>
+                                        <RadzenCategoryAxis Visible="false"/>
                                     </RadzenChart>
                                 </div>
                             </div>

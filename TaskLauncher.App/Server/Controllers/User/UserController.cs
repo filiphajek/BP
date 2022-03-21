@@ -99,7 +99,7 @@ public class UserController : BaseController
         return Ok(user);
     }
 
-    [Authorize(Policy = TaskLauncherPolicies.UserPolicy)]
+    [Authorize(Roles = TaskLauncherRoles.User)]
     [HttpGet("admincontact")]
     public async Task<ActionResult<AssignedUser>> GetContactToAdmin()
     {
