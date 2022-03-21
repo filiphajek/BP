@@ -1,5 +1,6 @@
 ﻿@using TaskLauncher.App.Client.Pages;
 @using TaskLauncher.App.Client.Models
+@using TaskLauncher.App.Client.Validators
 
 @page "/tasks/add"
 @attribute [Authorize(Policy = "user-policy")]
@@ -26,6 +27,7 @@
                         <div class="col">
                             <RadzenTextBox style="display: inline-block" Name="Name" @bind-Value=@Model.Name Class="w-100" />
                             <RadzenRequiredValidator Component="Name" />
+                            <InvalidCharactersValidator Component="Name"/>
                         </div>
                     </div>
 

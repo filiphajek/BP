@@ -59,6 +59,31 @@ public class TaskController : UserODataController<TaskResponse>
     private readonly SemaphoreSlim semaphoreSlim = new(1, 1);
     private static string pattern = @"(?<=\()(\d+)(?=\))";
 
+    private async Task<string> GetUniqueName(string name)
+    {
+        bool exists = await context.Tasks.AnyAsync(i => i.Name == name);
+        if (!exists)
+            return name;
+
+        int index = 0;
+        string tmpExistingName = "";
+        await foreach (var existingNameTask in context.Tasks.AsNoTracking().Where(i => i.Name.StartsWith(name)).AsAsyncEnumerable())
+        {
+            var match = Regex.Match(existingNameTask.Name, pattern);
+            if (match.Success && int.TryParse(match.Value, out var number) && number >= index)
+            {
+                index = number;
+                tmpExistingName = existingNameTask.Name;
+            }
+        }
+
+        if (index == 0)
+            return name += " (1)";
+     
+        index++;
+        return Regex.Replace(tmpExistingName, pattern, index.ToString());
+    }
+
     /// <summary>
     /// Vytvoreni noveho tasku
     /// </summary>
@@ -68,14 +93,10 @@ public class TaskController : UserODataController<TaskResponse>
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
 
-        if (await context.Tasks.AnyAsync(i => i.Name == request.Name))
-        {
-            int tmp = 0;
-            if(Regex.IsMatch(request.Name, pattern))
-                tmp = request.Name.Extract<int>(pattern);
-            tmp++;
-            request.Name = Regex.Replace(request.Name, pattern, tmp.ToString());
-        }
+        if (request.Name.Contains('(') || request.Name.Contains(')'))
+            return BadRequest();
+
+        request.Name = await GetUniqueName(request.Name);
 
         double price = 0;
         if (User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out bool vip) && vip)
