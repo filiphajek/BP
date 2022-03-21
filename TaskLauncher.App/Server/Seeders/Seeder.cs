@@ -1,5 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using TaskLauncher.App.DAL;
+using TaskLauncher.App.DAL.Entities;
+using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Services;
 
@@ -7,31 +10,135 @@ namespace TaskLauncher.App.Server.Seeders;
 
 public class Seeder
 {
+    enum UserType
+    {
+        VipUser,
+        NormalUser,
+        NormalVipUser,
+        NotRegisteredUser,
+        NotVerifiedUser
+    }
+
     private readonly AppDbContext dbContext;
     private readonly IFileStorageService fileStorageService;
+    private readonly ManagementApiClientFactory clientFactory;
 
-    public Seeder(AppDbContext dbContext, IFileStorageService fileStorageService)
+    private readonly List<string> seededEmails = new() { "tomashavel@test.com", "filipnovak@test.com", "stepannemec@test.com", "jakubstefacek@test.com", "vojtechbrychta@test.com" };
+    private readonly Dictionary<UserType, string> seededUsers = new()
+    {
+        { UserType.VipUser, "auth0|6238ef1ee644f4006ff21121" },
+        { UserType.NormalUser, "auth0|6238ef1e9e63f500683a8116" },
+        { UserType.NormalVipUser, "auth0|6238ef1e647a36006ba40f9e" },
+        { UserType.NotRegisteredUser, "auth0|6238ef1f647a36006ba40f9f" },
+        { UserType.NotVerifiedUser, "auth0|6238ef1f647a36006ba40fa0" },
+
+    };
+
+    public Seeder(AppDbContext dbContext, IFileStorageService fileStorageService, ManagementApiClientFactory clientFactory)
     {
         this.dbContext = dbContext;
         this.fileStorageService = fileStorageService;
+        this.clientFactory = clientFactory;
     }
 
     public async Task SeedAsync()
     {
+        //vytvor databazi
         await dbContext.Database.EnsureCreatedAsync();
 
+        //pokud neni prazdna, neseeduj
         if (await dbContext.Payments.IgnoreQueryFilters().AnyAsync())
             return;
 
-        //todo management api
-        //testuser auth0|61b0e161678a0c00689644e0
-        //test auth0|6237cead647a36006ba3d618
-        foreach (var id in new[] { "auth0|6237cead647a36006ba3d618", "auth0|61b0e161678a0c00689644e0" })
+        // vytvoreni uzivatelu
+        //await EnsureCreatedUsersAsync();
+
+        // seed uzivatelskych uloh, plateb, statistik apod.
+        foreach (var user in seededUsers.Where(i => i.Key != UserType.NotRegisteredUser).Where(i => i.Key != UserType.NotVerifiedUser))
         {
-            await SeedUser(id);
-            await SeedStats(id);
+            await SeedUser(user.Value, user.Key);
         }
         await dbContext.SaveChangesAsync();
+    }
+
+    private async Task EnsureCreatedUsersAsync()
+    {
+        var auth0client = await clientFactory.GetClient();
+
+        foreach (var user in (await auth0client.Users.GetAllAsync(new())).Where(i => seededEmails.Contains(i.Email)))
+        {
+            await auth0client.Users.DeleteAsync(user.UserId);
+        }
+
+        //vip user
+        var vipUser = await auth0client.Users.CreateAsync(new()
+        {
+            Connection = "Username-Password-Authentication",
+            FirstName = "Tomas",
+            LastName = "Havel",
+            Email = "tomashavel@test.com",
+            EmailVerified = true,
+            NickName = "tom",
+            Password = "Password123*",
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': true, 'registered': true, 'isadmin': false }")
+        });
+        seededUsers.Add(UserType.VipUser, vipUser.UserId);
+
+        //normal user
+        var normalUser = await auth0client.Users.CreateAsync(new()
+        {
+            Connection = "Username-Password-Authentication",
+            FirstName = "Filip",
+            LastName = "Novak",
+            Email = "filipnovak@test.com",
+            EmailVerified = true,
+            NickName = "fila",
+            Password = "Password123*",
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }")
+        });
+        seededUsers.Add(UserType.NormalUser, normalUser.UserId);
+
+        //user that received vip
+        var assignedVipUser = await auth0client.Users.CreateAsync(new()
+        {
+            Connection = "Username-Password-Authentication",
+            FirstName = "Stepan",
+            LastName = "Nemec",
+            Email = "stepannemec@test.com",
+            EmailVerified = true,
+            NickName = "stepi",
+            Password = "Password123*",
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': true, 'registered': true, 'isadmin': false }")
+        });
+        seededUsers.Add(UserType.NormalVipUser, assignedVipUser.UserId);
+
+        //not registered user
+        var notRegisteredUser = await auth0client.Users.CreateAsync(new()
+        {
+            Connection = "Username-Password-Authentication",
+            Email = "jakubstefacek@test.com",
+            EmailVerified = false,
+            Password = "Password123*",
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': false, 'isadmin': false }")
+        });
+        seededUsers.Add(UserType.NotRegisteredUser, notRegisteredUser.UserId);
+
+        //not verified user
+        var notVerifiedUser = await auth0client.Users.CreateAsync(new()
+        {
+            Connection = "Username-Password-Authentication",
+            FirstName = "Vojtech",
+            LastName = "Brychta",
+            Email = "vojtechbrychta@test.com",
+            EmailVerified = false,
+            NickName = "vojta",
+            Password = "Password123*",
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }")
+        });
+        seededUsers.Add(UserType.NotVerifiedUser, notVerifiedUser.UserId);
+
+        await auth0client.Roles.AssignUsersAsync("rol_6Vh7zpX3Z61sN307", 
+            new() { Users = new[] { vipUser.UserId, normalUser.UserId, assignedVipUser.UserId, notRegisteredUser.UserId, notVerifiedUser.UserId } });
     }
 
     private async Task UploadFile(string fileName)
@@ -42,54 +149,145 @@ public class Seeder
         await fileStorageService.UploadFileAsync(fileName, stream);
     }
 
-    private async Task SeedStats(string id)
+    private async Task SeedUser(string userId, UserType userType, int taskCount = 35)
     {
-        await dbContext.Stats.AddAsync(new()
+        Random random = new(Guid.NewGuid().GetHashCode());
+
+        DateTime time = DateTime.Now.AddDays(-20);
+        int priceSum = 0;
+        StatEntity normalStatEntity = new() { UserId = userId, AllTaskCount = taskCount + 5, IsVip = false }; // +5 smazanych napr.
+        StatEntity vipStatEntity = new() { UserId = userId, AllTaskCount = taskCount + 5, IsVip = true };
+
+        Console.WriteLine(userId);
+
+        for (int i = 0; i < taskCount; i++)
         {
-            UserId = id,
-            AllTaskCount = 20,
-            FinishedTaskCount = 16,
-            FailedTasks = 2,
-            CrashedTasks = 1,
-            TimeoutedTasks = 1,
-            SuccessTasks = 12,
-            IsVip = false
-        });
-        await dbContext.Stats.AddAsync(new()
-        {
-            UserId = id,
-            IsVip = true
-        });
+            if(i % random.Next(2, 4) == 0)
+            {
+                time = time.AddDays(1);
+            }
+            else
+            {
+                time = time.AddHours(1);
+            }
+            var exitQueueTime = random.Next(2, random.Next(10, 12));
+            var runningTime = random.Next(3, random.Next(7, 10));
+
+            //files
+            var taskFileName = $"{userId}/taskfile{i}";
+            var resultFileName = $"{userId}/resultfile{i}";
+            await UploadFile(taskFileName);
+            await UploadFile(resultFileName);
+
+            //get task price, priority
+            int price = GetTaskPrice(taskCount, i, userType);
+            bool isPriority = price != 1;
+            priceSum += price;
+
+            //task
+            var task = await dbContext.Tasks.AddAsync(new() { CreationDate = time, Name = $"Task {i}", Description = "text", IsPriority = isPriority, TaskFile = taskFileName, UserId = userId, ResultFile = resultFileName });
+            
+            //payment
+            await dbContext.Payments.AddAsync(new() { Price = price, Time = time, UserId = userId, Task = task.Entity });
+            
+            //events
+            await dbContext.Events.AddAsync(new() { Task = task.Entity, Status = TaskState.Created, UserId = userId, Time = time });
+            await dbContext.Events.AddAsync(new() { Task = task.Entity, Status = TaskState.Ready, UserId = userId, Time = time.AddMinutes(exitQueueTime) });
+            await dbContext.Events.AddAsync(new() { Task = task.Entity, Status = TaskState.Running, UserId = userId, Time = time.AddMinutes(exitQueueTime + 0.1) });
+            await AddTaskFinishedEvent(task.Entity, userId, exitQueueTime, runningTime, time);
+            UpdateStats(normalStatEntity, vipStatEntity, task.Entity.ActualStatus, isPriority);
+        }
+        await dbContext.TokenBalances.AddAsync(new() { CurrentAmount = priceSum, LastAdded = DateTime.Now.AddDays(-30.5), UserId = userId });
+        await dbContext.Stats.AddAsync(normalStatEntity);
+        await dbContext.Stats.AddAsync(vipStatEntity);
+        //ZBIRAT STATISTIKU !! JAK CASY TASK DOKONCENI -> PAK TAM PRIDAT NEJAKOU PEVNOU HODNOTU
     }
 
-    private async Task SeedUser(string userId)
+    private void UpdateStats(StatEntity normalStatEntity, StatEntity vipStatEntity, TaskState actualStatus, bool isPriority)
     {
-        int i = 0;
+        if (isPriority)
+            vipStatEntity.FinishedTaskCount++;
+        else
+            normalStatEntity.FinishedTaskCount++;
 
-        //soubory
-        var taskFileName = $"{userId}/taskfile{i}";
-        var resultFileName = $"{userId}/resultfile{i}";
-        await UploadFile(taskFileName);
-        await UploadFile(resultFileName);
-        
-        //task1
-        var task1 = await dbContext.Tasks.AddAsync(new() { CreationDate = DateTime.Now, Name = $"Task {i++}", Description = "text", TaskFile = taskFileName, UserId = userId, ResultFile = resultFileName, ActualStatus = TaskState.FinishedSuccess });
-        await dbContext.Events.AddAsync(new() { Task = task1.Entity, Status = TaskState.Created, UserId = userId, Time = DateTime.Now });
-        await dbContext.Events.AddAsync(new() { Task = task1.Entity, Status = TaskState.Ready, UserId = userId, Time = DateTime.Now.AddMinutes(15) });
-        await dbContext.Events.AddAsync(new() { Task = task1.Entity, Status = TaskState.Running, UserId = userId, Time = DateTime.Now.AddMinutes(16) });
-        await dbContext.Events.AddAsync(new() { Task = task1.Entity, Status = TaskState.FinishedSuccess, UserId = userId, Time = DateTime.Now.AddMinutes(20) });
-        
-        await dbContext.Payments.AddAsync(new() { Price = 1, Time = DateTime.Now, UserId = userId, Task = task1.Entity });
+        switch (actualStatus)
+        {
+            case TaskState.Crashed:
+                if(isPriority)
+                    vipStatEntity.CrashedTasks++;
+                else
+                    normalStatEntity.CrashedTasks++;
+                break;
+            case TaskState.Timeouted:
+                if (isPriority)
+                    vipStatEntity.TimeoutedTasks++;
+                else
+                    normalStatEntity.TimeoutedTasks++;
+                break;
+            case TaskState.FinishedSuccess:
+                if (isPriority)
+                    vipStatEntity.SuccessTasks++;
+                else
+                    normalStatEntity.SuccessTasks++;
+                break;
+            case TaskState.FinishedFailure:
+                if (isPriority)
+                    vipStatEntity.FailedTasks++;
+                else
+                    normalStatEntity.FailedTasks++;
+                break;
+        }
+    }
 
-        //task2
-        var task2 = await dbContext.Tasks.AddAsync(new() { CreationDate = DateTime.Now, Name = $"Task {i++}", ActualStatus = TaskState.FinishedSuccess, Description = "text", TaskFile = taskFileName, UserId = userId, ResultFile = resultFileName });
-        await dbContext.Events.AddAsync(new() { Task = task2.Entity, Status = TaskState.Created, UserId = userId, Time = DateTime.Now });
-        await dbContext.Events.AddAsync(new() { Task = task2.Entity, Status = TaskState.Ready, UserId = userId, Time = DateTime.Now.AddMinutes(13) });
-        await dbContext.Events.AddAsync(new() { Task = task2.Entity, Status = TaskState.Running, UserId = userId, Time = DateTime.Now.AddMinutes(14) });
-        await dbContext.Events.AddAsync(new() { Task = task2.Entity, Status = TaskState.FinishedSuccess, UserId = userId, Time = DateTime.Now.AddMinutes(21) });
-        
-        await dbContext.Payments.AddAsync(new() { Price = 1, Time = DateTime.Now, UserId = userId, Task = task2.Entity });
+    private static int GetTaskPrice(int taskCount, int index, UserType userType)
+    {
+        if (userType == UserType.NormalUser)
+            return 1;
 
-        await dbContext.TokenBalances.AddAsync(new() { CurrentAmount = 98, LastAdded = DateTime.Now, UserId = userId });
+        if (userType == UserType.VipUser)
+            return 2;
+
+        if (taskCount / 2 > index)
+            return 1;
+        return 2;
+    }
+
+    private async Task AddTaskFinishedEvent(TaskEntity task, string userId, int exitQueueTime, int runningTime, DateTime time)
+    {
+        Random random = new(Guid.NewGuid().GetHashCode());
+        var rand = random.NextDouble();
+        TaskState finalState = TaskState.FinishedSuccess;
+        if (rand < 0.8)
+        {
+            await dbContext.Events.AddAsync(new() { Task = task, Status = finalState, UserId = userId, Time = time.AddMinutes(exitQueueTime + runningTime + 0.1) });
+            if(random.NextDouble() < 0.1)
+            {
+                finalState = TaskState.Downloaded;
+                await dbContext.Events.AddAsync(new() { Task = task, Status = finalState, UserId = userId, Time = time.AddMinutes(exitQueueTime + runningTime + 15) });
+            }
+        }
+        else
+        {
+            var randError = random.NextDouble();
+            if (randError < 0.7)
+            {
+                finalState = TaskState.FinishedFailure;
+                await dbContext.Events.AddAsync(new() { Task = task, Status = finalState, UserId = userId, Time = time.AddMinutes(exitQueueTime + runningTime + 0.1) });
+            }
+            else if (randError < 0.9)
+            {
+                finalState = TaskState.Timeouted;
+                await dbContext.Events.AddAsync(new() { Task = task, Status = finalState, UserId = userId, Time = time.AddMinutes(exitQueueTime + runningTime + 0.1) });
+            }
+            else
+            {
+                await dbContext.Events.AddAsync(new() { Task = task, Status = TaskState.Crashed, UserId = userId, Time = time.AddMinutes(exitQueueTime + runningTime + 0.1) });
+                await dbContext.Events.AddAsync(new() { Task = task, Status = TaskState.Created, UserId = userId, Time = time.AddMinutes(exitQueueTime + runningTime + 10 ) });
+                await dbContext.Events.AddAsync(new() { Task = task, Status = TaskState.Ready, UserId = userId, Time = time.AddMinutes(exitQueueTime + runningTime + 12) });
+                await dbContext.Events.AddAsync(new() { Task = task, Status = TaskState.Running, UserId = userId, Time = time.AddMinutes(exitQueueTime + runningTime + 14) });
+                await dbContext.Events.AddAsync(new() { Task = task, Status = TaskState.FinishedSuccess, UserId = userId, Time = time.AddMinutes(exitQueueTime + runningTime + 14.2) });
+            }
+        }
+        task.ActualStatus = finalState;
     }
 }

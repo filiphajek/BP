@@ -53,13 +53,14 @@ public partial class Index
     void SwitchDonutGraph()
     {
         switchVip1 = !switchVip1;
-        model = overallStats.Single(i => i.IsVip = switchVip1);
+        model = overallStats.Single(i => i.IsVip == switchVip1);
+        data = new DataItem[] { new("Success", model.SuccessTasks), new("Failed", model.FailedTasks), new("Crashed", model.CrashedTasks), new("Timeouted", model.TimeoutedTasks) };
     }
 
     void SwitchColumnGraph()
     {
         switchVip2 = !switchVip2;
-        model = overallStats.Single(i => i.IsVip = switchVip2);
+        model = overallStats.Single(i => i.IsVip == switchVip2);
     }
 
     async Task LoadTaskCountPerDay(string path)
