@@ -1,15 +1,18 @@
 ﻿@page "/queue"
 @using Microsoft.Extensions.Primitives
+@using System.Text.Json
+@using System.Text.Json.Serialization
 @using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.Common.Enums
 @inject NavigationManager NavigationManager
 @inject ApiClient HttpClient
 @attribute [Authorize(Policy = "admin-policy")]
 
 <PageTitle>Task queue</PageTitle>
 
-@if (task.IsCompleted)
+@if (!loading)
 {
-    <GridComponent T="TaskResponse" Grid="@grid"></GridComponent>
+    <GridComponent T="TaskResponse" Grid="@grid" CustomFilters="@customFilters"></GridComponent>
 }
 else
 {
@@ -19,19 +22,42 @@ else
 @code
 {
     private CGrid<TaskResponse> grid;
-    private Task task;
+    private IQueryDictionary<Type> customFilters = new QueryDictionary<Type>();
 
-    Action<IGridColumnCollection<TaskResponse>> columns = c =>
+    bool loading = false;
+
+    List<SelectItem> taskStates = new()
     {
-        c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
-        c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description).Filterable(true);
-        c.Add(o => o.CreationDate).Titled("Creation date").Sortable(true).Filterable(true);
-        c.Add(o => o.ActualStatus).Titled("Status").Sortable(false).Filterable(false);
-        c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus));
+        new(TaskState.Created.ToString(),TaskState.Created.ToString()),
+        new(TaskState.Ready.ToString(),TaskState.Ready.ToString()),
+        new(TaskState.Running.ToString(),TaskState.Running.ToString()),
+        new(TaskState.Cancelled.ToString(),TaskState.Cancelled.ToString()),
+        new(TaskState.Timeouted.ToString(),TaskState.Timeouted.ToString()),
+        new(TaskState.FinishedFailure.ToString(),TaskState.FinishedFailure.ToString()),
+        new(TaskState.FinishedSuccess.ToString(),TaskState.FinishedSuccess.ToString()),
+        new(TaskState.Downloaded.ToString(),TaskState.Downloaded.ToString()),
+        new(TaskState.Closed.ToString(),TaskState.Closed.ToString()),
+        new(TaskState.Crashed.ToString(),TaskState.Crashed.ToString()),
     };
 
     protected override async Task OnParametersSetAsync()
     {
+        loading = true;
+
+        Action<IGridColumnCollection<TaskResponse>> columns = c =>
+        {
+            c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
+            c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description).Filterable(true);
+            c.Add(o => o.CreationDate).Titled("Creation date").Sortable(true).Filterable(true);
+            c.Add(o => o.ActualStatus).Filterable(true).SetListFilter(taskStates, o =>
+            {
+                o.ShowSelectAllButtons = true;
+                o.ShowSearchInput = true;
+            });
+            c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus)).SetWidth(150);
+        };
+
+        customFilters.Add("TaskStatusFilter", typeof(TaskStatusFilterComponent));
         string url = NavigationManager.BaseUri + "odata/admin/task?$orderby=ActualStatus asc";
         var query = new QueryDictionary<StringValues>();
 
@@ -41,7 +67,8 @@ else
             .WithGridItemsCount();
 
         grid = client.Grid;
-        task = client.UpdateGrid();
+        var task = client.UpdateGrid();
         await task;
+        loading = false;
     }
 }
