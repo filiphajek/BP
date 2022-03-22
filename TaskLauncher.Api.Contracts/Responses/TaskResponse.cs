@@ -1,25 +1,18 @@
-﻿using TaskLauncher.Common.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using TaskLauncher.Common.Enums;
 
 namespace TaskLauncher.Api.Contracts.Responses;
 
 public record TaskResponse
 {
+    [Key]
     public Guid Id { get; set; }
+    public string TaskFile { get; set; }
+    public string ResultFile { get; set; }
     public string UserId { get; set; }
     public string Name { get; set; }
-    public string? Description { get; set; }
-    public DateTime? Start { get; set; }
-    public DateTime? End { get; set; }
-    public TaskState Status { get; set; } = TaskState.Created;
-}
-
-public record TaskDetailResponse : TaskResponse
-{
-    public List<FileResponse> Files { get; set; }
-}
-
-public record FileResponse
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; }
+    public string Description { get; set; }
+    public DateTime CreationDate { get; set; }
+    public TaskState ActualStatus { get; set; } = TaskState.Created;
+    public bool IsPriority { get; set; }
 }

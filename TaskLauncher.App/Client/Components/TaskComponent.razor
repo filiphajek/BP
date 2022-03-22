@@ -1,0 +1,37 @@
+﻿@using Microsoft.Extensions.Primitives
+@using TaskLauncher.Api.Contracts.Responses
+@inject NavigationManager NavigationManager
+@inject ApiClient client
+
+<GridComponent T="TaskResponse" Grid="@taskGrid"></GridComponent>
+
+@code{
+    [Parameter]
+    public string UserId { get; set; } = "";
+
+    private CGrid<TaskResponse> taskGrid;
+
+    Action<IGridColumnCollection<TaskResponse>> columns = c =>
+    {
+        c.Add(o => o.Id).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>Detail</a>");
+        c.Add(o => o.Name);
+        c.Add(o => o.Description);
+        c.Add(o => o.ActualStatus);
+    };
+
+    protected async override Task OnParametersSetAsync()
+    {
+        string url = NavigationManager.BaseUri + $"odata/admin/task?$filter=userid eq '{UserId}'";
+        if(string.IsNullOrEmpty(UserId))
+        {
+            url = "odata/user/task";
+        }
+        var taskClient = new GridODataClient<TaskResponse>(client, url, new QueryDictionary<StringValues>(), false, "taskGrid", columns, 10)
+            .ChangePageSize(true)
+            .Sortable()
+            .WithGridItemsCount();
+
+        taskGrid = taskClient.Grid;
+        await taskClient.UpdateGrid();
+    }
+}

@@ -1,0 +1,147 @@
+﻿@using Newtonsoft.Json
+@using TaskLauncher.App.Client.Pages
+@using TaskLauncher.Common.Extensions
+@using TaskLauncher.Common.Models
+@using static TaskLauncher.App.Client.Pages.ImageDialog
+@inject SpaManagementApiClient apiClient
+@inject ApiClient client
+@inject DialogService DialogService
+
+<div class="container">
+    <div class="card">
+        <div class="card-body">
+
+            <div class="row">
+                <div class="col">
+                    <center>
+                        <h4>Profile</h4>
+                    </center>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-7" @onmouseenter="@((args) => visibility = "visible")" @onmouseleave="@((args) => visibility = "hidden")">
+                    <div style="position:relative">
+                        <center>
+                            <img style="width:auto; max-width: 300px" src="@User.Picture">
+                            @if (!ReadOnly)
+                            {
+                                <button class="btn btn-block btn-success" style="position:absolute;right:0;bottom:0; visibility:@visibility" @onclick="Upload">
+                                    <span class="oi oi-pencil" aria-hidden="true"></span>
+                                </button>
+                            }
+                        </center>
+                    </div>
+                </div>
+
+                <div class="col-md-5">
+                    <div class="row">
+                        <RadzenLabel Text="Email:" />
+                        <div class="form-group">
+                            <div class="input-group align-items-md-center">
+                                <RadzenTextBox Value="@User.Email" ReadOnly="true" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top:30px" />
+                    <div class="row">
+                        <RadzenLabel Text="Name:" />
+                        <div class="form-group">
+                            <RadzenTextBox Value="@User.FullName" ReadOnly="true" />
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top:30px" />
+                    <div class="row">
+                        <RadzenLabel Text="Nickname:" />
+                        <div class="form-group">
+                            <div class="align-items-md-center">
+                                <RadzenTextBox ReadOnly="@isReadOnly" @onmouseenter=@((args) => isReadOnly = ReadOnly ? true : false) @onmouseleave=@((args) => isReadOnly = true) @bind-Value="@User.NickName" />
+                                <div style="margin-left: 2px; vertical-align:central; display:inline-block">
+                                    @if (!ReadOnly)
+                                    {
+                                        <button @onclick="UpdateNickName" disabled="@isBusy" class="btn btn-block btn-success">
+                                            <span class="oi oi-pencil" aria-hidden="true"></span>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <hr>
+                </div>
+            </div>
+
+            <div class="row" style="margin-top: 20px">
+                <div class="col">
+                    <p>Actual token balance: <b>@User.TokenBalance</b></p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <p>Last login from IP address: <b>@User.LastIpAddress</b> at <b>@User.LastLogin</b></p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    @if (User.Vip)
+                    {
+                        <p><b>Account is vip</b></p>
+                    }
+                </div>
+            </div>
+            @if (!User.Registered)
+            {
+                <div class="row">
+                    <div class="col">
+                        <p class="alert-danger"><b>User is not fully registered</b></p>
+                    </div>
+                </div>
+            }
+            @if (!User.EmailVerified!.Value)
+            {
+                <div class="row">
+                    <div class="col">
+                        <p class="alert-danger"><b>User is not verified</b></p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public bool ReadOnly { get; set; } = false;
+
+    [Parameter]
+    public UserModel User { get; set; }
+
+    bool isReadOnly = true;
+    string visibility = "hidden";
+
+    async Task Upload()
+    {
+        ImageDialogResult? res = await DialogService.OpenAsync<ImageDialog>("Choose new image", null, new DialogOptions() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
+        if (res is not null && res.Success)
+        {
+            var response = await client.PutAsJsonAsync($"api/user/picture?url={res.Url}", new { });
+            User.Picture = (await response.Content.ReadFromJsonAsync<UserModel>())!.Picture;
+        }
+    }
+
+    bool isBusy = false;
+    async Task UpdateNickName()
+    {
+        isBusy = true;
+        var response = await client.PutAsJsonAsync($"api/user/nickname?value={User.NickName}", new { });
+        User.NickName = (await response.Content.ReadFromJsonAsync<UserModel>())!.NickName;
+        isBusy = false;
+    }
+}

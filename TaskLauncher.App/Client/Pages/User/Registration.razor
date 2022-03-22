@@ -1,0 +1,128 @@
+﻿@page "/registration"
+@using Auth0.ManagementApi.Models
+@using MapsterMapper
+@using TaskLauncher.Common.Models
+@using System.Text.Json
+
+@attribute [Authorize(Policy = "not-registered")]
+@inject IMapper mapper
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+
+<div class="container my-4">
+    <div class="row">
+        <div class="col-lg-6 offset-lg-3">
+            <RadzenTemplateForm TItem="UserRegistrationModel" Data=@model Submit=@OnSubmit>
+                <RadzenFieldset>
+
+                    <div class="row justify-content-center">
+                        <EmailVerification/>
+                    </div>
+
+                    <div class="row justify-content-center">
+                        <div class="col-md-12 d-flex align-items-end justify-content-center" style="margin-top: 15px;">
+                            <RadzenLabel Text="Complete registration" style="font-size:30px; margin-bottom:15px" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-5">
+                        <div class="col-md-4">
+                            <RadzenLabel Text="First name" />
+                            <small style="display: inline-block; color: red">*</small>
+                        </div>
+                        <div class="col">
+                            <RadzenTextBox style="display: inline-block" Name="FirstName" @bind-Value=@model.FirstName Class="w-100" />
+                            <RadzenRequiredValidator Component="FirstName" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-5">
+                        <div class="col-md-4">
+                            <RadzenLabel Text="Last name" />
+                            <small style="display: inline-block; color: red">*</small>
+                        </div>
+                        <div class="col">
+                            <RadzenTextBox style="display: inline-block" Name="LastName" @bind-Value=@model.LastName Class="w-100" />
+                            <RadzenRequiredValidator Component="LastName" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-5">
+                        <div class="col-md-4">
+                            <RadzenLabel Text="Nickname" />
+                            <small style="display: inline-block; color: red">*</small>
+                            <small style="display: block; color: red">(at least 3 characters)</small>
+                        </div>
+                        <div class="col">
+                            <RadzenTextBox style="display: inline-block" Name="NickName" @bind-Value=@model.NickName Class="w-100" />
+                            <RadzenLengthValidator Component="NickName" Min="3" Text="Last name should be at least 3 characters" Style="position: absolute" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-5">
+                        <div class="col-md-4">
+                            <RadzenLabel Text="Email" />
+                        </div>
+                        <div class="col">
+                            <RadzenTextBox ReadOnly="true" style="display: block; background-color: #d0d6d4" Name="Email" @bind-Value=@model.Email Class="w-100" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-5">
+                        <div class="col-md-4">
+                            <RadzenLabel Text="Picture" />
+                        </div>
+                        <div class="col">
+                            <RadzenTextBox style="display: block" Name="Picture" @bind-Value=@model.Picture Class="w-100" Placeholder="Enter url of your profile picture" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-5">
+                        <div class="col-md-4">
+                            <RadzenLabel Text="Phone number" />
+                            <small style="display: inline-block; color: red">*</small>
+                        </div>
+                        <div class="col">
+                            <RadzenTextBox style="display: block" Name="PhoneNumber" @bind-Value=@model.PhoneNumber Class="w-100" />
+                            <RadzenRegexValidator Component="PhoneNumber" Pattern="^\+[0-9]{1,15}$" />
+                        </div>
+                    </div>
+
+                    <div class="row justify-content-center">
+                        <div class="col-md-12 d-flex align-items-end justify-content-center" style="margin-top: 15px;">
+                            <RadzenButton ButtonType="Radzen.ButtonType.Submit" ButtonStyle="ButtonStyle.Success" IsBusy="loading" Text="Submit"></RadzenButton>
+                            <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle" style="margin-left: 15px"/>
+                        </div>
+                    </div>
+                </RadzenFieldset>
+            </RadzenTemplateForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    public UserRegistrationModel model { get; set; } = new();
+
+    bool loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await authenticationStateTask;
+        model.Email = state.User.Identity.Name;
+        model.Picture = state.User.Claims.Single(i => i.Type == "picture").Value;
+    }
+
+    async Task OnSubmit(UserRegistrationModel model)
+    {
+        loading = true;
+        var result = await httpClient.PostAsJsonAsync("auth/signup", model);
+        loading = false;
+        if(result.IsSuccessStatusCode)
+        {
+            navigationManager.NavigateTo("/", true);
+        }
+    }
+}

@@ -1,0 +1,24 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+        <ContactToAdmin/>
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <Vip/>
+            <TokenBalance/>
+            <Login/>
+            <a href="https://github.com/wutshot/BP" target="_blank">About</a>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<BlazoredToasts Timeout="5" ShowProgressBar="true" RemoveToastsOnNavigation="true" MaxToastCount="5"/>
+<RadzenDialog />

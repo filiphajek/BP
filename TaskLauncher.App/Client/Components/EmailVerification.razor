@@ -1,0 +1,18 @@
+﻿@inject ApiClient httpClient
+
+<AuthorizeView Policy="email-not-confirmed">
+    <Authorized>
+        <div class="display: block">
+            <p>Potvrďte email. Po potvrzení emailu aktualizujte stránku</p>
+            <button class="btn btn-primary" @onclick="SendEmail">Pošli znovu potvrzovací email</button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code
+{
+    async Task SendEmail()
+    {
+        var result = await httpClient.PostAsJsonAsync("auth/email", new{});
+    }
+}

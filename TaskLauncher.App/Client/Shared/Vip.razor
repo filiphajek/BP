@@ -1,0 +1,24 @@
+﻿@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Extensions
+
+@if(isVip)
+{
+    <p style="margin: 0px"><b>VIP account</b></p>
+}
+
+@code
+{
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    bool isVip = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await authenticationStateTask;
+        if(state.User.TryGetClaimValue(TaskLauncherClaimTypes.Vip, out var value) && value.ToLower() == "true")
+        {
+            isVip = true;
+        }
+    }
+}

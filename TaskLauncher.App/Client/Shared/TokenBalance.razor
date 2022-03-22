@@ -1,0 +1,12 @@
+﻿@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Extensions
+@using TaskLauncher.App.Client.Store
+
+<AuthorizeView Policy="@TaskLauncherPolicies.UserPolicy">
+    <Authorized>
+        @if(!string.IsNullOrEmpty(balance))
+        {
+            <p style="margin: 0px; margin-left: 20px"><b>Balance: @balance</b></p>
+        }
+    </Authorized>
+</AuthorizeView>

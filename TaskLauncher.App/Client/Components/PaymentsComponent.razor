@@ -1,0 +1,35 @@
+﻿@using Microsoft.Extensions.Primitives
+@using TaskLauncher.Api.Contracts.Responses
+@inject NavigationManager NavigationManager
+@inject ApiClient client
+
+<GridComponent T="PaymentResponse" Grid="@paymentGrid"></GridComponent>
+
+@code{
+    [Parameter]
+    public string UserId { get; set; } = "";
+
+    private CGrid<PaymentResponse> paymentGrid;
+
+    Action<IGridColumnCollection<PaymentResponse>> columns = c =>
+    {
+        c.Add(o => o.Price);
+        c.Add(o => o.Time).Sortable(true);
+        c.Add(o => o.Id).Titled("Task").Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.TaskId}'>Detail</a>");
+    };
+
+    protected async override Task OnParametersSetAsync()
+    {
+        string url = NavigationManager.BaseUri + $"odata/admin/payment?$filter=userid eq '{UserId}'";
+        if(string.IsNullOrEmpty(UserId))
+        {
+            url = "odata/user/payment";
+        }
+        var paymentClient = new GridODataClient<PaymentResponse>(client, url, new QueryDictionary<StringValues>(), false, "paymentGrid", columns, 10)
+            .ChangePageSize(true)
+            .WithGridItemsCount();
+
+        paymentGrid = paymentClient.Grid;
+        await paymentClient.UpdateGrid();
+    }
+}

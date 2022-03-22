@@ -1,0 +1,107 @@
+﻿@using GridBlazor.Resources
+@using GridShared.Filtering
+@using System.Collections.Generic
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Enums
+
+@if (visible)
+{
+    <div class="dropdown dropdown-menu grid-dropdown opened" style="display:block;position:relative;" @onclick:stopPropagation @onkeyup:stopPropagation>
+        <div class="grid-dropdown-arrow"></div>
+        <div class="grid-dropdown-inner">
+            <div class="grid-popup-widget">
+                <div class="form-group">
+                    <p><i>Select task state</i></p>
+                    <select @ref="firstSelect" class="grid-filter-type customerslist form-control" style="width:250px;" @bind="filterValue">
+                        @foreach (var state in taskStates)
+                        {
+                            <option value="@state">@state</option>
+                        }
+                    </select>
+                </div>
+                <div class="grid-filter-buttons">
+                    <button type="button" class="btn btn-primary grid-apply" @onclick="ApplyButtonClicked">
+                        @Strings.ApplyFilterButtonText
+                    </button>
+                </div>
+            </div>
+            <div class="grid-popup-additional">
+                @if (clearVisible)
+                {
+                    <ul class="menu-list">
+                        <li>
+                            <a class="grid-filter-clear" href="javascript:void(0);" @onclick="ClearButtonClicked">
+                                @Strings.ClearFilterLabel
+                            </a>
+                        </li>
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool clearVisible = false;
+    protected string filterValue;
+    private List<string> taskStates = new();
+
+    record CheckBoxItem
+    {
+        public string State { get; set; }
+
+        public bool Checked { get; set; }
+    }
+
+    protected ElementReference firstSelect;
+
+    [CascadingParameter(Name = "GridHeaderComponent")]
+    private GridHeaderComponent<TaskResponse> GridHeaderComponent { get; set; }
+
+    [Parameter]
+    public bool visible { get; set; }
+
+    [Parameter]
+    public string ColumnName { get; set; }
+
+    [Parameter]
+    public IEnumerable<ColumnFilterValue> FilterSettings { get; set; }
+
+    protected override void OnInitialized()
+    {
+        taskStates = new()
+            {
+                TaskState.Created.ToString(),
+                TaskState.Ready.ToString(),
+                TaskState.Running.ToString(),
+                TaskState.Cancelled.ToString(),
+                TaskState.Timeouted.ToString(),
+                TaskState.Crashed.ToString(),
+                TaskState.FinishedFailure.ToString(),
+                TaskState.FinishedSuccess.ToString(),
+                TaskState.Downloaded.ToString(),
+                TaskState.Closed.ToString(),
+            };
+    }
+
+    protected override void OnParametersSet()
+    {
+        filterValue = FilterSettings.FirstOrDefault().FilterValue;
+        clearVisible = !string.IsNullOrWhiteSpace(filterValue);
+    }
+
+    protected async Task ApplyButtonClicked()
+    {
+        clearVisible = true;
+        await GridHeaderComponent.AddFilter(new FilterCollection(GridFilterType.Contains.ToString(), filterValue));
+    }
+
+    protected async Task ClearButtonClicked()
+    {
+        clearVisible = false;
+        await GridHeaderComponent.RemoveFilter();
+    }
+}

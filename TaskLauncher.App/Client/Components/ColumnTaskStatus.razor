@@ -1,0 +1,16 @@
+﻿@using GridShared.Columns
+@using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.Common.Enums
+@implements ICustomGridComponent<TaskResponse>
+
+<TaskStatus State="Item.ActualStatus"/>
+
+@code{
+    [Parameter]
+    public TaskResponse Item { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+    }
+}

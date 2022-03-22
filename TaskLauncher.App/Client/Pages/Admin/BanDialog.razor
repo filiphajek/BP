@@ -1,0 +1,32 @@
+﻿@page "/ban/{UserId}"
+@inject DialogService dialogService
+
+<div class="row">
+    <div class="col-lg-6 d-flex">
+        <RadzenCard Style="width: 100%; overflow: hidden;">
+            <h4 class="h5">Reason</h4>
+            <RadzenTextBox @bind-Value=@Reason/>
+        </RadzenCard>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 text-right">
+        <RadzenButton Click="@((args) => dialogService.Close(new BanDialogResult {Reason = Reason, Success = false}))" ButtonStyle="ButtonStyle.Secondary" Text="Cancel" Style="width: 120px" Class="mr-1" />
+        <RadzenButton Click="@((args) => dialogService.Close(new BanDialogResult {Reason = Reason, Success = true}))" Text="OK" Style="width: 120px" />
+    </div>
+</div>
+
+@code 
+{
+    public class BanDialogResult
+    {
+        public string Reason { get; set; }
+        public bool Success { get; set; }
+    }
+
+    [Parameter] 
+    public string UserId { get; set; }
+
+    public string Reason { get; set; } = string.Empty;
+}

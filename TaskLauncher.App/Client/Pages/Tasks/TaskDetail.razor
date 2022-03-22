@@ -1,0 +1,91 @@
+﻿@page "/tasks/{id:guid}"
+@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Enums
+@attribute [Authorize(Policy = TaskLauncherPolicies.CanViewTaskPolicy)]
+
+<SpinLoader IsLoading="@(isLoading)" Spinner="SpinnerType.Circle">
+    <ContentTemplate>
+
+        <div class="container">
+            <div class="card">
+                <div class="card-body">
+
+                    @*TODO pokud neni na status znacka -> mit tu jen header at se mi to nerozhodi*@
+                    <h1 class="card-title text-center d-flex justify-content-between align-items-center">
+                        <div style="margin:0px; padding:0px; margin-left:15px">
+                            <TaskLauncher.App.Client.Components.TaskStatus State="Task.ActualStatus"/>
+                        </div>
+                        @Task.Name
+                        <span>
+                            <span class="oi oi-pencil btn" style="font-size:1em; margin-right:15px" @onclick="UpdateAsync"></span>
+                        </span>
+                    </h1>
+
+                    <div class="row" style="margin: 15px">
+                        <RadzenTextBox style="padding-left:30px" ReadOnly="true" @bind-Value="Task.Description" />
+                    </div>
+
+                    <div class="text-center">
+                        <span>
+                            Status: <b>@Task.ActualStatus &nbsp</b>
+                        </span>
+
+                        @if (Task.ActualStatus == TaskState.Created || Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Ready)
+                        {
+                            <button @onclick="CancelTask" class="btn btn-danger">Cancel task</button>
+                        }
+
+                        @if (Task.ActualStatus == TaskState.FinishedSuccess || Task.ActualStatus == TaskState.Downloaded)
+                        {
+                            <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
+                        }
+
+                        @if (Task.ActualStatus == TaskState.Downloaded)
+                        {
+                            <button class="btn btn-danger">Close task</button>
+                        }
+
+                        @if (Task.ActualStatus == TaskState.Cancelled)
+                        {
+                            <button class="btn btn-primary">Start task again</button>
+                        }
+
+                        @if (message != "")
+                        {
+                            <p>@message</p>
+                        }
+                    </div>
+
+                    <div class="row card-body" style="margin:0px">
+
+                        <div class="col-md-5 card card-body" style="margin-right:5px">
+                            @if (Task.Events is not null)
+                            {
+                                <div class="card-title">
+                                    <h4>History</h4>
+                                </div>
+                                @foreach (var ev in Task.Events)
+                                {
+                                    <p style="margin-bottom:5px">Status changed to <b>@ev.Status</b> at <b>@ev.Time</b></p>
+                                }
+                            }
+                        </div>
+
+                        <div class="col-md-5 card card-body" style="margin-left:5px">
+                            <div class="card-title">
+                                <h4>Payment</h4>
+                            </div>
+                            <p>Task cost <b>@Task.Payment.Price</b> tokens</p>
+                            <p>Payment has been processed and token balance was updated (at @Task.Payment.Time)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer text-muted text-center">
+                    2 days ago
+                </div>
+            </div>
+        </div>
+
+    </ContentTemplate>
+</SpinLoader>

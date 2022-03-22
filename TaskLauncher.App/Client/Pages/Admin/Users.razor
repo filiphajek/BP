@@ -1,0 +1,32 @@
+﻿@page "/users"
+@using TaskLauncher.Common.Models
+@attribute [Authorize(Policy = "admin-policy")]
+
+<div style="margin-bottom: 20px;">
+    <a class="btn btn-primary" href="users/add">Add user</a>
+</div>
+
+@if (task.IsCompleted)
+{
+    <GridComponent T="UserModel" Grid="@grid"></GridComponent>
+}
+else
+{
+    <SpinLoader IsLoading="@(true)" Spinner="SpinnerType.Circle"/>
+}
+
+<style>
+
+.grid-cell {
+    vertical-align:central;
+}
+
+.grid-cell-center{
+    
+}
+
+.center-align {
+    text-align: center;
+}
+
+</style>

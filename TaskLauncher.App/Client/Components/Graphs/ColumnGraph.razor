@@ -1,0 +1,115 @@
+﻿@using Auth0.ManagementApi.Models
+@using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.Authorization
+@inject ApiClient client
+@attribute [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
+
+<SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
+    <ContentTemplate>
+
+        <div class="card">
+            <div class="card-title" style="margin:20px 0 0 20px">
+                <h4>Count of tasks in last 30 days</h4>
+                <button disabled="@(true)" class="btn btn-primary" style="visibility:hidden">Placeholder</button>
+            </div>
+            <div class="card-body">
+                <RadzenChart>
+                    <RadzenColumnSeries Data="@normalTasksPerDays" CategoryProperty="Date" Title="Normal" LineType="LineType.Dashed" ValueProperty="Count" />
+                    <RadzenColumnSeries Data="@vipTasksPerDays" CategoryProperty="Date" Title="Vip" LineType="LineType.Dashed" ValueProperty="Count" />
+                    <RadzenColumnOptions Radius="5" />
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Count" />
+                    </RadzenValueAxis>
+                    <RadzenCategoryAxis Max="@maxDays">
+                        <RadzenAxisTitle Text="Day" />
+                    </RadzenCategoryAxis>
+                </RadzenChart>
+            </div>
+        </div>
+
+    </ContentTemplate>
+</SpinLoader>
+
+@code
+{
+    [CascadingParameter]
+    public Task<AuthenticationState> authenticationStateTask { get; set; } = null!;
+
+    [Parameter]
+    public string UserId { get; set; }
+
+    bool loading = false;
+    int maxDays = 0;
+
+    record DayTaskCountDataItem
+    {
+        public DayTaskCountDataItem(int count, int date)
+        {
+            Count = count;
+            Date = date;
+        }
+
+        public int Count { get; set; }
+        public int Date { get; set; }
+    }
+
+    List<DayTaskCountDataItem> normalTasksPerDays = new();
+    List<DayTaskCountDataItem> vipTasksPerDays = new();
+    UserStatResponse model = new();
+    List<UserStatResponse> overallStats = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        loading = true;
+        var state = await authenticationStateTask;
+
+        if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(TaskLauncherRoles.Admin))
+        {
+            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=false&userid=" + UserId);
+            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=true&userid=" + UserId);
+            loading = false;
+            return;
+        }
+
+        if (state.User.IsInRole(TaskLauncherRoles.User))
+        {
+            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=false");
+            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=true");
+        }
+
+        if (state.User.IsInRole(TaskLauncherRoles.Admin))
+        {
+            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/dayallcount?vip=false");
+            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/dayallcount?vip=true");
+        }
+        loading = false;
+    }
+
+    async Task<List<DayTaskCountDataItem>> LoadTaskCountPerDay(string path)
+    {
+        var days = (await client.GetFromJsonAsync<List<DayTaskCountResponse>>(path))!;
+        if (maxDays < days.Count)
+            maxDays = days.Count + 2;
+
+        var list = new List<DayTaskCountDataItem>();
+        for (int i = 0; i < 31; i++)
+        {
+            list.Add(new DayTaskCountDataItem(0, DateTime.Now.AddDays(30 - i).Date.Day));
+            foreach (var item in days)
+            {
+                if (list[i].Date == item.Date.Day)
+                {
+                    list[i].Count = item.Count;
+                }
+            }
+        }
+        var firstDay = list.FirstOrDefault(i => i.Count != 0);
+        if (firstDay is not null)
+        {
+            var firstDayIndex = list.IndexOf(firstDay);
+            list.RemoveRange(0, firstDayIndex);
+        }
+        return list;
+    }
+}

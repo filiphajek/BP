@@ -1,0 +1,36 @@
+﻿@using TaskLauncher.Common.Enums
+
+@if (State == TaskState.Running || State == TaskState.Created || State == TaskState.Ready)
+{
+    <SpinLoader IsLoading="@(true)" Spinner="SpinnerType.CircleFade" Size="1.1em"/>
+}
+
+@if (State == TaskState.FinishedSuccess)
+{
+    <span class="oi oi-circle-check" style="color:green; font-size:1.5em"></span>
+}
+
+@if (State == TaskState.Downloaded)
+{
+    <span class="oi oi-cloud-download" style="color:green; font-size:1.5em"></span>
+}
+
+@if (State == TaskState.Crashed || State == TaskState.Cancelled || State == TaskState.FinishedFailure)
+{
+    <span class="oi oi-circle-x" style="color:red; font-size:1.5em"></span>
+}
+
+@if (State == TaskState.Timeouted)
+{
+    <span class="oi oi-clock" style="color:red; font-size:1.5em"></span>
+}
+
+@if (State == TaskState.Closed)
+{
+    <span class="oi oi-delete" style="color:blue; font-size:1.5em"></span>
+}
+
+@code{
+    [Parameter]
+    public TaskState State { get; set; }
+}

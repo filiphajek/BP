@@ -1,0 +1,78 @@
+﻿@using Auth0.ManagementApi.Models
+@using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Extensions
+@inject ApiClient client
+@attribute [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
+
+<SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
+    <ContentTemplate>
+
+        <div class="card">
+            <div class="card-title text-center">
+                <h4 style="margin-top:10px; margin-bottom:0px">Task times</h4>
+            </div>
+            <div class="card-body">
+                <RadzenChart>
+                    @if (nonViptimes.Count != 0)
+                    {
+                        <RadzenLineSeries Smooth="true" Data="@nonViptimes" CategoryProperty="Index" Title="Cpu time" LineType="LineType.Dashed" ValueProperty="CpuTime">
+                            <RadzenMarkers MarkerType="MarkerType.Square" />
+                        </RadzenLineSeries>
+                        <RadzenLineSeries Smooth="true" Data="@nonViptimes" CategoryProperty="Index" Title="Queue time" LineType="LineType.Dashed" ValueProperty="TimeInQueue">
+                            <RadzenMarkers MarkerType="MarkerType.Square" />
+                        </RadzenLineSeries>
+                    }
+                    @if (vipTimes.Count != 0)
+                    {
+                        <RadzenLineSeries Smooth="true" Data="@vipTimes" CategoryProperty="Index" Title="Queue time" ValueProperty="TimeInQueue">
+                            <RadzenMarkers MarkerType="MarkerType.Circle" />
+                        </RadzenLineSeries>
+                        <RadzenLineSeries Smooth="true" Data="@vipTimes" CategoryProperty="Index" Title="Cpu time" ValueProperty="CpuTime">
+                            <RadzenMarkers MarkerType="MarkerType.Circle" />
+                        </RadzenLineSeries>
+                    }
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Time in minutes" />
+                    </RadzenValueAxis>
+                    <RadzenCategoryAxis Visible="false" />
+                </RadzenChart>
+            </div>
+        </div>
+
+    </ContentTemplate>
+</SpinLoader>
+
+@code
+{
+    bool loading = false;
+    record TaskStatDataItem(double CpuTime, double TimeInQueue, string Index);
+
+    [CascadingParameter]
+    public Task<AuthenticationState> authenticationStateTask { get; set; } = null!;
+
+    List<TaskStatDataItem> nonViptimes = new();
+    List<TaskStatDataItem> vipTimes = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        loading = true;
+        var state = await authenticationStateTask;
+
+        if (state.User.IsInRole(TaskLauncherRoles.User))
+            await LoadTimesStats("api/stat/times");
+
+        if (state.User.IsInRole(TaskLauncherRoles.Admin))
+            await LoadTimesStats("api/stat/alltimes");
+        loading = false;
+    }
+
+    async Task LoadTimesStats(string path)
+    {
+        var times = (await client.GetFromJsonAsync<List<TaskStatResponse>>(path))!;
+        int j = times.Count, k = times.Count;
+        vipTimes = times.Where(i => i.IsVip).Select(i => new TaskStatDataItem(i.CpuTime.TotalMinutes, i.TimeInQueue.TotalMinutes, (++j).ToString())).ToList();
+        nonViptimes = times.Where(i => !i.IsVip).Select(i => new TaskStatDataItem(i.CpuTime.TotalMinutes, i.TimeInQueue.TotalMinutes, (++k).ToString())).ToList();
+    }
+}

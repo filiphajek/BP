@@ -1,0 +1,19 @@
+﻿@page "/tasks"
+@page "/{id}/tasks"
+@using TaskLauncher.Api.Contracts.Responses
+@attribute [Authorize(Policy = "user-policy")]
+
+<PageTitle>Tasks</PageTitle>
+
+<div style="margin-bottom: 20px;">
+    <a class="btn btn-primary" href="/tasks/add"> <span class="si-text">Add new task</span> </a>
+</div>
+
+@if (task.IsCompleted)
+{
+    <GridComponent T="TaskResponse" Grid="@grid"></GridComponent>
+}
+else
+{
+    <SpinLoader IsLoading="@(true)" Spinner="SpinnerType.Circle"/>
+}

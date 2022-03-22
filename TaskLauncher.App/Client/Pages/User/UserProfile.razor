@@ -1,0 +1,73 @@
+﻿@page "/profile"
+@using System.Security.Claims
+@using Microsoft.Extensions.Primitives
+@using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Extensions
+@using TaskLauncher.Common.Models
+@attribute [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
+@inject ApiClient client
+@inject DialogService DialogService
+@inject NavigationManager NavigationManager
+
+<SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
+    <ContentTemplate>
+
+        <div class="container">
+            <div class="row">
+                <ProfileComponent User=User />
+            </div>
+
+            <div class="row" style="margin:10px; width:150px">
+                <AuthorizeView Policy="can-cancel-account">
+                    <Authorized>
+                        <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+
+            <AuthorizeView Policy="@TaskLauncherPolicies.UserPolicy">
+                <Authorized>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <RadzenTabs TabPosition="TabPosition.Top" style="max-width: 1500px;" RenderMode="TabRenderMode.Client">
+                                    <Tabs>
+                                        <RadzenTabsItem Text="Payments">
+                                            <PaymentsComponent />
+                                        </RadzenTabsItem>
+                                    </Tabs>
+                                </RadzenTabs>
+                            </div>
+                        </div>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+
+    </ContentTemplate>
+</SpinLoader>
+
+@code
+{
+    protected bool loading = true;
+    protected UserModel User { get; set; } = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        User = (await client.GetFromJsonAsync<UserModel>("api/user"))!;
+        loading = false;
+    }
+
+    async Task CancelAsync()
+    {
+        var tmp = await DialogService.Confirm("Are you sure?", "Accout deletion", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+        if (!tmp.HasValue)
+            return;
+        if (!tmp.Value)
+            return;
+
+        await client.DeleteAsync("api/user");
+        NavigationManager.NavigateTo("/", true);
+    }
+}

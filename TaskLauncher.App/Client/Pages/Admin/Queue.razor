@@ -1,0 +1,74 @@
+﻿@page "/queue"
+@using Microsoft.Extensions.Primitives
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.Common.Enums
+@inject NavigationManager NavigationManager
+@inject ApiClient HttpClient
+@attribute [Authorize(Policy = "admin-policy")]
+
+<PageTitle>Task queue</PageTitle>
+
+@if (!loading)
+{
+    <GridComponent T="TaskResponse" Grid="@grid" CustomFilters="@customFilters"></GridComponent>
+}
+else
+{
+    <SpinLoader IsLoading="@(true)" Spinner="SpinnerType.Circle"/>
+}
+
+@code
+{
+    private CGrid<TaskResponse> grid;
+    private IQueryDictionary<Type> customFilters = new QueryDictionary<Type>();
+
+    bool loading = false;
+
+    List<SelectItem> taskStates = new()
+    {
+        new(TaskState.Created.ToString(),TaskState.Created.ToString()),
+        new(TaskState.Ready.ToString(),TaskState.Ready.ToString()),
+        new(TaskState.Running.ToString(),TaskState.Running.ToString()),
+        new(TaskState.Cancelled.ToString(),TaskState.Cancelled.ToString()),
+        new(TaskState.Timeouted.ToString(),TaskState.Timeouted.ToString()),
+        new(TaskState.FinishedFailure.ToString(),TaskState.FinishedFailure.ToString()),
+        new(TaskState.FinishedSuccess.ToString(),TaskState.FinishedSuccess.ToString()),
+        new(TaskState.Downloaded.ToString(),TaskState.Downloaded.ToString()),
+        new(TaskState.Closed.ToString(),TaskState.Closed.ToString()),
+        new(TaskState.Crashed.ToString(),TaskState.Crashed.ToString()),
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+
+        Action<IGridColumnCollection<TaskResponse>> columns = c =>
+        {
+            c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
+            c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description).Filterable(true);
+            c.Add(o => o.CreationDate).Titled("Creation date").Sortable(true).Filterable(true);
+            c.Add(o => o.IsPriority).Titled("Priorized").Sortable(true).Filterable(true);
+            c.Add(o => o.ActualStatus).Sortable(true).Filterable(true).SetListFilter(taskStates, o =>
+            {
+                o.ShowSelectAllButtons = true;
+            });
+            c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus)).SetWidth(150);
+        };
+
+        customFilters.Add("TaskStatusFilter", typeof(TaskStatusFilterComponent));
+        string url = NavigationManager.BaseUri + "odata/admin/task"; // ?$orderby=ActualStatus asc
+        var query = new QueryDictionary<StringValues>();
+
+        var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "queueGrid", columns, 10)
+            .ChangePageSize(true)
+            .WithMultipleFilters()
+            .WithGridItemsCount();
+
+        grid = client.Grid;
+        var task = client.UpdateGrid();
+        await task;
+        loading = false;
+    }
+}
