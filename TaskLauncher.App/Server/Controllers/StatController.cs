@@ -101,7 +101,7 @@ public class StatController : BaseController
 
     [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
     [HttpGet("daycount")]
-    public async Task<ActionResult<List<DayTaskCountResponse>>> GetTaskCountInDays(string? userId = null)
+    public async Task<ActionResult<List<DayTaskCountResponse>>> GetTaskCountInDays(bool vip, string? userId = null)
     {
         var minDate = DateTime.Now.AddDays(-30);
         if (!string.IsNullOrEmpty(userId))
@@ -110,6 +110,7 @@ public class StatController : BaseController
                 return Unauthorized();
 
             var tmp1 = await dbContext.Tasks.IgnoreQueryFilters()
+                .Where(i => i.IsPriority == vip)
                 .Where(i => i.UserId == userId)
                 .Where(i => i.CreationDate >= minDate)
                 .GroupBy(i => i.CreationDate.Date)
@@ -118,6 +119,7 @@ public class StatController : BaseController
             return Ok(tmp1);
         }
         var tmp2 = await dbContext.Tasks
+            .Where(i => i.IsPriority == vip)
             .Where(i => i.CreationDate >= minDate)
             .GroupBy(i => i.CreationDate.Date)
             .Select(x => new DayTaskCountResponse(x.Count(), x.Key))

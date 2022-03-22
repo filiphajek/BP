@@ -14,4 +14,5 @@ public record TaskResponse
     public string Description { get; set; }
     public DateTime CreationDate { get; set; }
     public TaskState ActualStatus { get; set; } = TaskState.Created;
+    public bool IsPriority { get; set; }
 }

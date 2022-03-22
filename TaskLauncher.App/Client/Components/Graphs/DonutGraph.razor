@@ -1,0 +1,71 @@
+﻿@using Auth0.ManagementApi.Models
+@using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.Authorization
+@using TaskLauncher.Common.Extensions
+@inject ApiClient client
+@attribute [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
+
+<SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
+    <ContentTemplate>
+
+        <div class="card">
+            <div class="card-title" style="margin:20px 0 0 20px">
+                <h4>Finished tasks: <b>@model.FinishedTaskCount</b></h4>
+                <button disabled="@(!hasVipTasks)" class="btn btn-primary" @onclick="SwitchDonutGraph">Switch to @(switchVip ? "normal" : "vip") task</button>
+            </div>
+            <div class="card-body">
+                <RadzenChart>
+                    <RadzenDonutSeries Data="@data" CategoryProperty="Description" ValueProperty="Number" />
+                </RadzenChart>
+            </div>
+        </div>
+
+    </ContentTemplate>
+</SpinLoader>
+
+@code
+{
+    bool loading = false;
+    bool hasVipTasks = false;
+    bool switchVip = false;
+
+    [CascadingParameter]
+    public Task<AuthenticationState> authenticationStateTask { get; set; } = null!;
+
+    record DataItem(string Description, double Number);
+
+    DataItem[] data = Array.Empty<DataItem>();
+
+    UserStatResponse model = new();
+    List<UserStatResponse> overallStats = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        loading = true;
+        var state = await authenticationStateTask;
+
+        state.User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out switchVip);
+
+        if (state.User.IsInRole(TaskLauncherRoles.User))
+            await LoadOverallStats("api/stat");
+
+        if (state.User.IsInRole(TaskLauncherRoles.Admin))
+            await LoadOverallStats("api/stat/all");
+        loading = false;
+    }
+
+    async Task LoadOverallStats(string path)
+    {
+        overallStats = (await client.GetFromJsonAsync<List<UserStatResponse>>(path))!;
+        model = overallStats.Single(i => !i.IsVip);
+        hasVipTasks = overallStats.Single(i => i.IsVip).AllTaskCount != 0;
+        data = new DataItem[] { new("Success", model.SuccessTasks), new("Failed", model.FailedTasks), new("Crashed", model.CrashedTasks), new("Timeouted", model.TimeoutedTasks) };
+    }
+
+    void SwitchDonutGraph()
+    {
+        switchVip = !switchVip;
+        model = overallStats.Single(i => i.IsVip == switchVip);
+        data = new DataItem[] { new("Success", model.SuccessTasks), new("Failed", model.FailedTasks), new("Crashed", model.CrashedTasks), new("Timeouted", model.TimeoutedTasks) };
+    }
+}

@@ -49,6 +49,7 @@ else
             c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
             c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description).Filterable(true);
             c.Add(o => o.CreationDate).Titled("Creation date").Sortable(true).Filterable(true);
+            c.Add(o => o.IsPriority).Titled("Priorized").Sortable(true).Filterable(true);
             c.Add(o => o.ActualStatus).Filterable(true).SetListFilter(taskStates, o =>
             {
                 o.ShowSelectAllButtons = true;
