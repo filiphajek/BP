@@ -9,6 +9,8 @@ using TaskLauncher.Common.Configuration;
 using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Worker.Extensions;
 using TaskLauncher.Worker.Services;
+using System.Net.Http.Json;
+using TaskLauncher.Api.Contracts.Responses;
 
 namespace TaskLauncher.Worker.Workers;
 
@@ -46,37 +48,54 @@ public class LauncherWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        //ziskani autorizacniho tokenu k web api
+        var token = await managementTokenService.GetApiToken(new(), "task-api", false);
+        httpClient.SetBearerToken(token);
+
+        var config = await httpClient.GetFromJsonAsync<ConfigResponse>("api/config/worker?key=tasktimeout", stoppingToken);
+        var timeout = 40;
+        if (config is not null)
+            _ = int.TryParse(config.Value, out timeout);
+
         tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        tokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
+
         signalrClient.RegisterOnReceivedTask(async i =>
         {
             try
             {
                 await TaskExecution(i, tokenSource.Token);
             }
+            catch(OperationCanceledException ex)
+            {
+                logger.LogError("Task '{0}' timeouted", actualTask.Id);
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex.ToString());
             }
-        }); // todo try catch
-        signalrClient.RegisterOnCancelTask(i =>
+        });
+        signalrClient.RegisterOnCancelTask(async i =>
         {
             if (actualTask is not null && i.Id == actualTask.Id)
             {
                 actualTask.State = TaskState.Cancelled;
-                signalrClient.Connection.InvokeGiveMeWork().Wait();
+                await signalrClient.Connection.InvokeRequestWork();
                 tokenSource.Cancel();
             }
         });
-        signalrClient.Connection.OnIsWorking(async () =>
+        signalrClient.Connection.OnWakeUpMessage(async () =>
         {
-            logger.LogInformation("is working?");
             if (!isWorking)
-                await signalrClient.Connection.InvokeGiveMeWork();
-        });
+            {
+                logger.LogInformation("is working?");
+                await signalrClient.Connection.InvokeRequestWork();
+            }
+            else
+            {
 
-        //ziskani autorizacniho tokenu k web api
-        var token = await managementTokenService.GetApiToken(new(), "task-api", false);
-        httpClient.SetBearerToken(token);
+            }
+        });
 
         //pripojeni na signalr hub
         await signalrClient.TryToConnect(tokenSource.Token);
@@ -123,10 +142,11 @@ public class LauncherWorker : BackgroundService
         {
             await fileService.UploadFileAsync(model.ResultFilePath, resultFile, token);
         }
+        
+        isWorking = false;
+
         await UpdateTaskAsync(model, TaskState.FinishedSuccess, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
-
-        isWorking = false;
         //await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 

@@ -2,4 +2,4 @@
 
 namespace TaskLauncher.App.Server.Tasks;
 
-public class TaskCache : Dictionary<string, TaskModel> { }
+public class TaskCache : Dictionary<string, TaskModel?> { }

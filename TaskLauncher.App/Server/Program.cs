@@ -28,6 +28,7 @@ using TaskLauncher.App.Server.Filters;
 using TaskLauncher.App.Server.Proxy;
 using TaskLauncher.App.DAL;
 using Microsoft.EntityFrameworkCore;
+using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +48,8 @@ static IEdmModel GetUserEdmModel()
     builder.EntitySet<TaskResponse>("Task");
     return builder.GetEdmModel();
 }
+
+builder.Services.AddMediatR(typeof(Program).Assembly);
 
 //vycteni konfigurace z appsettings.json
 var serviceAddresses = new ServiceAddresses();

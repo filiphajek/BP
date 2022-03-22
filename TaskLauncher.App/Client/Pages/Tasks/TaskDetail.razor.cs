@@ -75,7 +75,6 @@ public partial class TaskDetail : IDisposable
         }
     }
 
-
     private void NewEvent(EventModel model)
     {
         if (Task.Events is null)

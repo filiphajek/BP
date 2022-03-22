@@ -62,10 +62,14 @@ public class UserController : BaseController
         if (!User.TryGetAuth0Id(out var userId))
             return BadRequest();
 
-        var balance = await context.TokenBalances.SingleAsync();
         var auth0client = await apiClientFactory.GetClient();
         var user = (await auth0client.Users.GetAsync(userId)).GetModel();
-        user.TokenBalance = balance.CurrentAmount.ToString();
+
+        if(User.IsInRole(TaskLauncherRoles.User))
+        {
+            var balance = await context.TokenBalances.SingleAsync();
+            user.TokenBalance = balance.CurrentAmount.ToString();
+        }
         return Ok(user);
     }
 

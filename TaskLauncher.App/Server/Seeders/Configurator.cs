@@ -18,7 +18,7 @@ public class Configurator
     public async Task ConfigureDefaultsAsync()
     {
         await AddConfigValue(Constants.Configuration.FileRemovalRoutine, ConstantTypes.Number, "Po jake dobe se smazou soubory (v dnech)", "7");
-        await AddConfigValue(Constants.Configuration.TaskTimeout, ConstantTypes.Number, "Po jak dlouhe dobe se ma zrusit task (v hodinach)", "1");
+        await AddConfigValue(Constants.Configuration.TaskTimeout, ConstantTypes.Number, "Po jak dlouhe dobe se ma zrusit task (v minutach)", "45");
         await AddConfigValue(Constants.Configuration.VipTaskPrice, ConstantTypes.Number, "Cena tasku spustena vip uzivatelem v tokenech", "2");
         await AddConfigValue(Constants.Configuration.NormalTaskPrice, ConstantTypes.Number, "Normalni cena tasku v tokenech", "1");
         await AddConfigValue(Constants.Configuration.StartTokenBalance, ConstantTypes.Number, "Zakladni pocet tokenu po registraci", "200");

@@ -34,6 +34,7 @@ public class TaskLauncherService : ITaskLauncherService
         var container = await client.Containers.CreateContainerAsync(new CreateContainerParameters()
         {
             Image = config.ImageName,
+            Cmd = config.ContainerArguments,
             HostConfig = new HostConfig
             {
                 Binds = new List<string>() { $"{config.Source}:/{config.Target}" }

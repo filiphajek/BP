@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using MediatR;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using RoundRobin;
 using TaskLauncher.App.Server.Hub;
+using TaskLauncher.App.Server.Notifications;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
 
@@ -11,45 +13,48 @@ public class Balancer
 {
     private readonly RoundRobinList<TaskQueue> roundRobin;
     private readonly Dictionary<string, TaskQueue> taskQueues;
-    private readonly ILogger<Balancer> logger;
-    private readonly IHubContext<WorkerHub, IWorkerHub> workerHub;
     private readonly HashSet<Guid> canceledTasks = new();
+    private readonly SemaphoreSlim semaphore = new(1, 1);
 
-    public bool ClientsWithoutWork { get; set; }
-
-    public Balancer(ILogger<Balancer> logger, IOptions<PriorityQueuesConfiguration> options, IHubContext<WorkerHub, IWorkerHub> workerHub)
+    private readonly ILogger<Balancer> logger;
+    private readonly IMediator mediator;
+    
+    public Balancer(ILogger<Balancer> logger, IOptions<PriorityQueuesConfiguration> options, IMediator mediator)
     {
         taskQueues = options.Value.Queues.ToDictionary(i => i.Key, i => new TaskQueue(i.Key));
         roundRobin = new RoundRobinList<TaskQueue>(taskQueues.Values, options.Value.Queues.Select(i => i.Value).ToArray());
         this.logger = logger;
-        this.workerHub = workerHub;
+        this.mediator = mediator;
     }
-
-    private readonly SemaphoreSlim semaphore = new(1, 1);
 
     public bool CancelTask(Guid id)
     {
-        //TODO semafor tu a pak v TryDequeue metode -> budu moct garantovat ze opravdu vyradim task z fronty
         canceledTasks.Add(id);
-        return true;
-        /*foreach (var queue in taskQueues.Values)
+        semaphore.Wait();
+        bool result = false;
+        foreach (var queue in taskQueues.Values)
         {
-            if (queue.Contains(model))
+            if (queue.Any(i => i.Id == id))
             {
-                canceledTasks.Add(model.Id);
-                return;
+                canceledTasks.Add(id);
+                result = true;
             }
-        }*/
+        }
+        semaphore.Release();
+        return result;
     }
 
     private bool TryDequeue(TaskQueue queue, out TaskModel? task)
     {
+        semaphore.Wait();
         while (queue.TryDequeue(out task))
         {
             if (canceledTasks.Contains(task.Id))
                 continue;
+            semaphore.Release();
             return true;
         }
+        semaphore.Release();
         return false;
     }
 
@@ -58,11 +63,8 @@ public class Balancer
         if (taskQueues.TryGetValue(queue, out var taskQueue))
         {
             taskQueue.Enqueue(task);
-            if (ClientsWithoutWork)
-            {
-                workerHub.Clients.All.IsWorking().Wait();
-                ClientsWithoutWork = false;
-            }
+            if(taskQueues.Select(i => i.Value).Sum(i => i.Count) <= 1)
+                mediator.Publish(new NewTaskNotification(task)).Wait();
         }
     }
 
@@ -72,7 +74,6 @@ public class Balancer
         if (TryDequeue(current, out var task))
             return task!;
 
-        //nahradit timerem?
         var name = current.Name;
         while (true)
         {

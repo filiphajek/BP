@@ -15,7 +15,6 @@ using TaskLauncher.App.Server.Controllers.Base;
 using TaskLauncher.App.Server.Tasks;
 using TaskLauncher.Common.Models;
 using System.Text.RegularExpressions;
-using RegExtract;
 
 namespace TaskLauncher.App.Server.Controllers.User;
 
@@ -101,19 +100,19 @@ public class TaskController : UserODataController<TaskResponse>
         double price = 0;
         if (User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out bool vip) && vip)
         {
-            var tmp = (await context.Configs.SingleAsync(i => i.Key == "normaltaskprice")).Value;
+            var tmp = (await context.Configs.SingleAsync(i => i.Key == "viptaskprice")).Value;
             price = double.Parse(tmp);
         }
         else
         {
-            var tmp = (await context.Configs.SingleAsync(i => i.Key == "viptaskprice")).Value;
+            var tmp = (await context.Configs.SingleAsync(i => i.Key == "normaltaskprice")).Value;
             price = double.Parse(tmp);
         }
 
         await semaphoreSlim.WaitAsync();
         var token = await context.TokenBalances.SingleOrDefaultAsync();
         if (token is null || token.CurrentAmount <= 0)
-            return BadRequest("No balance");
+            return BadRequest(new { err = "No balance" });
 
         token.CurrentAmount -= price;
         context.Update(token);
@@ -143,6 +142,14 @@ public class TaskController : UserODataController<TaskResponse>
         var taskEntity = mapper.Map(request, task);
         var result = await context.Tasks.AddAsync(taskEntity);
         await context.Payments.AddAsync(new() { Price = price, Task = taskEntity, Time = DateTime.Now, UserId = userId });
+
+        var stat = await context.Stats.SingleOrDefaultAsync(i => i.IsVip == vip);
+        if(stat is not null)
+        {
+            stat.AllTaskCount++;
+            context.Update(stat);
+        }
+
         await context.SaveChangesAsync();
 
         balancer.Enqueue(vip ? "vip" : "nonvip", new TaskModel

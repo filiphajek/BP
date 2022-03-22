@@ -50,16 +50,15 @@ else
             c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description).Filterable(true);
             c.Add(o => o.CreationDate).Titled("Creation date").Sortable(true).Filterable(true);
             c.Add(o => o.IsPriority).Titled("Priorized").Sortable(true).Filterable(true);
-            c.Add(o => o.ActualStatus).Filterable(true).SetListFilter(taskStates, o =>
+            c.Add(o => o.ActualStatus).Sortable(true).Filterable(true).SetListFilter(taskStates, o =>
             {
                 o.ShowSelectAllButtons = true;
-                o.ShowSearchInput = true;
             });
             c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus)).SetWidth(150);
         };
 
         customFilters.Add("TaskStatusFilter", typeof(TaskStatusFilterComponent));
-        string url = NavigationManager.BaseUri + "odata/admin/task?$orderby=ActualStatus asc";
+        string url = NavigationManager.BaseUri + "odata/admin/task"; // ?$orderby=ActualStatus asc
         var query = new QueryDictionary<StringValues>();
 
         var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "queueGrid", columns, 10)

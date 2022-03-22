@@ -51,7 +51,7 @@ public class SignalRClient : IAsyncDisposable
     /// <summary>
     /// Registrace odchyceni zpravy o zruseni tasku
     /// </summary>
-    public void RegisterOnCancelTask(Action<TaskModel> handler)
+    public void RegisterOnCancelTask(Func<TaskModel, Task> handler)
     {
         var tmp = Connection.OnCancelTask(handler);
         registrations.Add(tmp);

@@ -10,6 +10,7 @@ public class TaskModel
     public DateTime Time { get; set; }
     public string TaskFilePath { get; set; }
     public string ResultFilePath { get; set; }
+    public bool IsPriority { get; set; }
 }
 
 public class EventModel
