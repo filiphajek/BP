@@ -1,5 +1,6 @@
 ﻿@page "/users/{id}"
 @using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.App.Client.Components.Graphs
 @attribute [Authorize(Policy = "admin-policy")]
 
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
@@ -57,6 +58,18 @@
                                     </RadzenTabsItem>
                                     <RadzenTabsItem Text="Tasks">
                                         <TaskComponent UserId="@User.UserId" />
+                                    </RadzenTabsItem>
+                                    <RadzenTabsItem Text="Stats">
+                                        <div class="container">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <DonutGraph UserId=@Id />
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <ColumnGraph UserId=@Id />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </RadzenTabsItem>
                                 </Tabs>
                             </RadzenTabs>

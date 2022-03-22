@@ -36,6 +36,9 @@
     [CascadingParameter]
     public Task<AuthenticationState> authenticationStateTask { get; set; } = null!;
 
+    [Parameter]
+    public string UserId { get; set; }
+
     bool loading = false;
     int maxDays = 0;
 
@@ -60,6 +63,14 @@
     {
         loading = true;
         var state = await authenticationStateTask;
+
+        if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(TaskLauncherRoles.Admin))
+        {
+            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=false&userid=" + UserId);
+            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=true&userid=" + UserId);
+            loading = false;
+            return;
+        }
 
         if (state.User.IsInRole(TaskLauncherRoles.User))
         {

@@ -8,6 +8,7 @@ using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
 using TaskLauncher.App.Server.Routines;
+using TaskLauncher.Authorization;
 using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Controllers;
@@ -16,7 +17,6 @@ namespace TaskLauncher.App.Server.Controllers;
 /// Kontroler, ktery slouzi pouze pro administatora
 /// Ziskava a nastavuje systemove hodnoty
 /// </summary>
-[Authorize(Policy = "admin-policy")]
 public class ConfigController : BaseController
 {
     private readonly IMapper mapper;
@@ -34,10 +34,17 @@ public class ConfigController : BaseController
     }
 
     /// <summary>
-    /// Ziska vsechny konfiguracni hodnoty nebo pouze jednu hodnotu, pokud je specifikovan parametr 'key'
+    /// Ziska vsechny konfiguracni hodnoty nebo pouze jednu hodnotu, pokud je specifikovan parametr 'key' (jeden endpoint pro admina, druhy pro workery)
     /// </summary>
+    [Authorize(Policy = TaskLauncherPolicies.CanViewConfigPolicy)]
+    [HttpGet("worker")]
+    public async Task<IActionResult> GetConfiguratioWorkerAsync(string? key = null) => await GetConfiguratioAsync(key);
+
+    [Authorize(Policy = TaskLauncherPolicies.AdminPolicy)]
     [HttpGet]
-    public async Task<IActionResult> GetConfiguratioAsync(string? key = null)
+    public async Task<IActionResult> GetConfiguratioAdminAsync(string? key = null) => await GetConfiguratioAsync(key);
+
+    private async Task<IActionResult> GetConfiguratioAsync(string? key = null)
     {
         if (key is null)
         {
@@ -45,7 +52,7 @@ public class ConfigController : BaseController
             return Ok(list.Select(mapper.Map<ConfigResponse>));
         }
 
-        if(!Constants.Configuration.IsConfigurationValue(key))
+        if (!Constants.Configuration.IsConfigurationValue(key))
             return new BadRequestObjectResult(new { error = "This is not an configuration value" });
 
         var config = await dbContext.Configs.SingleAsync(i => i.Key == key);
@@ -55,6 +62,7 @@ public class ConfigController : BaseController
     /// <summary>
     /// Aktualizuje systemovou hodnotu
     /// </summary>
+    [Authorize(Policy = TaskLauncherPolicies.AdminPolicy)]
     [HttpPut]
     public async Task<IActionResult> UpdateConfigurationValueAsync(UpdateConfigValueRequest request)
     {

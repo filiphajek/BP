@@ -25,7 +25,7 @@ public class TaskController : AdminODataController<TaskResponse>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<TaskDetailResponse>> GetDetail(Guid id)
     {
-        var payment = await context.Payments.Include(i => i.Task).ThenInclude(i => i.Events).SingleOrDefaultAsync(i => i.Task.Id == id);
+        var payment = await context.Payments.IgnoreQueryFilters().Include(i => i.Task).ThenInclude(i => i.Events).SingleOrDefaultAsync(i => i.Task.Id == id);
         if (payment is not null)
         {
             var taskResponse = mapper.Map<TaskDetailResponse>(payment.Task);
@@ -33,7 +33,7 @@ public class TaskController : AdminODataController<TaskResponse>
             return Ok(taskResponse);
         }
 
-        var task = await context.Tasks.Include(i => i.Events).SingleOrDefaultAsync(i => i.Id == id);
+        var task = await context.Tasks.IgnoreQueryFilters().Include(i => i.Events).SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
             return NotFound();
         return Ok(mapper.Map<TaskDetailResponse>(task));

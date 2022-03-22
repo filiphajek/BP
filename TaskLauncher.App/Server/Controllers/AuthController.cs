@@ -215,7 +215,7 @@ public class AuthController : ControllerBase
         {
             new Claim(ClaimTypes.Role, "user"),
             new Claim(TaskLauncherClaimTypes.Registered, "true"), 
-            new Claim("token_balance", "balanceConfig.Value") 
+            new Claim(TaskLauncherClaimTypes.TokenBalance, balanceConfig.Value)
         });
 
         return Ok();

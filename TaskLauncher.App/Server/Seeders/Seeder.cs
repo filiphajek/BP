@@ -200,16 +200,10 @@ public class Seeder
         await dbContext.TokenBalances.AddAsync(new() { CurrentAmount = priceSum, LastAdded = DateTime.Now.AddDays(-30.5), UserId = userId });
         await dbContext.Stats.AddAsync(normalStatEntity);
         await dbContext.Stats.AddAsync(vipStatEntity);
-        //ZBIRAT STATISTIKU !! JAK CASY TASK DOKONCENI -> PAK TAM PRIDAT NEJAKOU PEVNOU HODNOTU
     }
 
     private void UpdateStats(StatEntity normalStatEntity, StatEntity vipStatEntity, TaskState actualStatus, bool isPriority)
     {
-        if (isPriority)
-            vipStatEntity.FinishedTaskCount++;
-        else
-            normalStatEntity.FinishedTaskCount++;
-
         switch (actualStatus)
         {
             case TaskState.Crashed:
@@ -226,15 +220,27 @@ public class Seeder
                 break;
             case TaskState.FinishedSuccess:
                 if (isPriority)
+                {
                     vipStatEntity.SuccessTasks++;
+                    vipStatEntity.FinishedTaskCount++;
+                }
                 else
+                {
                     normalStatEntity.SuccessTasks++;
+                    normalStatEntity.FinishedTaskCount++;
+                }
                 break;
             case TaskState.FinishedFailure:
                 if (isPriority)
+                {
                     vipStatEntity.FailedTasks++;
+                    vipStatEntity.FinishedTaskCount++;
+                }
                 else
+                {
                     normalStatEntity.FailedTasks++;
+                    normalStatEntity.FinishedTaskCount++;
+                }
                 break;
         }
     }

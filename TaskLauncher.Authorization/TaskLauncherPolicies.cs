@@ -10,4 +10,5 @@ public static class TaskLauncherPolicies
     public const string CanViewTaskPolicy = "can-view-task-policy";
     public const string CanHaveProfilePolicy = "can-have-profile-policy";
     public const string CanViewGraphsPolicy = "can-view-graphs-policy";
+    public const string CanViewConfigPolicy = "can-view-config-policy";
 }

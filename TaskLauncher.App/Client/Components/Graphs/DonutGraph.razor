@@ -29,6 +29,9 @@
     bool hasVipTasks = false;
     bool switchVip = false;
 
+    [Parameter]
+    public string UserId { get; set; }
+
     [CascadingParameter]
     public Task<AuthenticationState> authenticationStateTask { get; set; } = null!;
 
@@ -39,10 +42,17 @@
     UserStatResponse model = new();
     List<UserStatResponse> overallStats = new();
 
-    protected async override Task OnInitializedAsync()
+    protected async override Task OnParametersSetAsync()
     {
         loading = true;
         var state = await authenticationStateTask;
+
+        if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(TaskLauncherRoles.Admin))
+        {
+            await LoadOverallStats("api/stat?userid=" + UserId);
+            loading = false;
+            return;
+        }
 
         state.User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out switchVip);
 
@@ -57,8 +67,8 @@
     async Task LoadOverallStats(string path)
     {
         overallStats = (await client.GetFromJsonAsync<List<UserStatResponse>>(path))!;
-        model = overallStats.Single(i => !i.IsVip);
         hasVipTasks = overallStats.Single(i => i.IsVip).AllTaskCount != 0;
+        model = overallStats.Single(i => i.IsVip == hasVipTasks);
         data = new DataItem[] { new("Success", model.SuccessTasks), new("Failed", model.FailedTasks), new("Crashed", model.CrashedTasks), new("Timeouted", model.TimeoutedTasks) };
     }
 

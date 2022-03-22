@@ -123,6 +123,11 @@ public static class AuthorizationExtensions
                 p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
                 p.RequireRole(TaskLauncherRoles.Admin, TaskLauncherRoles.User);
             });
+            policies.AddPolicy(TaskLauncherPolicies.CanViewConfigPolicy, p =>
+            {
+                p.AddAuthenticationSchemes(AuthorizationConstants.BearerAuth);
+                p.RequireClaim("azp", "7wn0lDnB9hV62m86zh8Xb374KhHxOirJ");
+            });
         });
     }
 }
