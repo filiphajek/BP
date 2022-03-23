@@ -38,7 +38,7 @@ public class NotificationComponent : ComponentBase
             if (SignalRClient.Connection.State != Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
             {
                 await SignalRClient.TryToConnect();
-                SignalRClient.RegisterOnTaskUpdate(i => ToastService.ShowSuccess($"Task finished {i.Id}"));
+                SignalRClient.RegisterOnTaskUpdate(i => ToastService.ShowSuccess($"Task finished: '{i.Id}'"));
             }
         }
     }

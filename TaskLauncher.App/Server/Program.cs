@@ -29,6 +29,7 @@ using TaskLauncher.App.Server.Proxy;
 using TaskLauncher.App.DAL;
 using Microsoft.EntityFrameworkCore;
 using MediatR;
+using TaskLauncher.App.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -145,6 +146,8 @@ builder.Services.AddHangfire(configuration => configuration
     }));
 builder.Services.AddHangfireServer();
 
+builder.Services.AddScoped<IUpdateTaskService, UpdateTaskService>();
+
 //autorizace
 builder.Services.AddAuthorizationServer();
 
@@ -240,16 +243,6 @@ app.UseEndpoints(endpoints =>
 app.UseHangfireDashboard("/hangfire");
 
 var balancer = app.Services.GetRequiredService<Balancer>();
-//backend testing
-/*for (int i = 0; i < 20; i++)
-{
-    balancer.Enqueue("nonvip", new() { Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"NON-vip {i}" });
-}
-
-for (int i = 0; i < 20; i++)
-{
-    balancer.Enqueue("vip", new() { UserId = "auth0|61b0e161678a0c00689644e0", Id = Guid.NewGuid(), State = TaskLauncher.Common.Enums.TaskState.Created, Time = DateTime.Now, TaskFilePath = $"vip {i}" });
-}*/
 
 using (var scope = app.Services.CreateScope())
 {

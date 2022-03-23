@@ -14,20 +14,17 @@ public interface IUpdateTaskService
 
 public class UpdateTaskService : IUpdateTaskService
 {
-    private readonly IServiceProvider provider;
+    private readonly AppDbContext dbContext;
     private readonly IMapper mapper;
 
-    public UpdateTaskService(IServiceProvider provider, IMapper mapper)
+    public UpdateTaskService(AppDbContext dbContext, IMapper mapper)
     {
-        this.provider = provider;
+        this.dbContext = dbContext;
         this.mapper = mapper;
     }
 
     public async Task<EventModel> UpdateTaskAsync(TaskModel model)
     {
-        using var scope = provider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
         var task = await dbContext.Tasks.IgnoreQueryFilters().SingleAsync(i => i.Id == model.Id);
         task.ActualStatus = model.State;
         dbContext.Update(task);
@@ -42,10 +39,10 @@ public class UpdateTaskService : IUpdateTaskService
 
     public async Task EndTaskAsync(TaskModel model)
     {
-        using var scope = provider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var stat1 = await dbContext.Stats.ToListAsync();
+        var stat2 = await dbContext.Stats.IgnoreQueryFilters().ToListAsync();
 
-        var stat = await dbContext.Stats.SingleAsync(i => i.IsVip == model.IsPriority); // bude tady uplatnen filter?
+        var stat = await dbContext.Stats.IgnoreQueryFilters().SingleAsync(i => i.UserId == model.UserId && i.IsVip == model.IsPriority);
         switch (model.State)
         {
             case Common.Enums.TaskState.Crashed:

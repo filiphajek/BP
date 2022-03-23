@@ -112,7 +112,7 @@ public class LauncherWorker : BackgroundService
         logger.LogInformation("Starting execution of task '{0}'", model.Id);
 
         //stazeni souboru
-        using (var file = File.Create("task.txt")) //TODO volume mount
+        using (var file = File.Create("task.txt"))
         {
             await fileService.DownloadFileAsync(model.TaskFilePath, file, token);
         }

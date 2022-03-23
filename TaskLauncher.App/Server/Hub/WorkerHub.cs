@@ -9,6 +9,7 @@ using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.Server.Notifications;
 using TaskLauncher.App.Server.Services;
 using TaskLauncher.App.Server.Tasks;
+using TaskLauncher.Authorization;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
@@ -33,32 +34,26 @@ public interface IWorkerHub
     Task WakeUpWorkers();
 }
 
-[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)] //Policy = "worker"
+[Authorize(Policy = TaskLauncherPolicies.LauncherPolicy)]
 public class WorkerHub : Hub<IWorkerHub>
 {
     private readonly ILogger<WorkerHub> logger;
     private readonly TaskCache cache;
     private readonly Balancer balancer;
-    private readonly IHubContext<UserHub, IUserHub> userHubContext;
-    private readonly SignalRMemoryStorage userConnectionsStorage;
-    private readonly IUpdateTaskService updateTaskService;
+    private readonly IServiceProvider serviceProvider;
     private readonly IMediator mediator;
 
     public WorkerHub(ILogger<WorkerHub> logger,
         TaskCache cache,
         Balancer balancer,
-        IHubContext<UserHub, IUserHub> userHubContext,
-        SignalRMemoryStorage userConnectionsStorage,
-        IUpdateTaskService updateTaskService, 
-        IMediator mediator)
+        IMediator mediator, 
+        IServiceProvider serviceProvider)
     {
         this.logger = logger;
         this.cache = cache;
         this.balancer = balancer;
-        this.userHubContext = userHubContext;
-        this.userConnectionsStorage = userConnectionsStorage;
-        this.updateTaskService = updateTaskService;
         this.mediator = mediator;
+        this.serviceProvider = serviceProvider;
     }
 
     private async Task SendTask()
@@ -74,7 +69,7 @@ public class WorkerHub : Hub<IWorkerHub>
         }
         catch (OperationCanceledException)
         {
-            cache.AddOrSet(Context.ConnectionId, null);
+            cache.AddOrSet(Context.ConnectionId, new() { Id = Guid.Empty});
         }
         finally
         {
@@ -91,6 +86,8 @@ public class WorkerHub : Hub<IWorkerHub>
     public async Task TaskStatusUpdate(TaskModel model)
     {
         //update
+        var scope = serviceProvider.CreateScope();
+        var updateTaskService = scope.ServiceProvider.GetRequiredService<IUpdateTaskService>();
         var eventModel = await updateTaskService.UpdateTaskAsync(model);
 
         //update cache
@@ -112,6 +109,8 @@ public class WorkerHub : Hub<IWorkerHub>
 
     public async Task TaskTimeouted(TaskModel model)
     {
+        var scope = serviceProvider.CreateScope();
+        var updateTaskService = scope.ServiceProvider.GetRequiredService<IUpdateTaskService>();
         var eventModel = await updateTaskService.UpdateTaskAsync(model);
         await mediator.Publish(new TaskUpdateNotification(model, eventModel));
         await SendTask();
@@ -133,6 +132,9 @@ public class WorkerHub : Hub<IWorkerHub>
         {
             if (model.State != TaskState.FinishedSuccess || model.State != TaskState.FinishedFailure || model.State != TaskState.Timeouted)
             {
+                var scope = serviceProvider.CreateScope();
+                var updateTaskService = scope.ServiceProvider.GetRequiredService<IUpdateTaskService>();
+
                 logger.LogInformation("Worker '{0}' crashed. Task '{1}' will be requeued ", Context.ConnectionId, model.Id);
                 model.State = TaskState.Crashed;
                 await updateTaskService.UpdateTaskAsync(model);
