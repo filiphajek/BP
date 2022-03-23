@@ -24,7 +24,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TaskLauncher.App.Server", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TaskLauncher.App.Client", "TaskLauncher.App\Client\TaskLauncher.App.Client.csproj", "{B82A8E81-5B8D-4B7D-965C-08A0BCBAC754}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskLauncher.Tests", "TaskLauncher.Tests\TaskLauncher.Tests.csproj", "{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TaskLauncher.Tests", "TaskLauncher.Tests\TaskLauncher.Tests.csproj", "{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskLauncher.Simulation", "TaskLauncher.Simulation\TaskLauncher.Simulation.csproj", "{14FB27D2-53D4-4DDB-AEB0-28052650BBDD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,6 +70,10 @@ Global
 		{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0C833616-CC20-4FE2-BAE7-D3EDC1AAA138}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14FB27D2-53D4-4DDB-AEB0-28052650BBDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14FB27D2-53D4-4DDB-AEB0-28052650BBDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14FB27D2-53D4-4DDB-AEB0-28052650BBDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14FB27D2-53D4-4DDB-AEB0-28052650BBDD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

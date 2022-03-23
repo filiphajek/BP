@@ -43,7 +43,6 @@ public class LauncherWorker : BackgroundService
         this.signalrClient = signalrClient;
     }
 
-    //TODO zachytit a zalogovat cancel exceptiony -> melo by byt ok ale testnout https://docs.microsoft.com/en-us/dotnet/core/compatibility/core-libraries/6.0/hosting-exception-handling
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         //ziskani autorizacniho tokenu k web api
@@ -67,7 +66,8 @@ public class LauncherWorker : BackgroundService
             catch(OperationCanceledException ex)
             {
                 logger.LogError("Task '{0}' timeouted", actualTask.Id);
-                //todo timeouted
+                actualTask.State = TaskState.Timeouted;
+                await signalrClient.Connection.InvokeTaskTimeouted(actualTask);
             }
             catch (Exception ex)
             {
@@ -138,6 +138,7 @@ public class LauncherWorker : BackgroundService
             await fileService.UploadFileAsync(model.ResultFilePath, resultFile, token);
         }
      
+        //ukonceni prace
         isWorking = false;
         await UpdateTaskAsync(model, TaskState.FinishedSuccess, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
@@ -147,7 +148,6 @@ public class LauncherWorker : BackgroundService
     {
         model.State = state;
         model.Time = DateTime.Now;
-        //await httpClient.PutAsJsonAsync("launcher/task", new TaskStatusUpdateRequest { Id = model.Id, State = model.State, Time = model.Time }, cancellationToken);
         await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 

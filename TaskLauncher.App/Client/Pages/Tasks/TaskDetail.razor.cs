@@ -66,6 +66,9 @@ public partial class TaskDetail : IDisposable
 
     async Task UpdateAsync()
     {
+        if (isAdmin)
+            return;
+
         TaskEditDialogResult? result = await DialogService.OpenAsync<EditTaskDialog>("Edit task", new() { { "Task", Task } }, new() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
         if (result is not null)
         {
@@ -146,6 +149,7 @@ public partial class TaskDetail : IDisposable
         {
             navigationManager.NavigateTo("api/file?taskId=" + Id.ToString(), true);
             Task.ActualStatus = TaskState.Downloaded;
+            Task.Events.Add(new() { Description = "", Status = TaskState.Downloaded, Time = DateTime.Now });
         }
     }
 

@@ -259,7 +259,9 @@ public class TaskController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Restartuje task pokud je ve stavu zruseno
+    /// Restartuje task pokud je ve stavu timeouted
+    /// Task ve stavu crashed se restartuje automaticky
+    /// Task ktery byl zrusen, nemuze byt restartovan, musi byt zalozen novy
     /// </summary>
     [HttpPost("restart")]
     public async Task<IActionResult> RestartTaskAsync(Guid taskId)
@@ -271,7 +273,7 @@ public class TaskController : UserODataController<TaskResponse>
         if (task is null)
             return NotFound();
 
-        if (task.ActualStatus == TaskState.Cancelled || task.ActualStatus == TaskState.Crashed || task.ActualStatus == TaskState.Timeouted)
+        if (task.ActualStatus == TaskState.Timeouted)
         {
             task.ActualStatus = TaskState.Created;
             context.Update(task);

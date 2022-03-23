@@ -19,4 +19,7 @@ public static class HubConnectionExtension
 
     public static async Task InvokeRequestWork(this HubConnection connection)
         => await connection.InvokeAsync("RequestNewWork");
+
+    public static async Task InvokeTaskTimeouted(this HubConnection connection, TaskModel value)
+        => await connection.InvokeAsync("TaskTimeouted", value);
 }

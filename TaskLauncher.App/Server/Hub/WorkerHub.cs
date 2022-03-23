@@ -110,9 +110,11 @@ public class WorkerHub : Hub<IWorkerHub>
         }
     }
 
-    public async Task TaskTimeOuted()
+    public async Task TaskTimeouted(TaskModel model)
     {
-        //todo
+        var eventModel = await updateTaskService.UpdateTaskAsync(model);
+        await mediator.Publish(new TaskUpdateNotification(model, eventModel));
+        await SendTask();
     }
 
     public override async Task OnConnectedAsync()
@@ -126,15 +128,17 @@ public class WorkerHub : Hub<IWorkerHub>
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        //is task finished?
+        //pokud task neni ukonceni, jedna se o crash (worker se necekane odpojil apod.)
         if (cache.TryGetValue(Context.ConnectionId, out var model))
         {
             if (model.State != TaskState.FinishedSuccess || model.State != TaskState.FinishedFailure || model.State != TaskState.Timeouted)
             {
                 logger.LogInformation("Worker '{0}' crashed. Task '{1}' will be requeued ", Context.ConnectionId, model.Id);
-                model.State = TaskState.Cancelled;
+                model.State = TaskState.Crashed;
                 await updateTaskService.UpdateTaskAsync(model);
-                //todo znova dat created
+                await updateTaskService.EndTaskAsync(model);
+                model.State = TaskState.Created;
+                await updateTaskService.UpdateTaskAsync(model);
                 balancer.Enqueue("cancel", model);
             }
         }
