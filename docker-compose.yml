@@ -5,43 +5,20 @@ networks:
     name: localdev
     
 services:
-  tasklauncher.api:
-    image: tasklauncher.api
-    container_name: tasklauncher.api
+  tasklauncher.app.server:
+    image: tasklauncher.app.server
+    container_name: tasklauncher.app.server
     build:
         context: .
-        dockerfile: TaskLauncher.Api/Dockerfile
+        dockerfile: TaskLauncher.App/Server/Dockerfile
     restart: always
     ports:
-      - "8000:80"
-      - "8001:443"
+      - "5000:80"
+      - "5001:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=https://+:443;http://+:80
       - ASPNETCORE_HTTPS_PORT=8001
-      - ASPNETCORE_Kestrel__Certificates__Default__Password=mypass123
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
-    volumes:
-      - ./https/aspnetapp.pfx:/https/aspnetapp.pfx:ro
-    depends_on:
-      - db-server
-    networks:
-      - localdev
-        
-  tasklauncher.webapp.server:
-    image: tasklauncher.webapp.server
-    container_name: tasklauncher.webapp.server
-    build:
-        context: .
-        dockerfile: TaskLauncher.WebApp/Server/Dockerfile
-    restart: always
-    ports:
-      - "7000:80"
-      - "7001:443"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=https://+:443;http://+:80
-      - ASPNETCORE_HTTPS_PORT=7001
       - ASPNETCORE_Kestrel__Certificates__Default__Password=mypass123
       - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
     volumes:
@@ -63,15 +40,16 @@ services:
     networks:
       - localdev
 
-  tasklauncher.containerlauncher:
-    image: tasklauncher.containerlauncher
-    container_name: tasklauncher.containerlauncher
+  tasklauncher.worker:
+    image: tasklauncher.worker
+    container_name: tasklauncher.worker
     build:
       context: .
-      dockerfile: TaskLauncher.ContainerLauncher/Dockerfile
+      dockerfile: TaskLauncher.Worker/Dockerfile
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - worker-vol:/app/tmp
     depends_on:
-      - tasklauncher.api
+      - tasklauncher.app.server
     networks:
       - localdev

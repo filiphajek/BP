@@ -45,6 +45,7 @@ public class LauncherWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Delay(5000, stoppingToken);
         //ziskani autorizacniho tokenu k web api
         var token = await managementTokenService.GetApiToken(new(), "task-api", false);
         httpClient.SetBearerToken(token);

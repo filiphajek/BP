@@ -167,6 +167,7 @@ public class TaskController : UserODataController<TaskResponse>
             Id = task.Id,
             State = TaskState.Created,
             Time = creationDate,
+            Name = task.Name,
             TaskFilePath = task.TaskFile,
             ResultFilePath = task.ResultFile,
             UserId = task.UserId
@@ -285,6 +286,7 @@ public class TaskController : UserODataController<TaskResponse>
             {
                 Id = task.Id,
                 State = TaskState.Created,
+                Name = task.Name,
                 Time = DateTime.Now,
                 TaskFilePath = task.TaskFile,
                 UserId = task.UserId

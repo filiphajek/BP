@@ -30,6 +30,7 @@ using TaskLauncher.App.DAL;
 using Microsoft.EntityFrameworkCore;
 using MediatR;
 using TaskLauncher.App.Server.Services;
+using TaskLauncher.Common.Enums;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -259,13 +260,21 @@ using (var scope = app.Services.CreateScope())
 
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     
-    var tasks = await dbContext.Tasks.IgnoreQueryFilters().Where(i => i.ActualStatus == TaskLauncher.Common.Enums.TaskState.Created).ToListAsync();
+    var tasks = await dbContext.Tasks.IgnoreQueryFilters()
+        .Where(i => i.ActualStatus == TaskState.Created || 
+                    i.ActualStatus == TaskState.Crashed ||
+                    i.ActualStatus == TaskState.Running ||
+                    i.ActualStatus == TaskState.Ready)
+        .ToListAsync();
+    
     foreach(var task in tasks)
     {
         balancer.Enqueue("nonvip", new()
         {
             State = 0,
             Id = task.Id,
+            Name = task.Name,
+            IsPriority = task.IsPriority,
             TaskFilePath = task.TaskFile,
             ResultFilePath = task.ResultFile,
             Time = DateTime.Now,

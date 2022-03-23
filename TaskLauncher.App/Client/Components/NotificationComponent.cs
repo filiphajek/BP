@@ -1,4 +1,5 @@
-﻿using Blazored.Toast.Services;
+﻿using Blazored.Toast;
+using Blazored.Toast.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
@@ -38,7 +39,26 @@ public class NotificationComponent : ComponentBase
             if (SignalRClient.Connection.State != Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
             {
                 await SignalRClient.TryToConnect();
-                SignalRClient.RegisterOnTaskUpdate(i => ToastService.ShowSuccess($"Task finished: '{i.Id}'"));
+                //SignalRClient.RegisterOnTaskUpdate(i => ToastService.ShowSuccess($"Task finished: '{i.Id}'"));
+                SignalRClient.RegisterOnTaskUpdate(i =>
+                {
+                    var toastParameters = new ToastParameters();
+                    switch (i.State)
+                    {
+                        case Common.Enums.TaskState.Crashed:
+                            ToastService.ShowError($"Task finished: '{i.Id}'");
+                            break;
+                        case Common.Enums.TaskState.Timeouted:
+                            ToastService.ShowError($"Task finished: '{i.Id}'");
+                            break;
+                        case Common.Enums.TaskState.FinishedSuccess:
+                            ToastService.ShowSuccess($"Task finished: '{i.Id}'");
+                            break;
+                        case Common.Enums.TaskState.FinishedFailure:
+                            ToastService.ShowError($"Task finished: '{i.Id}'");
+                            break;
+                    }
+                });
             }
         }
     }
