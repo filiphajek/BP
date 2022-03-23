@@ -110,6 +110,11 @@ public class WorkerHub : Hub<IWorkerHub>
         }
     }
 
+    public async Task TaskTimeOuted()
+    {
+        //todo
+    }
+
     public override async Task OnConnectedAsync()
     {
         //connect
@@ -119,18 +124,17 @@ public class WorkerHub : Hub<IWorkerHub>
         await SendTask();
     }
 
-    //TODO timeout/ruseni
-
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         //is task finished?
         if (cache.TryGetValue(Context.ConnectionId, out var model))
         {
-            if (model.State != TaskState.FinishedSuccess)
+            if (model.State != TaskState.FinishedSuccess || model.State != TaskState.FinishedFailure || model.State != TaskState.Timeouted)
             {
                 logger.LogInformation("Worker '{0}' crashed. Task '{1}' will be requeued ", Context.ConnectionId, model.Id);
                 model.State = TaskState.Cancelled;
                 await updateTaskService.UpdateTaskAsync(model);
+                //todo znova dat created
                 balancer.Enqueue("cancel", model);
             }
         }

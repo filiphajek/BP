@@ -43,9 +43,7 @@ public class LauncherWorker : BackgroundService
         this.signalrClient = signalrClient;
     }
 
-    //TODO synchonizace pomoci semaforu? pri update zprave na server a cancel zprave ze serveru
     //TODO zachytit a zalogovat cancel exceptiony -> melo by byt ok ale testnout https://docs.microsoft.com/en-us/dotnet/core/compatibility/core-libraries/6.0/hosting-exception-handling
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         //ziskani autorizacniho tokenu k web api
@@ -69,6 +67,7 @@ public class LauncherWorker : BackgroundService
             catch(OperationCanceledException ex)
             {
                 logger.LogError("Task '{0}' timeouted", actualTask.Id);
+                //todo timeouted
             }
             catch (Exception ex)
             {
@@ -90,10 +89,6 @@ public class LauncherWorker : BackgroundService
             {
                 logger.LogInformation("is working?");
                 await signalrClient.Connection.InvokeRequestWork();
-            }
-            else
-            {
-
             }
         });
 
@@ -117,7 +112,7 @@ public class LauncherWorker : BackgroundService
         logger.LogInformation("Starting execution of task '{0}'", model.Id);
 
         //stazeni souboru
-        using (var file = File.Create("task.txt"))
+        using (var file = File.Create("task.txt")) //TODO volume mount
         {
             await fileService.DownloadFileAsync(model.TaskFilePath, file, token);
         }
@@ -142,12 +137,10 @@ public class LauncherWorker : BackgroundService
         {
             await fileService.UploadFileAsync(model.ResultFilePath, resultFile, token);
         }
-        
+     
         isWorking = false;
-
         await UpdateTaskAsync(model, TaskState.FinishedSuccess, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
-        //await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 
     private async Task UpdateTaskAsync(TaskModel model, TaskState state, CancellationToken cancellationToken = default)

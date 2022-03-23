@@ -23,6 +23,7 @@ public class TaskController : UserODataController<TaskResponse>
     private readonly IMapper mapper;
     private readonly IFileStorageService fileStorageService;
     private readonly Balancer balancer;
+    private readonly SemaphoreSlim semaphoreSlim = new(1, 1); // semafor pro odecitani ze zustatku
 
     public TaskController(AppDbContext context, IMapper mapper, IFileStorageService fileStorageService, Balancer balancer) : base(context)
     {
@@ -31,13 +32,19 @@ public class TaskController : UserODataController<TaskResponse>
         this.balancer = balancer;
     }
 
+    /// <summary>
+    /// Zpristupnuje dotazovani nad celou kolekci tasku daneho uzivatele
+    /// </summary>
     [HttpGet]
     [EnableQuery]
     public ActionResult<TaskResponse> Get()
     {
-        return Ok(context.Tasks.AsQueryable().ProjectToType<TaskResponse>());
+        return Ok(context.Tasks.Where(i => i.ActualStatus != TaskState.Closed).AsQueryable().ProjectToType<TaskResponse>());
     }
 
+    /// <summary>
+    /// Detail tasku, s taskem se vraci i platba a vsechny udalosti
+    /// </summary>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<TaskDetailResponse>> GetDetail(Guid id)
     {
@@ -55,9 +62,12 @@ public class TaskController : UserODataController<TaskResponse>
         return Ok(mapper.Map<TaskDetailResponse>(task));
     }
 
-    private readonly SemaphoreSlim semaphoreSlim = new(1, 1);
-    private static string pattern = @"(?<=\()(\d+)(?=\))";
-
+    //regex pro jmeno tasku
+    private static readonly Regex taskNameRegex = new(@"(?<=\()(\d+)(?=\))", RegexOptions.Compiled, TimeSpan.FromSeconds(2));
+    
+    /// <summary>
+    /// Pomocna metoda pro zaruceni originalniho jmena taska (pridava (x) ve jmene pokud dane jmeno existuje)
+    /// </summary>
     private async Task<string> GetUniqueName(string name)
     {
         bool exists = await context.Tasks.AnyAsync(i => i.Name == name);
@@ -68,7 +78,7 @@ public class TaskController : UserODataController<TaskResponse>
         string tmpExistingName = "";
         await foreach (var existingNameTask in context.Tasks.AsNoTracking().Where(i => i.Name.StartsWith(name)).AsAsyncEnumerable())
         {
-            var match = Regex.Match(existingNameTask.Name, pattern);
+            var match = taskNameRegex.Match(existingNameTask.Name);
             if (match.Success && int.TryParse(match.Value, out var number) && number >= index)
             {
                 index = number;
@@ -80,7 +90,7 @@ public class TaskController : UserODataController<TaskResponse>
             return name += " (1)";
      
         index++;
-        return Regex.Replace(tmpExistingName, pattern, index.ToString());
+        return taskNameRegex.Replace(tmpExistingName, index.ToString());
     }
 
     /// <summary>
@@ -181,15 +191,15 @@ public class TaskController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Smazani/uzavreni tasku
+    /// Uzavreni tasku
     /// </summary>
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> CloseTaskAsync(Guid id)
+    [HttpPost("close")]
+    public async Task<IActionResult> CloseTaskAsync(Guid taskId)
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
 
-        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
         if (task is null)
             return BadRequest();
 
@@ -204,11 +214,15 @@ public class TaskController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Zruseni tasku
+    /// Zruseni tasku, vraceni tokenu
     /// </summary>
     [HttpPost("cancel")]
     public async Task<IActionResult> CancelTaskAsync(Guid taskId)
     {
+        if (!User.TryGetAuth0Id(out var userId))
+            return Unauthorized();
+
+        var balance = await context.TokenBalances.SingleAsync();
         var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
         if (task is null)
             return BadRequest();
@@ -218,44 +232,30 @@ public class TaskController : UserODataController<TaskResponse>
             if (!balancer.CancelTask(taskId))
                 return new BadRequestObjectResult(new { error = "Try again" });
             task.ActualStatus = TaskState.Cancelled;
+            balance.CurrentAmount = task.IsPriority ? balance.CurrentAmount + 1 : balance.CurrentAmount + 2;
+            balance.LastAdded = DateTime.Now;
+            context.Update(balance);
             context.Update(task);
+            var ev = await context.Events.AddAsync(new() { Task = task, Status = TaskState.Cancelled, Time = DateTime.Now, UserId = userId });
             await context.SaveChangesAsync();
-            return Ok();
+            return Ok(mapper.Map<EventResponse>(ev.Entity));
         }
         return BadRequest();
     }
 
     /// <summary>
-    /// Stazeni vysledku tasku
+    /// Smazani tasku
     /// </summary>
-    [HttpGet("file")]
-    public async Task<IActionResult> DownloadFileAsync(Guid taskId)
+    [HttpDelete]
+    public async Task<IActionResult> DeleteTaskAsync(Guid id)
     {
-        if (!User.TryGetAuth0Id(out var userId))
-            return Unauthorized();
-
-        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
-            return NotFound();
+            return BadRequest();
 
-        if (task.ActualStatus == TaskState.FinishedSuccess)
-        {
-            task.ActualStatus = TaskState.Downloaded;
-            context.Update(task);
-            await context.Events.AddAsync(new() { Task = task, Status = TaskState.Downloaded, Time = DateTime.Now, UserId = userId });
-            await context.SaveChangesAsync();
-            MemoryStream stream = new();
-            await fileStorageService.DownloadFileAsync(task.ResultFile, stream);
-            return File(stream, "application/octet-stream", task.Name);
-        }
-
-        if(task.ActualStatus == TaskState.Downloaded)
-        {
-            MemoryStream stream = new();
-            await fileStorageService.DownloadFileAsync(task.ResultFile, stream);
-            return File(stream, "application/octet-stream", task.Name);
-        }
-        return BadRequest();
+        context.Remove(task);
+        await context.SaveChangesAsync();
+        return Ok();
     }
 
     /// <summary>
@@ -271,11 +271,11 @@ public class TaskController : UserODataController<TaskResponse>
         if (task is null)
             return NotFound();
 
-        if (task.ActualStatus == TaskState.Cancelled)
+        if (task.ActualStatus == TaskState.Cancelled || task.ActualStatus == TaskState.Crashed || task.ActualStatus == TaskState.Timeouted)
         {
             task.ActualStatus = TaskState.Created;
             context.Update(task);
-            await context.Events.AddAsync(new() { Task = task, Status = TaskState.Created, Time = DateTime.Now, UserId = userId });
+            var ev = await context.Events.AddAsync(new() { Task = task, Status = TaskState.Created, Time = DateTime.Now, UserId = userId });
             await context.SaveChangesAsync();
 
             User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out bool vip);
@@ -287,7 +287,7 @@ public class TaskController : UserODataController<TaskResponse>
                 TaskFilePath = task.TaskFile,
                 UserId = task.UserId
             });
-            return Ok();
+            return Ok(mapper.Map<EventResponse>(ev.Entity));
         }
         return BadRequest();
     }

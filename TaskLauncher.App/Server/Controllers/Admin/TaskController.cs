@@ -38,4 +38,19 @@ public class TaskController : AdminODataController<TaskResponse>
             return NotFound();
         return Ok(mapper.Map<TaskDetailResponse>(task));
     }
+
+    /// <summary>
+    /// Smazani tasku
+    /// </summary>
+    [HttpDelete]
+    public async Task<IActionResult> DeleteTaskAsync(Guid id)
+    {
+        var task = await context.Tasks.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.Id == id);
+        if (task is null)
+            return BadRequest();
+
+        context.Remove(task);
+        await context.SaveChangesAsync();
+        return Ok();
+    }
 }

@@ -42,10 +42,13 @@ public partial class TaskDetail : IDisposable
 
     private IDisposable eventSubscription;
 
+    bool isAdmin = false;
+
     protected override async Task OnParametersSetAsync()
     {
         var state = await authenticationStateTask;
-        if(state.User.IsInRole("admin"))
+        isAdmin = state.User.IsInRole("admin");
+        if (isAdmin)
             Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/admin/task/" + Id.ToString());
         else
             Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/task/" + Id.ToString());
@@ -87,7 +90,6 @@ public partial class TaskDetail : IDisposable
         });
     }
 
-    //aktualizace gui po prijmuti signalr zpravy
     private void StatusChanged(TaskModel model)
     {
         Console.WriteLine($"Status changed: {model.State} on task: {model.Id}");
@@ -95,18 +97,54 @@ public partial class TaskDetail : IDisposable
         StateHasChanged();
     }
 
+    private async Task CloseTask()
+    {
+        var tmp = await Client.PostAsJsonAsync("api/task/close?taskId=" + Id.ToString(), new {});
+        if (tmp.IsSuccessStatusCode)
+            navigationManager.NavigateTo("/tasks", true);
+    }
+
     private async Task CancelTask()
     {
-        var tmp = await Client.DeleteAsync("api/task/" + Id.ToString());
+        var tmp = await Client.PostAsJsonAsync("api/task/cancel?taskId=" + Id.ToString(), new {});
         if(tmp.IsSuccessStatusCode)
-            navigationManager.NavigateTo("tasks", true);
+        {
+            var response = await tmp.Content.ReadFromJsonAsync<EventResponse>();
+            Task.ActualStatus = response.Status;
+            Task.Events.Add(response);
+        }
+    }
+
+    private async Task RestartTask()
+    {
+        var tmp = await Client.PostAsJsonAsync("api/task/restart?taskId=" + Id.ToString(), new { });
+        if (tmp.IsSuccessStatusCode)
+        {
+            var response = await tmp.Content.ReadFromJsonAsync<EventResponse>();
+            Task.ActualStatus = response.Status;
+            Task.Events.Add(response);
+        }
+    }
+
+    private async Task DeleteTask()
+    {
+        if (isAdmin)
+        {
+            var tmp1 = await Client.DeleteAsync("api/admin/task?id=" + Id.ToString());
+            if (tmp1.IsSuccessStatusCode)
+                navigationManager.NavigateTo("/queue");
+            return;
+        }
+        var tmp2 = await Client.DeleteAsync("api/task?id=" + Id.ToString());
+        if (tmp2.IsSuccessStatusCode)
+            navigationManager.NavigateTo("/tasks");
     }
 
     private void DownloadResultFile()
     {
-        if(Task.ActualStatus == TaskState.FinishedSuccess || Task.ActualStatus == TaskState.Downloaded)
+        if(Task.ActualStatus == TaskState.FinishedSuccess || Task.ActualStatus == TaskState.FinishedFailure || Task.ActualStatus == TaskState.Downloaded)
         {
-            navigationManager.NavigateTo("api/task/file?taskId=" + Id.ToString(), true);
+            navigationManager.NavigateTo("api/file?taskId=" + Id.ToString(), true);
             Task.ActualStatus = TaskState.Downloaded;
         }
     }
