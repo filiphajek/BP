@@ -6,10 +6,10 @@ namespace TaskLauncher.App.Client.Extensions;
 public static class HubConnectionExtension
 {
     public static IDisposable OnNotification(this HubConnection connection, Func<TaskModel, Task> handler)
-        => connection.On("Notify", handler);
+        => connection.On("TaskFinished", handler);
 
     public static IDisposable OnNotification(this HubConnection connection, Action<TaskModel> handler)
-        => connection.On("Notify", handler);
+        => connection.On("TaskFinished", handler);
 
     public static IDisposable OnNewEvent(this HubConnection connection, Action<EventModel> handler)
         => connection.On("SendEvent", handler);

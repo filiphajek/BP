@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Configuration;
@@ -22,7 +23,7 @@ public class SignalRClient : IAsyncDisposable
     private int attemps = 0;
     public int Attemps { get; init; } = 15;
 
-    public SignalRClient(IOptions<ServiceAddresses> serviceAddresses, ManagementTokenService tokenService)
+    public SignalRClient(IOptions<ServiceAddresses> serviceAddresses, ManagementTokenService tokenService, ILoggerProvider loggerProvider)
     {
         Connection = new HubConnectionBuilder()
             .WithUrl(serviceAddresses.Value.HubAddress, options =>
@@ -34,6 +35,11 @@ public class SignalRClient : IAsyncDisposable
                 {
                     ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
                 };
+            })
+            .ConfigureLogging(i =>
+            {
+                i.AddProvider(loggerProvider);
+                i.SetMinimumLevel(LogLevel.Debug);
             })
             .WithAutomaticReconnect()
             .Build();

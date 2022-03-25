@@ -17,7 +17,7 @@ public class SignalRClient : IAsyncDisposable
     private readonly HashSet<IDisposable> registrations = new();
     private readonly ILogger<SignalRClient> logger;
 
-    //pokusy pro prihlaseni na signakr hub
+    //pokusy pro prihlaseni na signalr hub
     private int attemps = 0;
     public int Attemps { get; init; } = 15;
 

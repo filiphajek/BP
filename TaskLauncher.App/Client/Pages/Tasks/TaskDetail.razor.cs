@@ -88,6 +88,7 @@ public partial class TaskDetail : IDisposable
             Status = model.Status,
             Time = model.Time
         });
+        StateHasChanged();
     }
 
     private void StatusChanged(TaskModel model)

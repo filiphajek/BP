@@ -34,8 +34,7 @@ public class TaskUpdateHandler : INotificationHandler<TaskUpdateNotification>
     {
         var connections = userConnectionsStorage.GetConnections(notification.Task.UserId);
         if (notification.Task.State.TaskFinished())
-            await hubContext.Clients.Clients(connections).Notify(notification.Task);
-        else
-            await hubContext.Clients.Clients(connections).SendEvent(notification.Event);
+            await hubContext.Clients.Clients(connections).TaskFinished(notification.Task);
+        await hubContext.Clients.Clients(connections).SendEvent(notification.Event);
     }
 }
