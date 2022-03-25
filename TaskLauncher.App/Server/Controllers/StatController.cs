@@ -64,20 +64,30 @@ public class StatController : BaseController
     [HttpGet("times")]
     public async Task<ActionResult<List<TaskStatResponse>>> GetUserTasksTimes(string? userId = null)
     {
+        var minDate = DateTime.Now.AddDays(-1);
         List<TaskStatResponse> list = new();
+        
         if (!string.IsNullOrEmpty(userId))
         {
             if (!User.IsInRole(TaskLauncherRoles.Admin))
                 return Unauthorized();
 
-            foreach (var task in await dbContext.Tasks.IgnoreQueryFilters().Include(i => i.Events).Where(i => i.UserId == userId).OrderBy(i => i.CreationDate).Take(30).ToListAsync())
+            foreach (var task in await dbContext.Tasks
+                .IgnoreQueryFilters()
+                .Include(i => i.Events)
+                .Where(i => i.UserId == userId)
+                .Where(i => i.CreationDate >= minDate)
+                .ToListAsync())
             {
                 var (TimeInQueue, CpuTime) = GetTimeStats(task);
                 list.Add(new(task.IsPriority, task.Name, TimeInQueue, CpuTime));
             }
             return Ok(list);
         }
-        foreach (var task in await dbContext.Tasks.Include(i => i.Events).OrderBy(i => i.CreationDate).Take(30).ToListAsync())
+        foreach (var task in await dbContext.Tasks
+            .Include(i => i.Events)
+            .Where(i => i.CreationDate >= minDate)
+            .ToListAsync())
         {
             var (TimeInQueue, CpuTime) = GetTimeStats(task);
             list.Add(new(task.IsPriority, task.Name, TimeInQueue, CpuTime));
@@ -90,8 +100,14 @@ public class StatController : BaseController
     [HttpGet("alltimes")]
     public async Task<ActionResult<List<TaskStatResponse>>> GetAllTaskTimes()
     {
+        var minDate = DateTime.Now.AddDays(-1);
         List<TaskStatResponse> list = new();
-        foreach (var task in await dbContext.Tasks.IgnoreQueryFilters().Include(i => i.Events).OrderBy(i => i.CreationDate).Take(30).ToListAsync())
+
+        foreach (var task in await dbContext.Tasks
+            .IgnoreQueryFilters()
+            .Include(i => i.Events)
+            .Where(i => i.CreationDate >= minDate)
+            .ToListAsync())
         {
             var (TimeInQueue, CpuTime) = GetTimeStats(task);
             list.Add(new(task.IsPriority, task.Name, TimeInQueue, CpuTime));

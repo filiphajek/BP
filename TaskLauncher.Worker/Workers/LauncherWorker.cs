@@ -63,16 +63,28 @@ public class LauncherWorker : BackgroundService
             try
             {
                 await TaskExecution(i, tokenSource.Token);
+                if(!tokenSource.TryReset())
+                {
+                    tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                    tokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
+                }
             }
             catch(OperationCanceledException ex)
             {
                 logger.LogError("Task '{0}' timeouted", actualTask.Id);
                 actualTask.State = TaskState.Timeouted;
                 await signalrClient.Connection.InvokeTaskTimeouted(actualTask);
+                tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                tokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
             }
             catch (Exception ex)
             {
                 logger.LogError(ex.ToString());
+                if(actualTask is not null)
+                {
+                    actualTask.State = TaskState.Timeouted;
+                    await signalrClient.Connection.InvokeTaskCrashed(actualTask);
+                }
             }
         });
         signalrClient.RegisterOnCancelTask(async i =>
@@ -141,8 +153,8 @@ public class LauncherWorker : BackgroundService
      
         //ukonceni prace
         isWorking = false;
-        await UpdateTaskAsync(model, TaskState.FinishedSuccess, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
+        await UpdateTaskAsync(model, TaskState.FinishedSuccess, token);
     }
 
     private async Task UpdateTaskAsync(TaskModel model, TaskState state, CancellationToken cancellationToken = default)

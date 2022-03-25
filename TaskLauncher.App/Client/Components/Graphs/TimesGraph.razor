@@ -10,28 +10,34 @@
 
         <div class="card">
             <div class="card-title text-center">
-                <h4 style="margin-top:10px; margin-bottom:0px">Task times</h4>
+                <h4 style="margin-top:10px; margin-bottom:0px">Last activity (time spend by task in queue and worker)</h4>
             </div>
             <div class="card-body">
                 <RadzenChart>
-                    @if (nonViptimes.Count != 0)
-                    {
-                        <RadzenLineSeries Smooth="true" Data="@nonViptimes" CategoryProperty="Index" Title="Cpu time" LineType="LineType.Dashed" ValueProperty="CpuTime">
-                            <RadzenMarkers MarkerType="MarkerType.Square" />
-                        </RadzenLineSeries>
-                        <RadzenLineSeries Smooth="true" Data="@nonViptimes" CategoryProperty="Index" Title="Queue time" LineType="LineType.Dashed" ValueProperty="TimeInQueue">
-                            <RadzenMarkers MarkerType="MarkerType.Square" />
-                        </RadzenLineSeries>
-                    }
-                    @if (vipTimes.Count != 0)
-                    {
-                        <RadzenLineSeries Smooth="true" Data="@vipTimes" CategoryProperty="Index" Title="Queue time" ValueProperty="TimeInQueue">
+                    <RadzenLineSeries Smooth="true" Data="@taskTimes" CategoryProperty="Index" Title="Cpu time" LineType="LineType.Dashed" ValueProperty="CpuTime">
+                        <TooltipTemplate Context="data">
+                            <div>
+                                Cpu time: <b>@data.CpuTimeSpan.ToString(@"hh\:mm\:ss")</b>
+                                <br />
+                                Is vip: <b>@data.IsVip</b>
+                            </div>
+                        </TooltipTemplate>
+                        <ChildContent>
                             <RadzenMarkers MarkerType="MarkerType.Circle" />
-                        </RadzenLineSeries>
-                        <RadzenLineSeries Smooth="true" Data="@vipTimes" CategoryProperty="Index" Title="Cpu time" ValueProperty="CpuTime">
+                        </ChildContent>
+                    </RadzenLineSeries>
+                    <RadzenLineSeries Smooth="true" Data="@taskTimes" CategoryProperty="Index" Title="Queue time" LineType="LineType.Dashed" ValueProperty="TimeInQueue">
+                        <TooltipTemplate Context="data">
+                            <div>
+                                Cpu time: <b>@data.TimeInQueueSpan.ToString(@"hh\:mm\:ss")</b>
+                                <br />
+                                Is vip: <b>@data.IsVip</b>
+                            </div>
+                        </TooltipTemplate>
+                        <ChildContent>
                             <RadzenMarkers MarkerType="MarkerType.Circle" />
-                        </RadzenLineSeries>
-                    }
+                        </ChildContent>
+                    </RadzenLineSeries>
                     <RadzenValueAxis>
                         <RadzenGridLines Visible="true" />
                         <RadzenAxisTitle Text="Time in minutes" />
@@ -47,13 +53,31 @@
 @code
 {
     bool loading = false;
-    record TaskStatDataItem(double CpuTime, double TimeInQueue, string Index);
+
+    record TaskStatDataItem
+    {
+        public TaskStatDataItem(TimeSpan cpuTime, TimeSpan timeInQueue, string index, bool isVip)
+        {
+            CpuTime = Math.Round(cpuTime.TotalMinutes, 2);
+            TimeInQueue = Math.Round(timeInQueue.TotalMinutes, 2);
+            CpuTimeSpan = cpuTime;
+            TimeInQueueSpan = timeInQueue;
+            Index = index;
+            IsVip = isVip;
+        }
+
+        public double CpuTime { get; }
+        public double TimeInQueue { get; }
+        public TimeSpan CpuTimeSpan { get; }
+        public TimeSpan TimeInQueueSpan { get; }
+        public string Index { get; }
+        public bool IsVip { get; }
+    }
 
     [CascadingParameter]
     public Task<AuthenticationState> authenticationStateTask { get; set; } = null!;
 
-    List<TaskStatDataItem> nonViptimes = new();
-    List<TaskStatDataItem> vipTimes = new();
+    List<TaskStatDataItem> taskTimes = new();
 
     protected async override Task OnInitializedAsync()
     {
@@ -72,7 +96,6 @@
     {
         var times = (await client.GetFromJsonAsync<List<TaskStatResponse>>(path))!;
         int j = times.Count, k = times.Count;
-        vipTimes = times.Where(i => i.IsVip).Select(i => new TaskStatDataItem(i.CpuTime.TotalMinutes, i.TimeInQueue.TotalMinutes, (++j).ToString())).ToList();
-        nonViptimes = times.Where(i => !i.IsVip).Select(i => new TaskStatDataItem(i.CpuTime.TotalMinutes, i.TimeInQueue.TotalMinutes, (++k).ToString())).ToList();
+        taskTimes = times.Select(i => new TaskStatDataItem(i.CpuTime, i.TimeInQueue, (++j).ToString(), i.IsVip)).ToList();
     }
 }

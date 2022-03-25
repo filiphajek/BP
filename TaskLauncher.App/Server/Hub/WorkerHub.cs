@@ -116,6 +116,18 @@ public class WorkerHub : Hub<IWorkerHub>
         await SendTask();
     }
 
+    public async Task TaskCrashed(TaskModel model)
+    {
+        var scope = serviceProvider.CreateScope();
+        var updateTaskService = scope.ServiceProvider.GetRequiredService<IUpdateTaskService>();
+        model.State = TaskState.Crashed;
+        await updateTaskService.UpdateTaskAsync(model);
+        await updateTaskService.EndTaskAsync(model);
+        model.State = TaskState.Created;
+        await updateTaskService.UpdateTaskAsync(model);
+        balancer.Enqueue("cancel", model);
+    }
+
     public override async Task OnConnectedAsync()
     {
         //connect

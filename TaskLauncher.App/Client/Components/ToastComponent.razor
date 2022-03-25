@@ -5,24 +5,25 @@
 
 @if(Task.State == TaskState.Timeouted)
 {
-    <p>Task '<a href="tasks/@Task.Id.ToString()">@Task.Name</a>' timeouted</p>
+    <p style="display:inline-block; margin-left:10px">Task <a href="tasks/@Task.Id.ToString()">@Task.Name</a> timeouted</p>
 }
 
 @if(Task.State == TaskState.Crashed)
 {
-    <p>Task '<a href="tasks/@Task.Id.ToString()">@Task.Name</a>' crashed</p>
+    <p style="display:inline-block; margin-left:10px">Task <a href="tasks/@Task.Id.ToString()">@Task.Name</a> crashed</p>
 }
 
 @if(Task.State == TaskState.FinishedSuccess)
 {
-    <p>Task '<a href="tasks/@Task.Id.ToString()">@Task.Name</a>' finished successfully</p>
+    <p style="display:inline-block; margin-left:10px">Task <a href="tasks/@Task.Id.ToString()">@Task.Name</a> finished successfully</p>
 }
 
 @if(Task.State == TaskState.FinishedFailure)
 {
-    <p>Task '<a href="tasks/@Task.Id.ToString()">@Task.Name</a>' finished with error</p>
+    <p style="display:inline-block; margin-left:10px">Task <a href="tasks/@Task.Id.ToString()">@Task.Name</a> finished with error</p>
 }
 
 @code{
+    [Parameter]
     public TaskModel Task{ get; set; }
 }

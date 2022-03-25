@@ -21,7 +21,7 @@
                         <RadzenGridLines Visible="true" />
                         <RadzenAxisTitle Text="Count" />
                     </RadzenValueAxis>
-                    <RadzenCategoryAxis Max="@maxDays">
+                    <RadzenCategoryAxis Max=@DateTime.Now.Date FormatString="{0:dd.MM}">
                         <RadzenAxisTitle Text="Day" />
                     </RadzenCategoryAxis>
                 </RadzenChart>
@@ -40,18 +40,18 @@
     public string UserId { get; set; }
 
     bool loading = false;
-    int maxDays = 0;
+    int maxDays = 31;
 
     record DayTaskCountDataItem
     {
-        public DayTaskCountDataItem(int count, int date)
+        public DayTaskCountDataItem(int count, DateTime date)
         {
             Count = count;
             Date = date;
         }
 
         public int Count { get; set; }
-        public int Date { get; set; }
+        public DateTime Date { get; set; }
     }
 
     List<DayTaskCountDataItem> normalTasksPerDays = new();
@@ -89,26 +89,19 @@
     async Task<List<DayTaskCountDataItem>> LoadTaskCountPerDay(string path)
     {
         var days = (await client.GetFromJsonAsync<List<DayTaskCountResponse>>(path))!;
-        if (maxDays < days.Count)
-            maxDays = days.Count + 2;
-
         var list = new List<DayTaskCountDataItem>();
-        for (int i = 0; i < 31; i++)
+        var date = DateTime.Now.AddDays(-maxDays);
+
+        for (int i = 1; i < maxDays + 1; i++)
         {
-            list.Add(new DayTaskCountDataItem(0, DateTime.Now.AddDays(30 - i).Date.Day));
-            foreach (var item in days)
+            var column = new DayTaskCountDataItem(0, date.Date);
+            list.Add(column);
+            var tmp = days.SingleOrDefault(i => i.Date == date.Date);
+            if(tmp is not null)
             {
-                if (list[i].Date == item.Date.Day)
-                {
-                    list[i].Count = item.Count;
-                }
+                column.Count = tmp.Count;
             }
-        }
-        var firstDay = list.FirstOrDefault(i => i.Count != 0);
-        if (firstDay is not null)
-        {
-            var firstDayIndex = list.IndexOf(firstDay);
-            list.RemoveRange(0, firstDayIndex);
+            date = date.AddDays(1);
         }
         return list;
     }
