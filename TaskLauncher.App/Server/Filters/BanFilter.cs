@@ -41,6 +41,11 @@ public class BanFilter : IAsyncAuthorizationFilter
 
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
+        if (context.HttpContext.User.TryGetClaimValue("azp", out var azp) && azp == "1MBhNBPqfSs8FYlaHoFLe2uRwa5BV5Qa")
+        {
+            return;
+        }
+
         if (context.HttpContext.User.TryGetAuth0Id(out var userId))
         {
             if (context.HttpContext.User.IsInRole(TaskLauncherRoles.Admin))

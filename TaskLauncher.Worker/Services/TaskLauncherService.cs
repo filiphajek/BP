@@ -37,6 +37,7 @@ public class TaskLauncherService : ITaskLauncherService
             Cmd = config.ContainerArguments,
             HostConfig = new HostConfig
             {
+                AutoRemove = true,
                 Binds = new List<string>() { $"{config.Source}:/{config.Target}" }
             }
         }, token);

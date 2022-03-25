@@ -29,7 +29,7 @@ public class NewTaskHandler : INotificationHandler<NewTaskNotification>
 
     public async Task Handle(NewTaskNotification notification, CancellationToken cancellationToken)
     {
-        var connections = cache.Where(i => i.Value is null).Select(i => i.Key);
+        var connections = cache.Where(i => i.Value.Id == Guid.Empty).Select(i => i.Key);
         await workerHub.Clients.Clients(connections).WakeUpWorkers();
     }
 }

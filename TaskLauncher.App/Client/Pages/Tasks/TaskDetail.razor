@@ -10,14 +10,13 @@
             <div class="card">
                 <div class="card-body">
 
-                    @*TODO pokud neni na status znacka -> mit tu jen header at se mi to nerozhodi*@
                     <h1 class="card-title text-center d-flex justify-content-between align-items-center">
                         <div style="margin:0px; padding:0px; margin-left:15px">
-                            <TaskLauncher.App.Client.Components.TaskStatus State="Task.ActualStatus"/>
+                            <TaskLauncher.App.Client.Components.TaskStatus State="Task.ActualStatus" />
                         </div>
                         @Task.Name
                         <span>
-                            <span class="oi oi-pencil btn" style="font-size:1em; margin-right:15px" @onclick="UpdateAsync"></span>
+                            <span class="oi oi-pencil btn" style="font-size:1em; margin-right:15px;" @onclick="UpdateAsync"></span>
                         </span>
                     </h1>
 
@@ -30,30 +29,50 @@
                             Status: <b>@Task.ActualStatus &nbsp</b>
                         </span>
 
-                        @if (Task.ActualStatus == TaskState.Created || Task.ActualStatus == TaskState.Running || Task.ActualStatus == TaskState.Ready)
-                        {
-                            <button @onclick="CancelTask" class="btn btn-danger">Cancel task</button>
-                        }
 
-                        @if (Task.ActualStatus == TaskState.FinishedSuccess || Task.ActualStatus == TaskState.Downloaded)
+                        @if (Task.ActualStatus == TaskState.FinishedSuccess || Task.ActualStatus == TaskState.FinishedFailure || Task.ActualStatus == TaskState.Downloaded)
                         {
                             <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
                         }
 
-                        @if (Task.ActualStatus == TaskState.Downloaded)
-                        {
-                            <button class="btn btn-danger">Close task</button>
-                        }
+                        <AuthorizeView Policy="@TaskLauncherPolicies.UserPolicy">
+                            <Authorized>
+                                @if (Task.ActualStatus == TaskState.Created)
+                                {
+                                    <button class="btn btn-danger" @onclick="CancelTask">Cancel task</button>
+                                }
 
-                        @if (Task.ActualStatus == TaskState.Cancelled)
-                        {
-                            <button class="btn btn-primary">Start task again</button>
-                        }
+                                @if (Task.ActualStatus == TaskState.Downloaded)
+                                {
+                                    <button class="btn btn-danger" @onclick="CloseTask">Close task</button>
+                                }
 
-                        @if (message != "")
-                        {
-                            <p>@message</p>
-                        }
+                                @if (Task.ActualStatus == TaskState.Timeouted)
+                                {
+                                    <button class="btn btn-primary" @onclick="RestartTask">Restart task</button>
+                                }
+
+                                @if (Task.ActualStatus == TaskState.Cancelled)
+                                {
+                                    <button class="btn btn-danger" @onclick="DeleteTask">Delete task</button>
+                                }
+
+                                @if (message != "")
+                                {
+                                    <p>@message</p>
+                                }
+                            </Authorized>
+                        </AuthorizeView>
+
+                        <AuthorizeView Policy="@TaskLauncherPolicies.AdminPolicy">
+                            <Authorized>
+                                @if (Task.ActualStatus == TaskState.Closed || Task.ActualStatus == TaskState.Cancelled)
+                                {
+                                    <button class="btn btn-danger" @onclick="DeleteTask">Delete task</button>
+                                }
+                            </Authorized>
+                        </AuthorizeView>
+
                     </div>
 
                     <div class="row card-body" style="margin:0px">

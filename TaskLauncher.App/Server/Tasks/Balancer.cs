@@ -1,8 +1,6 @@
 ﻿using MediatR;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using RoundRobin;
-using TaskLauncher.App.Server.Hub;
 using TaskLauncher.App.Server.Notifications;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;

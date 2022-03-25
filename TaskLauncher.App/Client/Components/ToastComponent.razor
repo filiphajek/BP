@@ -1,0 +1,29 @@
+﻿@using TaskLauncher.Common.Enums
+@using TaskLauncher.Common.Models
+
+<TaskStatus State=Task.State/>
+
+@if(Task.State == TaskState.Timeouted)
+{
+    <p style="display:inline-block; margin-left:10px">Task <a href="tasks/@Task.Id.ToString()">@Task.Name</a> timeouted</p>
+}
+
+@if(Task.State == TaskState.Crashed)
+{
+    <p style="display:inline-block; margin-left:10px">Task <a href="tasks/@Task.Id.ToString()">@Task.Name</a> crashed</p>
+}
+
+@if(Task.State == TaskState.FinishedSuccess)
+{
+    <p style="display:inline-block; margin-left:10px">Task <a href="tasks/@Task.Id.ToString()">@Task.Name</a> finished successfully</p>
+}
+
+@if(Task.State == TaskState.FinishedFailure)
+{
+    <p style="display:inline-block; margin-left:10px">Task <a href="tasks/@Task.Id.ToString()">@Task.Name</a> finished with error</p>
+}
+
+@code{
+    [Parameter]
+    public TaskModel Task{ get; set; }
+}

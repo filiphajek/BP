@@ -43,11 +43,9 @@ public class LauncherWorker : BackgroundService
         this.signalrClient = signalrClient;
     }
 
-    //TODO synchonizace pomoci semaforu? pri update zprave na server a cancel zprave ze serveru
-    //TODO zachytit a zalogovat cancel exceptiony -> melo by byt ok ale testnout https://docs.microsoft.com/en-us/dotnet/core/compatibility/core-libraries/6.0/hosting-exception-handling
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Delay(5000, stoppingToken);
         //ziskani autorizacniho tokenu k web api
         var token = await managementTokenService.GetApiToken(new(), "task-api", false);
         httpClient.SetBearerToken(token);
@@ -65,14 +63,28 @@ public class LauncherWorker : BackgroundService
             try
             {
                 await TaskExecution(i, tokenSource.Token);
+                if(!tokenSource.TryReset())
+                {
+                    tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                    tokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
+                }
             }
             catch(OperationCanceledException ex)
             {
                 logger.LogError("Task '{0}' timeouted", actualTask.Id);
+                actualTask.State = TaskState.Timeouted;
+                await signalrClient.Connection.InvokeTaskTimeouted(actualTask);
+                tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                tokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
             }
             catch (Exception ex)
             {
                 logger.LogError(ex.ToString());
+                if(actualTask is not null)
+                {
+                    actualTask.State = TaskState.Timeouted;
+                    await signalrClient.Connection.InvokeTaskCrashed(actualTask);
+                }
             }
         });
         signalrClient.RegisterOnCancelTask(async i =>
@@ -90,10 +102,6 @@ public class LauncherWorker : BackgroundService
             {
                 logger.LogInformation("is working?");
                 await signalrClient.Connection.InvokeRequestWork();
-            }
-            else
-            {
-
             }
         });
 
@@ -142,19 +150,17 @@ public class LauncherWorker : BackgroundService
         {
             await fileService.UploadFileAsync(model.ResultFilePath, resultFile, token);
         }
-        
+     
+        //ukonceni prace
         isWorking = false;
-
-        await UpdateTaskAsync(model, TaskState.FinishedSuccess, token);
         logger.LogInformation("Task '{0}' finished", model.Id);
-        //await signalrClient.Connection.InvokeTaskStatusChanged(model);
+        await UpdateTaskAsync(model, TaskState.FinishedSuccess, token);
     }
 
     private async Task UpdateTaskAsync(TaskModel model, TaskState state, CancellationToken cancellationToken = default)
     {
         model.State = state;
         model.Time = DateTime.Now;
-        //await httpClient.PutAsJsonAsync("launcher/task", new TaskStatusUpdateRequest { Id = model.Id, State = model.State, Time = model.Time }, cancellationToken);
         await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 

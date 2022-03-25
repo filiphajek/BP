@@ -1,7 +1,9 @@
-﻿using Blazored.Toast.Services;
+﻿using Blazored.Toast;
+using Blazored.Toast.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
+using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Client.Components;
 
@@ -23,6 +25,13 @@ public class NotificationComponent : ComponentBase
     [CascadingParameter]
     public Task<AuthenticationState> authenticationStateTask { get; set; }
 
+    static RenderFragment CreateDynamicComponent(TaskModel model) => builder =>
+    {
+        builder.OpenComponent(0, typeof(ToastComponent));
+        builder.AddAttribute(1, nameof(ToastComponent.Task), model);
+        builder.CloseComponent();
+    };
+
     protected async override Task OnInitializedAsync()
     {
         var state = await authenticationStateTask;
@@ -38,7 +47,21 @@ public class NotificationComponent : ComponentBase
             if (SignalRClient.Connection.State != Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
             {
                 await SignalRClient.TryToConnect();
-                SignalRClient.RegisterOnTaskUpdate(i => ToastService.ShowSuccess($"Task finished {i.Id}"));
+                SignalRClient.RegisterOnTaskUpdate(i =>
+                {
+                    var toastParameters = new ToastParameters();
+                    switch (i.State)
+                    {
+                        case Common.Enums.TaskState.FinishedFailure:
+                        case Common.Enums.TaskState.Timeouted:
+                        case Common.Enums.TaskState.Crashed:
+                            ToastService.ShowError(CreateDynamicComponent(i));
+                            break;
+                        case Common.Enums.TaskState.FinishedSuccess:
+                            ToastService.ShowSuccess(CreateDynamicComponent(i));
+                            break;
+                    }
+                });
             }
         }
     }

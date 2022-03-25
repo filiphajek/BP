@@ -45,11 +45,7 @@ public class SignalRClient : IAsyncDisposable
         var tmp = Connection.OnNotification(i =>
         {
             logger.LogInformation("New task update '{0}'", i.Id);
-            if (OnTaskUpdate is not null)
-            {
-                OnTaskUpdate.Invoke(i);
-                return;
-            }
+            OnTaskUpdate?.Invoke(i);
             handler.Invoke(i);
         });
         registrations.Add(tmp);
