@@ -19,10 +19,13 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 //konfigurace
 var serviceAddresses = new ServiceAddresses();
-builder.Configuration.Bind(nameof(ServiceAddresses), serviceAddresses);
+serviceAddresses.HubAddress = builder.HostEnvironment.BaseAddress + "UserHub";
 builder.Services.AddSingleton(serviceAddresses);
+
 var auth0Config = new Auth0ApiClientConfiguration();
+var tmp = new Uri(builder.HostEnvironment.BaseAddress);
 builder.Configuration.Bind(nameof(Auth0ApiClientConfiguration), auth0Config);
+auth0Config.Domain = tmp.Authority;
 builder.Services.AddSingleton(auth0Config);
 
 //mapper

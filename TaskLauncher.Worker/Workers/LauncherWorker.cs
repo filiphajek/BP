@@ -39,7 +39,9 @@ public class LauncherWorker : BackgroundService
         this.fileService = fileService;
         this.managementTokenService = managementTokenService;
         this.launcher = launcher;
-        httpClient = new HttpClient { BaseAddress = serviceAddresses.Value.WebApiAddressUri };
+        HttpClientHandler handler = new();
+        handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+        httpClient = new HttpClient(handler) { BaseAddress = serviceAddresses.Value.WebApiAddressUri };
         this.signalrClient = signalrClient;
     }
 

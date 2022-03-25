@@ -23,9 +23,6 @@ public partial class TaskDetail : IDisposable
     protected NavigationManager navigationManager { get; set; }
 
     [Inject]
-    protected ServiceAddresses serviceAddresses { get; set; }
-
-    [Inject]
     protected SignalRClient signalRClient { get; set; }
 
     [Inject]
