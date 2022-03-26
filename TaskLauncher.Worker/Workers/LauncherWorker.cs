@@ -22,6 +22,7 @@ public class LauncherWorker : BackgroundService
     private readonly ILogger<LauncherWorker> logger;
     private readonly IFileStorageService fileService;
     private readonly ManagementTokenService managementTokenService;
+    private readonly TaskLauncherConfig config;
 
     private TaskCompletionSource<bool> tmpCompletionSource = new();
     private CancellationTokenSource? tokenSource = null;
@@ -30,11 +31,13 @@ public class LauncherWorker : BackgroundService
 
     public LauncherWorker(ILogger<LauncherWorker> logger,
         IFileStorageService fileService,
+        IOptions<TaskLauncherConfig> config,
         ManagementTokenService managementTokenService,
         ITaskLauncherService launcher,
         IOptions<ServiceAddresses> serviceAddresses,
         SignalRClient signalrClient)
     {
+        this.config = config.Value;
         this.logger = logger;
         this.fileService = fileService;
         this.managementTokenService = managementTokenService;
@@ -126,8 +129,11 @@ public class LauncherWorker : BackgroundService
         actualTask = model;
         logger.LogInformation("Starting execution of task '{0}'", model.Id);
 
+        if(!config.Target.StartsWith("/"))
+            config.Target = "/" + config.Target;
+
         //stazeni souboru
-        using (var file = File.Create("task.txt"))
+        using (var file = File.Create(Path.Combine(config.Target, "task.txt")))
         {
             await fileService.DownloadFileAsync(model.TaskFilePath, file, token);
         }
@@ -145,10 +151,10 @@ public class LauncherWorker : BackgroundService
         await UpdateTaskAsync(model, TaskState.Running, token);
 
         //cekani az se dokonci task
-        await launcher.WaitContainer(tmp.ContainerId, token);
+        var exitCode = await launcher.WaitContainer(tmp.ContainerId, token);
 
         //upload souboru s vysledkem
-        using (var resultFile = File.Open("task.txt", FileMode.Open))
+        using (var resultFile = File.Open(Path.Combine(config.Target, "task.txt"), FileMode.Open))
         {
             await fileService.UploadFileAsync(model.ResultFilePath, resultFile, token);
         }
@@ -156,7 +162,7 @@ public class LauncherWorker : BackgroundService
         //ukonceni prace
         isWorking = false;
         logger.LogInformation("Task '{0}' finished", model.Id);
-        await UpdateTaskAsync(model, TaskState.FinishedSuccess, token);
+        await UpdateTaskAsync(model, exitCode == 0 ? TaskState.FinishedFailure : TaskState.FinishedSuccess, token);
     }
 
     private async Task UpdateTaskAsync(TaskModel model, TaskState state, CancellationToken cancellationToken = default)

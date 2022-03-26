@@ -34,7 +34,7 @@ public class TaskLauncherService : ITaskLauncherService
         var container = await client.Containers.CreateContainerAsync(new CreateContainerParameters()
         {
             Image = config.ImageName,
-            Cmd = config.ContainerArguments,
+            Cmd = config.ContainerArguments.GetArgumentsList(),
             HostConfig = new HostConfig
             {
                 AutoRemove = true,

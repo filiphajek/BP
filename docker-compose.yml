@@ -51,6 +51,7 @@ services:
     environment:
       - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
       - ServiceAddresses__HubAddress=https://tasklauncher.app.server:443/WorkerHub
+      - TaskLauncherConfig__Source=bp_worker-vol
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - worker-vol:/app/tmp
