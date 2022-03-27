@@ -46,7 +46,6 @@ public class FileStorageService : IFileStorageService
     {
         await foreach (var item in storageClient.ListObjectsAsync(configuration.BucketName))
         {
-            Console.WriteLine(item.Name);
             if (!item.TimeCreated.HasValue)
                 continue;
 
@@ -54,6 +53,7 @@ public class FileStorageService : IFileStorageService
             if (tmp.Days > days)
             {
                 await storageClient.DeleteObjectAsync(item, cancellationToken: cancellationToken);
+                Console.WriteLine("Removing " + item.Name);
             }
         }
     }

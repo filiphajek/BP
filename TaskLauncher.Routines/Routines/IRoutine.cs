@@ -1,4 +1,4 @@
-﻿namespace TaskLauncher.App.Server.Routines;
+﻿namespace TaskLauncher.Routines.Routines;
 
 public interface IRoutine
 {

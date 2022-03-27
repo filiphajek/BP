@@ -133,6 +133,39 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [AllowAnonymous]
+    [HttpPost("/registerbypasswordflow")]
+    public async Task<IActionResult> RegisterM2MAsync(CookieLessUserRegistrationModel request)
+    {
+        var auth0client = await apiClientFactory.GetClient();
+        var user = await auth0client.Users.CreateAsync(new()
+        {
+            Connection = "Username-Password-Authentication",
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            EmailVerified = false,
+            NickName = request.NickName,
+            Password = request.Password,
+        });
+
+        //role
+        await auth0client.Roles.AssignUsersAsync("rol_6Vh7zpX3Z61sN307", new() { Users = new[] { user.UserId } });
+        //vip
+        var resultUser = await auth0client.Users.UpdateAsync(user.UserId,
+            new() { AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }") });
+
+        //init databaze
+        var userId = user.UserId;
+        var balanceConfig = await context.Configs.SingleAsync(i => i.Key == "starttokenbalance");
+        await context.TokenBalances.AddAsync(new() { CurrentAmount = int.Parse(balanceConfig.Value), LastAdded = DateTime.Now, UserId = userId });
+        await context.Stats.AddAsync(new() { UserId = userId, IsVip = true });
+        await context.Stats.AddAsync(new() { UserId = userId, IsVip = false });
+        await context.SaveChangesAsync();
+
+        return Ok(resultUser.GetModel());
+    }
+
     /// <summary>
     /// Refresh token endpoint
     /// </summary>
@@ -184,7 +217,6 @@ public class AuthController : ControllerBase
     /// Dokonceni registrace
     /// </summary>
     [Authorize(Policy = "not-registered")]
-    [AllowAnonymous]
     [HttpPost("signup")]
     public async Task<IActionResult> SignUpAsync(UserRegistrationModel request)
     {
