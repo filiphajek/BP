@@ -1,12 +1,11 @@
+using Blazored.Toast.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Net.Http.Json;
 using TaskLauncher.Api.Contracts.Responses;
-using TaskLauncher.App.Client.Extensions;
 using TaskLauncher.App.Client.Models;
 using TaskLauncher.App.Client.Store;
-using TaskLauncher.Authorization;
 using TaskLauncher.Common.Extensions;
 
 namespace TaskLauncher.App.Client.Pages.Tasks;
@@ -14,10 +13,12 @@ namespace TaskLauncher.App.Client.Pages.Tasks;
 public partial class AddTask
 {
     protected TaskModel Model { get; set; } = new();
-    protected bool showError = false;
     protected List<string> errorMessages = new();
     private string fileName;
     private IBrowserFile file;
+
+    [Inject]
+    public IToastService ToastService { get; set; }
 
     [Inject]
     public TokenStore TokenStore { get; set; }
@@ -31,13 +32,11 @@ public partial class AddTask
     //vytvoreni tasku, poslani http dotazu se zadanym souborem
     private async Task Create()
     {
-        showError = false;
         if (string.IsNullOrEmpty(fileName))
             errorMessages.Add("Select file");
 
         if (errorMessages.Count > 0)
         {
-            showError = true;
             return;
         }
 
@@ -52,14 +51,21 @@ public partial class AddTask
             }
             else
             {
-                showError = true;
+                var tmp = await response.Content.ReadFromJsonAsync<ErrorMessageResponse>();
+                if(tmp is not null)
+                {
+                    ToastService.ShowError(tmp.Error);
+                }
+                else
+                {
+                    ToastService.ShowError("Internal error");
+                }
             }
         }
     }
 
     private void HandleSelected(InputFileChangeEventArgs e)
     {
-        showError = false;
         errorMessages.Clear();
         file = e.File;
         fileName = e.File.Name;

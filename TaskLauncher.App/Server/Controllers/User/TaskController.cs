@@ -122,9 +122,13 @@ public class TaskController : UserODataController<TaskResponse>
         await semaphoreSlim.WaitAsync();
         var token = await context.TokenBalances.SingleOrDefaultAsync();
         if (token is null || token.CurrentAmount <= 0)
-            return BadRequest(new { err = "No balance" });
+            return BadRequest(new ErrorMessageResponse("No balance"));
 
         token.CurrentAmount -= price;
+
+        if(token.CurrentAmount < 0)
+            return BadRequest(new ErrorMessageResponse("Not enough token balance"));
+
         context.Update(token);
         await context.SaveChangesAsync();
         semaphoreSlim.Release();

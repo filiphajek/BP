@@ -3,6 +3,9 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.Worker.Extensions;
 
+/// <summary>
+/// Pomocne metody pro odebirani/poslani zprav pomoci signalr
+/// </summary>
 public static class HubConnectionExtension
 {
     public static IDisposable OnTaskStarted(this HubConnection connection, Func<TaskModel, Task> handler)

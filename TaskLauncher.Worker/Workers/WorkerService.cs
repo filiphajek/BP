@@ -14,22 +14,24 @@ using TaskLauncher.Api.Contracts.Responses;
 
 namespace TaskLauncher.Worker.Workers;
 
-public class LauncherWorker : BackgroundService
+/// <summary>
+/// Implementace workera jako BackgroundService
+/// </summary>
+public class WorkerService : BackgroundService
 {
     private readonly ITaskLauncherService launcher;
     private readonly HttpClient httpClient;
     private readonly SignalRClient signalrClient;
-    private readonly ILogger<LauncherWorker> logger;
+    private readonly ILogger<WorkerService> logger;
     private readonly IFileStorageService fileService;
     private readonly ManagementTokenService managementTokenService;
     private readonly TaskLauncherConfig config;
 
     private TaskCompletionSource<bool> tmpCompletionSource = new();
-    private CancellationTokenSource? tokenSource = null;
     private TaskModel? actualTask = null;
     private bool isWorking = false;
 
-    public LauncherWorker(ILogger<LauncherWorker> logger,
+    public WorkerService(ILogger<WorkerService> logger,
         IFileStorageService fileService,
         IOptions<TaskLauncherConfig> config,
         ManagementTokenService managementTokenService,
@@ -48,81 +50,93 @@ public class LauncherWorker : BackgroundService
         this.signalrClient = signalrClient;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    /// <summary>
+    /// Inicializace http klienta, ceka se dokud nepobezi server
+    /// </summary>
+    public override async Task StartAsync(CancellationToken cancellationToken)
     {
-        await Task.Delay(5000, stoppingToken);
+        //cekani na server
+        await WaitForServerStartAsync(cancellationToken);
+
         //ziskani autorizacniho tokenu k web api
         var token = await managementTokenService.GetApiToken(new(), "task-api", false);
         httpClient.SetBearerToken(token);
+        await base.StartAsync(cancellationToken);
+    }
 
-        var config = await httpClient.GetFromJsonAsync<ConfigResponse>("api/config/worker?key=tasktimeout", stoppingToken);
-        var timeout = 40;
-        if (config is not null)
-            _ = int.TryParse(config.Value, out timeout);
-
-        tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        tokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
-
+    /// <summary>
+    /// Hlavni funkce sluzby
+    /// </summary>
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        //registrace akce na prijeti tasku
         signalrClient.RegisterOnReceivedTask(async i =>
         {
+            //ziskani hodnoty timeoutu
+            var timeout = await GetTimeoutValue(stoppingToken);
+            
+            //nastaveni tokensource, ukonci task pokud nestihne do zadane doby vykonat
+            var timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+            timeoutTokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
             try
             {
-                await TaskExecution(i, tokenSource.Token);
-                if(!tokenSource.TryReset())
-                {
-                    tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-                    tokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
-                }
+                //vykonani tasku
+                await TaskExecution(i, timeoutTokenSource.Token);
             }
-            catch(OperationCanceledException ex)
+            catch (OperationCanceledException)
             {
+                if (actualTask is null)
+                    return;
+
+                //task se nestihl dodelat nebo se zacyklil
                 logger.LogError("Task '{0}' timeouted", actualTask.Id);
                 actualTask.State = TaskState.Timeouted;
                 await signalrClient.Connection.InvokeTaskTimeouted(actualTask);
-                tokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-                tokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
             }
             catch (Exception ex)
             {
+                //necekana vyjimka, task spadl
                 logger.LogError(ex.ToString());
-                if(actualTask is not null)
+                if (actualTask is not null)
                 {
                     actualTask.State = TaskState.Timeouted;
                     await signalrClient.Connection.InvokeTaskCrashed(actualTask);
                 }
             }
-        });
-        signalrClient.RegisterOnCancelTask(async i =>
-        {
-            if (actualTask is not null && i.Id == actualTask.Id)
+            finally
             {
-                actualTask.State = TaskState.Cancelled;
-                await signalrClient.Connection.InvokeRequestWork();
-                tokenSource.Cancel();
+                timeoutTokenSource.Dispose();
+                timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                logger.LogInformation("xdd");
             }
         });
+        
+        //registrace akce na wake up zpravu
         signalrClient.Connection.OnWakeUpMessage(async () =>
         {
             if (!isWorking)
             {
-                logger.LogInformation("is working?");
+                logger.LogInformation("Worker is active again");
                 await signalrClient.Connection.InvokeRequestWork();
             }
         });
 
         //pripojeni na signalr hub
-        await signalrClient.TryToConnect(tokenSource.Token);
+        await signalrClient.TryToConnect(stoppingToken);
         logger.LogInformation("Connected, worker is starting");
 
-        //hlavni smycka
+        //smycka
         while (true)
         {
-            tokenSource.Token.ThrowIfCancellationRequested();
+            stoppingToken.ThrowIfCancellationRequested();
             await tmpCompletionSource.Task;
             tmpCompletionSource = new();
         }
     }
 
+    /// <summary>
+    /// Funkce ktera vykonava dany task, spousti kontejner se souborem a aktualizuje stav tasku
+    /// </summary>
     private async Task TaskExecution(TaskModel model, CancellationToken token)
     {
         isWorking = true;
@@ -158,13 +172,29 @@ public class LauncherWorker : BackgroundService
         {
             await fileService.UploadFileAsync(model.ResultFilePath, resultFile, token);
         }
-     
+
         //ukonceni prace
+        actualTask = null;
         isWorking = false;
         logger.LogInformation("Task '{0}' finished", model.Id);
         await UpdateTaskAsync(model, exitCode == 0 ? TaskState.FinishedFailure : TaskState.FinishedSuccess, token);
     }
 
+    /// <summary>
+    /// Metoda pro zistani aktualni hodnoty timeoutu
+    /// </summary>
+    private async Task<int> GetTimeoutValue(CancellationToken cancellationToken)
+    {
+        var config = await httpClient.GetFromJsonAsync<ConfigResponse>("api/config/worker?key=tasktimeout", cancellationToken);
+        var timeout = 40;
+        if (config is not null)
+            _ = int.TryParse(config.Value, out timeout);
+        return timeout;
+    }
+
+    /// <summary>
+    /// Aktualizace stavu tasku
+    /// </summary>
     private async Task UpdateTaskAsync(TaskModel model, TaskState state, CancellationToken cancellationToken = default)
     {
         model.State = state;
@@ -172,10 +202,28 @@ public class LauncherWorker : BackgroundService
         await signalrClient.Connection.InvokeTaskStatusChanged(model);
     }
 
+    /// <summary>
+    /// Ukonceni spojeni
+    /// </summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Service is stopping");
         await signalrClient.DisposeAsync();
         await base.StopAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Cekani na server
+    /// </summary>
+    private async Task WaitForServerStartAsync(CancellationToken cancellationToken)
+    {
+        var response = await httpClient.GetAsync("health", cancellationToken);
+        while (!response.IsSuccessStatusCode)
+        {
+            response = await httpClient.GetAsync("health", cancellationToken);
+            logger.LogInformation("Waiting for server");
+            await Task.Delay(5, cancellationToken);
+        }
+        logger.LogInformation("Server live");
     }
 }

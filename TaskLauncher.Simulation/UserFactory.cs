@@ -10,30 +10,35 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.Simulation;
 
+/// <summary>
+/// Vytvari uzivatele
+/// </summary>
 public class UserFactory
 {
-    private readonly HttpClient client = new();
     private readonly Auth0ApiConfiguration config;
     private readonly ServiceAddresses options;
+    private readonly HttpClient client;
     private ManagementApiClient auth0client;
 
-    public UserFactory(IOptions<Auth0ApiConfiguration> config, IOptions<ServiceAddresses> options)
+    public UserFactory(IOptions<Auth0ApiConfiguration> config, IOptions<ServiceAddresses> options, HttpClient client)
     {
         this.config = config.Value;
         this.options = options.Value;
+        this.client = client;
     }
 
+    /// <summary>
+    /// Inicializacem je treba ziskat access token k auth0
+    /// </summary>
     public async Task Initialize()
     {
         var token = await GetTokenAsync();
         auth0client = new ManagementApiClient(token, options.WebApiAddressUri.Authority);
     }
 
-    public async Task RemoveUser(string userId)
-    {
-        await auth0client.Users.DeleteAsync(userId);
-    }
-
+    /// <summary>
+    /// Vytvari vip/normal uzivatele
+    /// </summary>
     public async Task<UserModel> CreateUser(bool vip)
     {
         var faker = new Faker<UserModel>()
@@ -42,13 +47,13 @@ public class UserFactory
             .RuleFor(i => i.NickName, (x, y) => y.FirstName)
             .RuleFor(i => i.Email, (x, y) => x.Internet.Email(y.FirstName, y.LastName));
 
-        var name = faker.Generate();
+        var model = faker.Generate();
         var registration = await client.PostAsJsonAsync("registerbypasswordflow", new CookieLessUserRegistrationModel
         {
-            FirstName = name.FirstName,
-            LastName = name.LastName,
-            Email = name.Email,
-            NickName = name.NickName,
+            FirstName = model.FirstName,
+            LastName = model.LastName,
+            Email = model.Email,
+            NickName = model.NickName,
             Password = "Password123*",
             PhoneNumber = "+420123456789"
         });
@@ -58,8 +63,9 @@ public class UserFactory
         return resultUser.GetModel();
     }
 
-    private record AccessTokenItem(string access_token);
-    
+    /// <summary>
+    /// Funkce ziskavajici access token k management api auth0
+    /// </summary>
     private async Task<string> GetTokenAsync()
     {
         var payload = new
@@ -79,4 +85,9 @@ public class UserFactory
         }
         throw new ApplicationException("Access token was not generated");
     }
+
+    /// <summary>
+    /// Pomocny rekord pro deserializaci
+    /// </summary>
+    private record AccessTokenItem(string access_token);
 }

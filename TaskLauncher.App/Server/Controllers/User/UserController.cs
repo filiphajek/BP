@@ -31,7 +31,7 @@ public class UserController : BaseController
     /// </summary>
     [Authorize(Policy = TaskLauncherPolicies.CanCancelAccount)]
     [HttpDelete]
-    public async Task<IActionResult> GetBanAsync()
+    public async Task<IActionResult> DeleteAccountAsync()
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
@@ -44,11 +44,19 @@ public class UserController : BaseController
         context.TokenBalances.RemoveRange(await context.TokenBalances.ToListAsync());
         context.Bans.RemoveRange(await context.Bans.ToListAsync());
         context.Events.RemoveRange(await context.Events.ToListAsync());
+        context.Stats.RemoveRange(await context.Stats.ToListAsync());
+
         await context.SaveChangesAsync();
 
-        var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
-        await HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        try
+        {
+            //kvuli pristupu pres access token
+            var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
+            await HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        }
+        catch { }
+
         return Ok();
     }
 

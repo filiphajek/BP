@@ -5,30 +5,64 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
-using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Extensions;
 
 namespace TaskLauncher.Simulation;
 
+public class ApiClient : HttpClient
+{
+    public HttpClient Client { get; }
+
+    public ApiClient(HttpClient client) : base()
+    {
+        Client = client;
+        BaseAddress = client.BaseAddress;
+    }
+}
+
+/// <summary>
+/// Sluzbu implementujici simulaci uzivatelu pristupujici ke sluzbe
+/// </summary>
 public class SimulationService : BackgroundService
 {
     private readonly UserFactory userFactory;
     private readonly ILogger<SimulationService> logger;
-    private readonly ServiceAddresses options;
+    private readonly IHttpClientFactory httpClientFactory;
+    private readonly HttpClient httpClient;
     private readonly SimulationConfig simulationOptions;
     private readonly Random random = new(Guid.NewGuid().GetHashCode());
 
     public SimulationService(UserFactory userFactory, 
         ILogger<SimulationService> logger, 
-        IOptions<ServiceAddresses> options, 
+        IHttpClientFactory httpClientFactory,
+        HttpClient httpClient,
         IOptions<SimulationConfig> simulationOptions)
     {
         this.userFactory = userFactory;
         this.logger = logger;
-        this.options = options.Value;
+        this.httpClientFactory = httpClientFactory;
+        this.httpClient = httpClient;
         this.simulationOptions = simulationOptions.Value;
     }
 
+    /// <summary>
+    /// Cekani na server, inicializace
+    /// </summary>
+    public override async Task StartAsync(CancellationToken cancellationToken)
+    {
+        var response = await httpClient.GetAsync("health", cancellationToken);
+        while (!response.IsSuccessStatusCode)
+        {
+            response = await httpClient.GetAsync("health", cancellationToken);
+            logger.LogInformation("Waiting for server");
+            await Task.Delay(5, cancellationToken);
+        }
+        await userFactory.Initialize();
+    }
+
+    /// <summary>
+    /// Hlavni funkce simulace
+    /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var tasks = new List<Task>();
@@ -48,18 +82,27 @@ public class SimulationService : BackgroundService
         await Task.WhenAll(tasks);
     }
 
+    /// <summary>
+    /// Simulace uzivatela
+    /// Vytvori a zaregistruje se uzivatel
+    /// Postupne vytvari nekolik tasku
+    /// </summary>
     private async Task UserSimulation(bool vip, int taskCount, CancellationToken cancellationToken)
     {
+        //vytvoreni uzivatele
         var user = await userFactory.CreateUser(vip);
-        HttpClient client = new() { BaseAddress = options.WebApiAddressUri };
+        HttpClient client = httpClientFactory.CreateClient("default");
 
+        //prihlaseni
         var auth = await client.PostAsJsonAsync("loginbypasswordflow", new CookieLessLoginRequest(user.Email, "Password123*"), cancellationToken);
         if (!auth.IsSuccessStatusCode)
             throw new ApplicationException();
 
+        //nastaveni access tokenu
         var authResponse = await auth.Content.ReadFromJsonAsync<AuthResponse>(cancellationToken: cancellationToken);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authResponse!.access_token);
 
+        //spousteni tasku
         for (int i = 0; i < taskCount; i++)
         {
             using var stream = new MemoryStream();
@@ -73,6 +116,7 @@ public class SimulationService : BackgroundService
             await Task.Delay(TimeSpan.FromSeconds(random.Next(simulationOptions.DelayMin, simulationOptions.DelayMax)), cancellationToken);
         }
 
-        await userFactory.RemoveUser(user.UserId);
+        //odstraneni uzivatele
+        await client.DeleteAsync("api/user", cancellationToken);
     }
 }

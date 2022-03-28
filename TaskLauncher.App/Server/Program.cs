@@ -127,7 +127,7 @@ builder.Services.AddAuthentication(options =>
     options.UseRefreshTokens = true;
 });
 
-builder.Services.AddScoped<IUpdateTaskService, UpdateTaskService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 //autorizace
 builder.Services.AddAuthorizationServer();
@@ -188,6 +188,8 @@ builder.Services.AddHttpClient();
 builder.Services.InstallClientFactories();
 builder.Services.AddScoped<IAuth0UserProvider, Auth0UserProvider>();
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -197,6 +199,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskLauncherDocumentation"));
 }
+
+app.UseHealthChecks("/health");
 
 app.UseHttpsRedirection();
 app.UseBlazorFrameworkFiles();
@@ -225,8 +229,13 @@ var balancer = app.Services.GetRequiredService<Balancer>();
 
 using (var scope = app.Services.CreateScope())
 {
-    var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
-    await seeder.SeedAsync();
+    var seeding = bool.Parse(builder.Configuration["SeederConfig:seed"]);
+
+    if (seeding)
+    {
+        var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
+        await seeder.SeedAsync();
+    }
 
     var configurator = scope.ServiceProvider.GetRequiredService<Configurator>();
     await configurator.ConfigureDefaultsAsync();
@@ -242,7 +251,8 @@ using (var scope = app.Services.CreateScope())
     
     foreach(var task in tasks)
     {
-        balancer.Enqueue("nonvip", new()
+        var queue = task.IsPriority ? "vip" : "nonvip";
+        balancer.Enqueue(queue, new()
         {
             State = 0,
             Id = task.Id,

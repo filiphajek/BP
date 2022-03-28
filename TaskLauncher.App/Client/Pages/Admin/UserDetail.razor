@@ -31,11 +31,11 @@
 
                 <div class="form-group" style="margin-top:10px; margin-bottom:10px">
                     <div class="input-group align-items-md-center">
-                        <RadzenLabel Text="Add tokens" style="margin-right: 10px" />
+                        <RadzenLabel Text="Update token balance" style="margin-right: 10px" />
                         <RadzenNumeric ReadOnly="userIsNotVerifiedOrRegistered" TValue="int" Min="0" Max="1000" @bind-Value="@tokenBalance" style="max-width: 200px; margin-right: 10px" Class="w-100" />
                         <div style="margin-left: 2px; vertical-align:central; display:block">
                             <button disabled="@userIsNotVerifiedOrRegistered" class="btn btn-block btn-success" @onclick="UpdateBalance">
-                                <span class="oi oi-plus" aria-hidden="true"></span>
+                                <span class="oi oi-pencil" aria-hidden="true"></span>
                             </button>
                         </div>
                     </div>

@@ -25,6 +25,7 @@ await Host.CreateDefaultBuilder(args)
         });
         var isTest = context.Configuration.GetValue<bool>("test");
 
+        //pokud byl zadan parametr test, worker se spusti v testovacim modu - nebude se spoustet kontejner
         if(isTest)
             services.AddSingleton<ITaskLauncherService, TestTaskLauncherService>();
         else
@@ -49,7 +50,7 @@ await Host.CreateDefaultBuilder(args)
         services.Configure<TaskLauncherConfig>(context.Configuration.GetSection(nameof(TaskLauncherConfig)));
 
         //main worker thread
-        services.AddHostedService<LauncherWorker>();
+        services.AddHostedService<WorkerService>();
     })
     .Build()
     .RunAsync();

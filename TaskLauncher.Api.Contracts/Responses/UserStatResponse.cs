@@ -10,17 +10,3 @@ public record UserStatResponse
     public int CrashedTasks { get; set; }
     public bool IsVip { get; set; }
 }
-
-public record TaskStatResponse(bool IsVip, string TaskName, TimeSpan TimeInQueue, TimeSpan CpuTime);
-
-public record DayTaskCountResponse
-{
-    public DayTaskCountResponse(int count, DateTime date)
-    {
-        Count = count;
-        Date = date;
-    }
-
-    public int Count { get; set; }
-    public DateTime Date { get; set; }
-}

@@ -1,0 +1,96 @@
+version: '3.5'
+
+networks:
+  localdev:
+    name: localdev
+    
+services:
+  tasklauncher.app.server:
+    image: tasklauncher.app.server
+    container_name: tasklauncher.app.server
+    build:
+        context: .
+        dockerfile: TaskLauncher.App/Server/Dockerfile
+    restart: always
+    ports:
+      - "5000:80"
+      - "5001:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_HTTPS_PORT=5001
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=mypass123
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ConnectionStrings__Default=Server=db-server;Database=TaskLauncherApi;User=sa;Password=Pass1234
+      - SeederConfig__seed=false
+    volumes:
+      - ./https/aspnetapp.pfx:/https/aspnetapp.pfx:ro
+    depends_on:
+      - db-server
+    networks:
+      - localdev
+
+  db-server:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: db-server
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Pass1234
+      - MSSQL_TCP_PORT=1433
+    ports:
+      - "1400:1433"
+    networks:
+      - localdev
+
+  tasklauncher.worker1:
+    image: tasklauncher.worker
+    container_name: tasklauncher.worker1
+    build:
+      context: .
+      dockerfile: TaskLauncher.Worker/Dockerfile
+    environment:
+      - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
+      - ServiceAddresses__HubAddress=https://tasklauncher.app.server:443/WorkerHub
+      - TaskLauncherConfig__Source=bp_worker-vol
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - worker1-vol:/app/tmp
+    depends_on:
+      - tasklauncher.app.server
+    networks:
+      - localdev
+
+  tasklauncher.worker2:
+    image: tasklauncher.worker
+    container_name: tasklauncher.worker2
+    build:
+      context: .
+      dockerfile: TaskLauncher.Worker/Dockerfile
+    environment:
+      - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
+      - ServiceAddresses__HubAddress=https://tasklauncher.app.server:443/WorkerHub
+      - TaskLauncherConfig__Source=bp_worker-vol
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - worker2-vol:/app/tmp
+    depends_on:
+      - tasklauncher.app.server
+    networks:
+      - localdev
+
+    tasklauncher.simulation:
+        image: tasklauncher.simulation
+        container_name: tasklauncher.simulation
+    build:
+      context: .
+      dockerfile: TaskLauncher.Simulation/Dockerfile
+    environment:
+      - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
+    depends_on:
+      - tasklauncher.app.server
+    networks:
+      - localdev
+
+volumes:
+  worker1-vol:
+  worker2-vol:

@@ -85,6 +85,9 @@ public class SignalRClient : IAsyncDisposable
         throw new TimeoutException();
     }
 
+    /// <summary>
+    /// Zruseni spojeni
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         foreach (var disposable in registrations)
