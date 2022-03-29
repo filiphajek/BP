@@ -123,7 +123,7 @@ public class AuthController : ControllerBase
             audience = config.Audience,
             client_id = config.ClientId,
             client_secret = config.ClientSecret,
-            scope = "openid offline_access"
+            scope = "openid profile email offline_access"
         });
 
         if (!response.IsSuccessStatusCode)

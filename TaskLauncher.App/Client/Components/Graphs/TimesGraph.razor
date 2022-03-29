@@ -40,7 +40,7 @@
                     </RadzenLineSeries>
                     <RadzenValueAxis>
                         <RadzenGridLines Visible="true" />
-                        <RadzenAxisTitle Text="Time in minutes" />
+                        <RadzenAxisTitle Text="Time in seconds" />
                     </RadzenValueAxis>
                     <RadzenCategoryAxis Visible="false" />
                 </RadzenChart>
@@ -58,16 +58,16 @@
     {
         public TaskStatDataItem(TimeSpan cpuTime, TimeSpan timeInQueue, string index, bool isVip)
         {
-            CpuTime = Math.Round(cpuTime.TotalMinutes, 2);
-            TimeInQueue = Math.Round(timeInQueue.TotalMinutes, 2);
+            CpuTime = (int)cpuTime.TotalSeconds;
+            TimeInQueue = (int)timeInQueue.TotalSeconds;
             CpuTimeSpan = cpuTime;
             TimeInQueueSpan = timeInQueue;
             Index = index;
             IsVip = isVip;
         }
 
-        public double CpuTime { get; }
-        public double TimeInQueue { get; }
+        public int CpuTime { get; }
+        public int TimeInQueue { get; }
         public TimeSpan CpuTimeSpan { get; }
         public TimeSpan TimeInQueueSpan { get; }
         public string Index { get; }

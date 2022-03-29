@@ -9,19 +9,19 @@
 
         <div class="card">
             <div class="card-title" style="margin:20px 0 0 20px">
-                <h4>Count of tasks in last 30 days</h4>
+                <h4>Count of tasks in last 20 days</h4>
                 <button disabled="@(true)" class="btn btn-primary" style="visibility:hidden">Placeholder</button>
             </div>
             <div class="card-body">
                 <RadzenChart>
                     <RadzenColumnSeries Data="@normalTasksPerDays" CategoryProperty="Date" Title="Normal" LineType="LineType.Dashed" ValueProperty="Count" />
                     <RadzenColumnSeries Data="@vipTasksPerDays" CategoryProperty="Date" Title="Vip" LineType="LineType.Dashed" ValueProperty="Count" />
-                    <RadzenColumnOptions Radius="5" />
+                    <RadzenColumnOptions Radius="5" Margin="0.5" />
                     <RadzenValueAxis>
                         <RadzenGridLines Visible="true" />
                         <RadzenAxisTitle Text="Count" />
                     </RadzenValueAxis>
-                    <RadzenCategoryAxis Max=@DateTime.Now.Date FormatString="{0:dd.MM}">
+                    <RadzenCategoryAxis Padding="20" Max=@DateTime.Now.Date FormatString="{0:dd.MM}">
                         <RadzenAxisTitle Text="Day" />
                     </RadzenCategoryAxis>
                 </RadzenChart>
@@ -40,7 +40,7 @@
     public string UserId { get; set; }
 
     bool loading = false;
-    int maxDays = 31;
+    int maxDays = 21;
 
     record DayTaskCountDataItem
     {
@@ -91,6 +91,7 @@
         var days = (await client.GetFromJsonAsync<List<DayTaskCountResponse>>(path))!;
         var list = new List<DayTaskCountDataItem>();
         var date = DateTime.Now.AddDays(-maxDays);
+        date = date.AddDays(1);
 
         for (int i = 1; i < maxDays + 1; i++)
         {

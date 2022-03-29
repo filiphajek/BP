@@ -168,6 +168,7 @@ public class TaskController : UserODataController<TaskResponse>
 
         balancer.Enqueue(vip ? "vip" : "nonvip", new TaskModel
         {
+            IsPriority = true,
             Id = task.Id,
             State = TaskState.Created,
             Time = creationDate,
@@ -177,7 +178,7 @@ public class TaskController : UserODataController<TaskResponse>
             UserId = task.UserId
         });
 
-        return Ok(mapper.Map<TaskResponse>(result));
+        return Ok(mapper.Map<TaskResponse>(taskEntity));
     }
 
     /// <summary>

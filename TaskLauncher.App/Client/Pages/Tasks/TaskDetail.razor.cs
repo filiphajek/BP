@@ -56,7 +56,7 @@ public partial class TaskDetail : IDisposable
             return;
         }
         
-        signalRClient.OnTaskUpdate += StatusChanged;
+        signalRClient.OnTaskFinished += StatusChanged;
         eventSubscription = signalRClient.Connection.OnNewEvent(NewEvent);
         isLoading = false;
     }
@@ -80,6 +80,9 @@ public partial class TaskDetail : IDisposable
 
     private void NewEvent(EventModel model)
     {
+        if (model.TaskId != Task!.Id)
+            return;
+
         if (Task.Events is null)
             Task.Events = new();
 
@@ -153,7 +156,7 @@ public partial class TaskDetail : IDisposable
 
     public void Dispose()
     {
-        signalRClient.OnTaskUpdate -= StatusChanged;
+        signalRClient.OnTaskFinished -= StatusChanged;
         eventSubscription.Dispose();
     }
 }

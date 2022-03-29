@@ -1,4 +1,5 @@
 using GridBlazor;
+using GridBlazor.Pages;
 using GridShared;
 using GridShared.Utility;
 using Microsoft.AspNetCore.Components;
@@ -29,6 +30,7 @@ public partial class Tasks : IDisposable
 
     private CGrid<TaskResponse> grid;
     private Task task;
+    private GridComponent<TaskResponse> gridComponent;
 
     List<SelectItem> taskStates = new()
     {
@@ -63,13 +65,13 @@ public partial class Tasks : IDisposable
             c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus)).SetWidth(150);
         };
 
-        var client = new GridODataClient<TaskResponse>(Client, url, query, false, "taskGrid", columns, 10)
+        var gridClient = new GridODataClient<TaskResponse>(Client, url, query, false, "taskGrid", columns, 10)
             .ChangePageSize(true)
             .WithMultipleFilters()
             .WithGridItemsCount();
 
-        grid = client.Grid;
-        task = client.UpdateGrid();
+        grid = gridClient.Grid;
+        task = gridClient.UpdateGrid();
         await task;
     }
 
@@ -78,7 +80,7 @@ public partial class Tasks : IDisposable
         if (string.IsNullOrEmpty(Id))
         {
             await GetTasks("odata/user/task");
-            signalRClient.OnTaskUpdate += OnTaskUpdate;
+            signalRClient.OnTaskFinished += OnTaskUpdate;
         }
         else
         {
@@ -91,18 +93,14 @@ public partial class Tasks : IDisposable
             await GetTasks($"odata/admin/task?userId={Id}");
         }
     }
-
+    
     private void OnTaskUpdate(TaskModel model)
     {
-        var item = grid.Items.SingleOrDefault(i => i.Id == model.Id);
-        if (item is not null)
-        {
-            item.ActualStatus = model.State;
-        }
+        gridComponent.UpdateGrid().Wait();
     }
 
     public void Dispose()
     {
-        signalRClient.OnTaskUpdate -= OnTaskUpdate;
+        signalRClient.OnTaskFinished -= OnTaskUpdate;
     }
 }

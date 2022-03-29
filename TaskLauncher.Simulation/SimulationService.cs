@@ -3,22 +3,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.Common.Extensions;
+using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.Simulation;
-
-public class ApiClient : HttpClient
-{
-    public HttpClient Client { get; }
-
-    public ApiClient(HttpClient client) : base()
-    {
-        Client = client;
-        BaseAddress = client.BaseAddress;
-    }
-}
 
 /// <summary>
 /// Sluzbu implementujici simulaci uzivatelu pristupujici ke sluzbe
@@ -31,6 +22,8 @@ public class SimulationService : BackgroundService
     private readonly HttpClient httpClient;
     private readonly SimulationConfig simulationOptions;
     private readonly Random random = new(Guid.NewGuid().GetHashCode());
+
+    private readonly List<HttpClient> userHttpClients = new();
 
     public SimulationService(UserFactory userFactory, 
         ILogger<SimulationService> logger, 
@@ -50,14 +43,20 @@ public class SimulationService : BackgroundService
     /// </summary>
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
-        var response = await httpClient.GetAsync("health", cancellationToken);
-        while (!response.IsSuccessStatusCode)
+        while (true)
         {
-            response = await httpClient.GetAsync("health", cancellationToken);
+            try
+            {
+                var response = await httpClient.GetAsync("health", cancellationToken);
+                if (response is not null && response.IsSuccessStatusCode)
+                    break;
+            }
+            catch { }
             logger.LogInformation("Waiting for server");
-            await Task.Delay(5, cancellationToken);
+            await Task.Delay(5000, cancellationToken);
         }
         await userFactory.Initialize();
+        await base.StartAsync(cancellationToken);
     }
 
     /// <summary>
@@ -65,32 +64,71 @@ public class SimulationService : BackgroundService
     /// </summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var tasks = new List<Task>();
+        try
+        {
+            var tasks = new List<Task>();
+            var users = await CreateUsers();
 
+            Console.WriteLine($"{users.Count} was created");
+            foreach (var user in users)
+            {
+                Console.WriteLine($"{user.Vip}: {user.Email}");
+            }
+
+            foreach (var user in users)
+            {
+                var tmp = SimulateUser(user, simulationOptions.TaskCount, stoppingToken);
+                tasks.Add(tmp);
+            }
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Smazani uzivatelu
+    /// </summary>
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Deleting users");
+        foreach (var client in userHttpClients)
+        {
+            await client.DeleteAsync("api/user", cancellationToken);
+            client.Dispose();
+        }
+        
+        await base.StopAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Vytvoreni uzivatelu
+    /// </summary>
+    private async Task<List<UserModel>> CreateUsers()
+    {
+        var tmp = new List<UserModel>();
         for (int i = 0; i < simulationOptions.NormalUsers; i++)
         {
-            var tmp = UserSimulation(false, simulationOptions.TaskCount, stoppingToken);
-            tasks.Add(tmp);
+            var user = await userFactory.CreateUser(false);
+            tmp.Add(user);
         }
-
         for (int i = 0; i < simulationOptions.VipUsers; i++)
         {
-            var tmp = UserSimulation(true, simulationOptions.TaskCount, stoppingToken);
-            tasks.Add(tmp);
+            var user = await userFactory.CreateUser(true);
+            tmp.Add(user);
         }
-
-        await Task.WhenAll(tasks);
+        return tmp;
     }
 
     /// <summary>
     /// Simulace uzivatela
-    /// Vytvori a zaregistruje se uzivatel
-    /// Postupne vytvari nekolik tasku
+    /// Po prihlaseni postupne vytvari nekolik tasku
     /// </summary>
-    private async Task UserSimulation(bool vip, int taskCount, CancellationToken cancellationToken)
+    private async Task SimulateUser(UserModel user, int taskCount, CancellationToken cancellationToken)
     {
-        //vytvoreni uzivatele
-        var user = await userFactory.CreateUser(vip);
         HttpClient client = httpClientFactory.CreateClient("default");
 
         //prihlaseni
@@ -102,21 +140,24 @@ public class SimulationService : BackgroundService
         var authResponse = await auth.Content.ReadFromJsonAsync<AuthResponse>(cancellationToken: cancellationToken);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authResponse!.access_token);
 
+        userHttpClients.Add(client);
+
         //spousteni tasku
         for (int i = 0; i < taskCount; i++)
         {
             using var stream = new MemoryStream();
-            using var streamWriter = new StreamWriter(stream);
-            streamWriter.WriteLine("Simulation");
+            await stream.WriteAsync(Encoding.UTF8.GetBytes("Simulation"), cancellationToken);
+            stream.Position = 0;
+
             var response = await client.SendMultipartFormDataAsync("api/task", stream, new SimTaskModel
             {
                 Description = "sim",
-                Name = ""
+                Name = "sim"
             }, "simulation");
+
+            var tmp = await response.Content.ReadFromJsonAsync<TaskResponse>(cancellationToken: cancellationToken);
+            Console.WriteLine($"User '{user.Email}' created new task with id '{tmp!.Id}'");
             await Task.Delay(TimeSpan.FromSeconds(random.Next(simulationOptions.DelayMin, simulationOptions.DelayMax)), cancellationToken);
         }
-
-        //odstraneni uzivatele
-        await client.DeleteAsync("api/user", cancellationToken);
     }
 }

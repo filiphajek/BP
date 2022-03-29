@@ -42,6 +42,19 @@ services:
     networks:
       - localdev
 
+  tasklauncher.simulation:
+    image: tasklauncher.simulation
+    container_name: tasklauncher.simulation
+    build:
+      context: .
+      dockerfile: TaskLauncher.Simulation/Dockerfile
+    environment:
+      - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
+    depends_on:
+      - tasklauncher.app.server
+    networks:
+      - localdev
+
   tasklauncher.worker1:
     image: tasklauncher.worker
     container_name: tasklauncher.worker1
@@ -51,7 +64,7 @@ services:
     environment:
       - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
       - ServiceAddresses__HubAddress=https://tasklauncher.app.server:443/WorkerHub
-      - TaskLauncherConfig__Source=bp_worker-vol
+      - TaskLauncherConfig__Source=bp_worker1-vol
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - worker1-vol:/app/tmp
@@ -69,23 +82,10 @@ services:
     environment:
       - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
       - ServiceAddresses__HubAddress=https://tasklauncher.app.server:443/WorkerHub
-      - TaskLauncherConfig__Source=bp_worker-vol
+      - TaskLauncherConfig__Source=bp_worker2-vol
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - worker2-vol:/app/tmp
-    depends_on:
-      - tasklauncher.app.server
-    networks:
-      - localdev
-
-    tasklauncher.simulation:
-        image: tasklauncher.simulation
-        container_name: tasklauncher.simulation
-    build:
-      context: .
-      dockerfile: TaskLauncher.Simulation/Dockerfile
-    environment:
-      - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
     depends_on:
       - tasklauncher.app.server
     networks:

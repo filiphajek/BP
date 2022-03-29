@@ -107,7 +107,6 @@ public class WorkerService : BackgroundService
             {
                 timeoutTokenSource.Dispose();
                 timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-                logger.LogInformation("xdd");
             }
         });
         
@@ -217,12 +216,17 @@ public class WorkerService : BackgroundService
     /// </summary>
     private async Task WaitForServerStartAsync(CancellationToken cancellationToken)
     {
-        var response = await httpClient.GetAsync("health", cancellationToken);
-        while (!response.IsSuccessStatusCode)
+        while (true)
         {
-            response = await httpClient.GetAsync("health", cancellationToken);
+            try
+            {
+                var response = await httpClient.GetAsync("health", cancellationToken);
+                if (response is not null && response.IsSuccessStatusCode)
+                    break;
+            }
+            catch { }
             logger.LogInformation("Waiting for server");
-            await Task.Delay(5, cancellationToken);
+            await Task.Delay(5000, cancellationToken);
         }
         logger.LogInformation("Server live");
     }

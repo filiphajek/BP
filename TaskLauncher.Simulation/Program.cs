@@ -23,13 +23,6 @@ await Host.CreateDefaultBuilder()
                     ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
                 }
             );
-        services.AddHttpClient<ApiClient>(client => client.BaseAddress = config.WebApiAddressUri)
-            .ConfigurePrimaryHttpMessageHandler(builder =>
-                new HttpClientHandler()
-                {
-                    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                }
-            );
         services.AddTransient(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("default"));
 
         //services

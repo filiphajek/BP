@@ -10,7 +10,7 @@
 
         <div class="card">
             <div class="card-title" style="margin:20px 0 0 20px">
-                <h4>Finished tasks: <b>@model.FinishedTaskCount</b></h4>
+                <h4>Finished/All tasks: <b>@model.FinishedTaskCount</b>/<b>@model.AllTaskCount</b></h4>
                 <button disabled="@(!hasVipTasks)" class="btn btn-primary" @onclick="SwitchDonutGraph">Switch to @(switchVip ? "normal" : "vip") task</button>
             </div>
             <div class="card-body">

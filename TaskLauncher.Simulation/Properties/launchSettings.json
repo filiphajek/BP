@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "TaskLauncher.Simulation": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

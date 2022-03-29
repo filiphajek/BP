@@ -11,7 +11,7 @@
 
 @if (task.IsCompleted)
 {
-    <GridComponent T="TaskResponse" Grid="@grid"></GridComponent>
+    <GridComponent @ref="gridComponent" T="TaskResponse" Grid="@grid"></GridComponent>
 }
 else
 {

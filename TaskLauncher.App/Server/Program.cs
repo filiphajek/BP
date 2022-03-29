@@ -236,6 +236,11 @@ using (var scope = app.Services.CreateScope())
         var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
         await seeder.SeedAsync();
     }
+    else
+    {
+        var ensureContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await ensureContext.Database.EnsureCreatedAsync();
+    }
 
     var configurator = scope.ServiceProvider.GetRequiredService<Configurator>();
     await configurator.ConfigureDefaultsAsync();

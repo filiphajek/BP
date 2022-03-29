@@ -33,7 +33,7 @@ public class UserFactory
     public async Task Initialize()
     {
         var token = await GetTokenAsync();
-        auth0client = new ManagementApiClient(token, options.WebApiAddressUri.Authority);
+        auth0client = new ManagementApiClient(token, config.Domain);
     }
 
     /// <summary>
@@ -43,11 +43,12 @@ public class UserFactory
     {
         var faker = new Faker<UserModel>()
             .RuleFor(i => i.FirstName, x => x.Name.FirstName())
-            .RuleFor(i => i.FirstName, x => x.Name.LastName())
+            .RuleFor(i => i.LastName, x => x.Name.LastName())
             .RuleFor(i => i.NickName, (x, y) => y.FirstName)
             .RuleFor(i => i.Email, (x, y) => x.Internet.Email(y.FirstName, y.LastName));
 
         var model = faker.Generate();
+
         var registration = await client.PostAsJsonAsync("registerbypasswordflow", new CookieLessUserRegistrationModel
         {
             FirstName = model.FirstName,
@@ -55,11 +56,16 @@ public class UserFactory
             Email = model.Email,
             NickName = model.NickName,
             Password = "Password123*",
-            PhoneNumber = "+420123456789"
+            PhoneNumber = "+420123456789",
+            Picture = ""
         });
 
         var user = await registration.Content.ReadFromJsonAsync<UserModel>();
-        var resultUser = await auth0client.Users.UpdateAsync(user!.UserId, new() { AppMetadata = JsonConvert.DeserializeObject($"{{ 'vip': {vip.ToString().ToLower()} }}") });
+        var resultUser = await auth0client.Users.UpdateAsync(user!.UserId, new()
+        {
+            EmailVerified = true,
+            AppMetadata = JsonConvert.DeserializeObject($"{{ 'vip': {vip.ToString().ToLower()} }}")
+        });
         return resultUser.GetModel();
     }
 
@@ -72,7 +78,7 @@ public class UserFactory
         {
             client_id = config.ClientId,
             client_secret = config.ClientSecret,
-            audience = config.Audience,
+            audience = $"https://{config.Domain}/api/v2/",
             grant_type = "client_credentials"
         };
 
