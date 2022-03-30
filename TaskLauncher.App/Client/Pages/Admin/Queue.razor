@@ -7,12 +7,13 @@
 @inject NavigationManager NavigationManager
 @inject ApiClient HttpClient
 @attribute [Authorize(Policy = "admin-policy")]
+@implements IDisposable
 
 <PageTitle>Task queue</PageTitle>
 
 @if (!loading)
 {
-    <GridComponent T="TaskResponse" Grid="@grid" CustomFilters="@customFilters"></GridComponent>
+    <GridComponent @ref="gridComponent" T="TaskResponse" Grid="@grid" CustomFilters="@customFilters"></GridComponent>
 }
 else
 {
@@ -70,6 +71,42 @@ else
         grid = client.Grid;
         var task = client.UpdateGrid();
         await task;
+
+        Refreshing(TimeSpan.FromSeconds(6));
         loading = false;
+    }
+
+    //refresh queue
+
+    private Task timerTask;
+    private readonly CancellationTokenSource cts = new();
+    private GridComponent<TaskResponse> gridComponent;
+
+    public void Refreshing(TimeSpan timeSpan)
+    {
+        async Task FetchAsync()
+        {
+            try
+            {
+                var timer = new PeriodicTimer(timeSpan);
+                while (await timer.WaitForNextTickAsync(cts.Token))
+                {
+                    await gridComponent.UpdateGrid();
+                }
+            }
+            catch { }
+        }
+        timerTask = FetchAsync();
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            cts.Cancel();
+            timerTask.Wait();
+            cts.Dispose();
+        }
+        catch { }
     }
 }

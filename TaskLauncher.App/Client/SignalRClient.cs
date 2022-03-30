@@ -17,11 +17,11 @@ public class SignalRClient : IAsyncDisposable
     private readonly HashSet<IDisposable> registrations = new();
     private readonly ILogger<SignalRClient> logger;
 
-    //pokusy pro prihlaseni na signakr hub
+    //pokusy pro prihlaseni na signalr hub
     private int attemps = 0;
     public int Attemps { get; init; } = 15;
 
-    public event Action<TaskModel> OnTaskUpdate;
+    public event Action<TaskModel> OnTaskFinished;
 
     public SignalRClient(ServiceAddresses serviceAddresses, ILogger<SignalRClient> logger, ILoggerProvider loggerProvider)
     {
@@ -42,11 +42,11 @@ public class SignalRClient : IAsyncDisposable
     /// </summary>
     public void RegisterOnTaskUpdate(Action<TaskModel> handler)
     {
-        var tmp = Connection.OnNotification(i =>
+        var tmp = Connection.OnTaskFinished(i =>
         {
             logger.LogInformation("New task update '{0}'", i.Id);
-            OnTaskUpdate?.Invoke(i);
             handler.Invoke(i);
+            OnTaskFinished?.Invoke(i);
         });
         registrations.Add(tmp);
     }

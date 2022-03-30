@@ -6,3 +6,6 @@ public record ErrorResponse
 {
     public List<ErrorModel> Errors { get; set; } = new();
 }
+
+public record ErrorMessageResponse(string Error);
+

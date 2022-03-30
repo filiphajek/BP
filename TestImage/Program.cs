@@ -1,23 +1,36 @@
 ﻿using Cocona;
+using System.Globalization;
 
 var app = CoconaApp.CreateBuilder().Build();
 Random rnd = new(Guid.NewGuid().GetHashCode());
 
-app.AddCommand("minutes", async (int min, int max, float? chance) =>
+app.AddCommand("minutes", async (int min, int max, string? chance) =>
 {
+    var tmpChance = GetChanceValue(chance);
+    Console.WriteLine($"Test containter started with parameters: Command=minutes, Min={min}, Max={max}, Chance={tmpChance}");
     await Execute(true, min, max);
-    return GetResult(chance is null ? 0.75 : chance.Value);
+    return GetResult(tmpChance);
 });
 
-app.AddCommand("seconds", async (int min, int max, float? chance) =>
+app.AddCommand("seconds", async (int min, int max, string? chance) =>
 {
+    var tmpChance = GetChanceValue(chance);
+    Console.WriteLine($"Test containter started with parameters: Command=seconds, Min={min}, Max={max}, Chance={tmpChance}");
     await Execute(false, min, max);
-    return GetResult(chance is null ? 0.75 : chance.Value);
+    return GetResult(tmpChance);
 });
+
+float GetChanceValue(string? value)
+{
+    if (string.IsNullOrEmpty(value))
+        return 0.75f;
+    if(float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result))
+        return result;
+    return 0.75f;
+}
 
 async Task Execute(bool minutes, int minCount, int maxCount)
 {
-    Console.WriteLine("Test containter started");
     var next = rnd.Next(minCount, maxCount);
     if (minutes)
         await Task.Delay(TimeSpan.FromMinutes(next));
@@ -30,18 +43,16 @@ async Task Execute(bool minutes, int minCount, int maxCount)
 
 int GetResult(double chanceToGoodResult)
 {
-    using var file = File.OpenWrite("/app/tmp/task.txt");
-    using StreamWriter streamWriter = new(file);
     var result = rnd.NextDouble();
     if (result < chanceToGoodResult)
     {
-        streamWriter.Write("Good result");
+        File.AppendAllText("/app/tmp/task.txt", Environment.NewLine + "Good result");
         Console.WriteLine("Good result");
         return 1;
     }
-    streamWriter.Write("Bad result");
+    File.AppendAllText("/app/tmp/task.txt", Environment.NewLine + "Bad result");
     Console.WriteLine("Bad result");
-    return -1;
+    return 0;
 }
 
 app.Run();

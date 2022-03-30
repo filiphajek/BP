@@ -8,6 +8,9 @@ using TaskLauncher.Common.Services;
 
 namespace TaskLauncher.App.Server.Seeders;
 
+/// <summary>
+/// Trida ktera inicializuje databazi a vygeneruje testovaci uzivatele s testovacimi daty
+/// </summary>
 public class Seeder
 {
     enum UserType
@@ -24,15 +27,7 @@ public class Seeder
     private readonly ManagementApiClientFactory clientFactory;
 
     private readonly List<string> seededEmails = new() { "tomashavel@test.com", "filipnovak@test.com", "stepannemec@test.com", "jakubstefacek@test.com", "vojtechbrychta@test.com" };
-    private readonly Dictionary<UserType, string> seededUsers = new()
-    {
-        { UserType.VipUser, "auth0|6238ef1ee644f4006ff21121" },
-        { UserType.NormalUser, "auth0|6238ef1e9e63f500683a8116" },
-        { UserType.NormalVipUser, "auth0|6238ef1e647a36006ba40f9e" },
-        { UserType.NotRegisteredUser, "auth0|6238ef1f647a36006ba40f9f" },
-        { UserType.NotVerifiedUser, "auth0|6238ef1f647a36006ba40fa0" },
-
-    };
+    private readonly Dictionary<UserType, string> seededUsers = new();
 
     public Seeder(AppDbContext dbContext, IFileStorageService fileStorageService, ManagementApiClientFactory clientFactory)
     {
@@ -41,17 +36,20 @@ public class Seeder
         this.clientFactory = clientFactory;
     }
 
+    /// <summary>
+    /// Hlavni funkce, tvori uzivatele, tasky apod.
+    /// </summary>
     public async Task SeedAsync()
     {
         //vytvor databazi
         await dbContext.Database.EnsureCreatedAsync();
 
-        //pokud neni prazdna, neseeduj
+        //pokud db neni prazdna, neseeduj
         if (await dbContext.Payments.IgnoreQueryFilters().AnyAsync())
             return;
 
         // vytvoreni uzivatelu
-        //await EnsureCreatedUsersAsync();
+        await EnsureCreatedUsersAsync();
 
         // seed uzivatelskych uloh, plateb, statistik apod.
         foreach (var user in seededUsers.Where(i => i.Key != UserType.NotRegisteredUser).Where(i => i.Key != UserType.NotVerifiedUser))
@@ -61,6 +59,9 @@ public class Seeder
         await dbContext.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Vytvari uzivatele, pred tim nez vytvori nove, smaze stare
+    /// </summary>
     private async Task EnsureCreatedUsersAsync()
     {
         var auth0client = await clientFactory.GetClient();
@@ -80,9 +81,12 @@ public class Seeder
             EmailVerified = true,
             NickName = "tom",
             Password = "Password123*",
-            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': true, 'registered': true, 'isadmin': false }")
         });
         seededUsers.Add(UserType.VipUser, vipUser.UserId);
+        await auth0client.Users.UpdateAsync(vipUser!.UserId, new()
+        {
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': true, 'registered': true, 'isadmin': false }")
+        });
 
         //normal user
         var normalUser = await auth0client.Users.CreateAsync(new()
@@ -94,9 +98,12 @@ public class Seeder
             EmailVerified = true,
             NickName = "fila",
             Password = "Password123*",
-            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }")
         });
         seededUsers.Add(UserType.NormalUser, normalUser.UserId);
+        await auth0client.Users.UpdateAsync(normalUser!.UserId, new()
+        {
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }")
+        });
 
         //user that received vip
         var assignedVipUser = await auth0client.Users.CreateAsync(new()
@@ -108,9 +115,12 @@ public class Seeder
             EmailVerified = true,
             NickName = "stepi",
             Password = "Password123*",
-            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': true, 'registered': true, 'isadmin': false }")
         });
         seededUsers.Add(UserType.NormalVipUser, assignedVipUser.UserId);
+        await auth0client.Users.UpdateAsync(assignedVipUser!.UserId, new()
+        {
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': true, 'registered': true, 'isadmin': false }")
+        });
 
         //not registered user
         var notRegisteredUser = await auth0client.Users.CreateAsync(new()
@@ -119,9 +129,12 @@ public class Seeder
             Email = "jakubstefacek@test.com",
             EmailVerified = false,
             Password = "Password123*",
-            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': false, 'isadmin': false }")
         });
         seededUsers.Add(UserType.NotRegisteredUser, notRegisteredUser.UserId);
+        await auth0client.Users.UpdateAsync(notRegisteredUser!.UserId, new()
+        {
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': false, 'isadmin': false }")
+        });
 
         //not verified user
         var notVerifiedUser = await auth0client.Users.CreateAsync(new()
@@ -133,32 +146,30 @@ public class Seeder
             EmailVerified = false,
             NickName = "vojta",
             Password = "Password123*",
-            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }")
         });
         seededUsers.Add(UserType.NotVerifiedUser, notVerifiedUser.UserId);
+        await auth0client.Users.UpdateAsync(notVerifiedUser!.UserId, new()
+        {
+            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }")
+        });
 
         await auth0client.Roles.AssignUsersAsync("rol_6Vh7zpX3Z61sN307", 
             new() { Users = new[] { vipUser.UserId, normalUser.UserId, assignedVipUser.UserId, notRegisteredUser.UserId, notVerifiedUser.UserId } });
     }
 
-    private async Task UploadFile(string fileName)
-    {
-        using var stream = new MemoryStream();
-        using var writer = new StreamWriter(stream);
-        writer.WriteLine("seeded");
-        await fileStorageService.UploadFileAsync(fileName, stream);
-    }
-
+    /// <summary>
+    /// Funkce defaultne naseeduje 35 tasku k danemu uzivatelu vcetne plateb, statistik a eventu
+    /// </summary>
     private async Task SeedUser(string userId, UserType userType, int taskCount = 35)
     {
         Random random = new(Guid.NewGuid().GetHashCode());
 
         DateTime time = DateTime.Now.AddDays(-20);
         int priceSum = 0;
-        StatEntity normalStatEntity = new() { UserId = userId, AllTaskCount = taskCount + 5, IsVip = false }; // +5 smazanych napr.
-        StatEntity vipStatEntity = new() { UserId = userId, AllTaskCount = taskCount + 5, IsVip = true };
+        StatEntity normalStatEntity = new() { UserId = userId, IsVip = false };
+        StatEntity vipStatEntity = new() { UserId = userId, IsVip = true };
 
-        Console.WriteLine(userId);
+        Console.WriteLine($"Start seeding user (id = '{userId}')");
 
         for (int i = 0; i < taskCount; i++)
         {
@@ -182,6 +193,12 @@ public class Seeder
             //get task price, priority
             int price = GetTaskPrice(taskCount, i, userType);
             bool isPriority = price != 1;
+
+            if (isPriority)
+                vipStatEntity.AllTaskCount++;
+            else
+                normalStatEntity.AllTaskCount++;
+
             priceSum += price;
 
             //task
@@ -197,11 +214,25 @@ public class Seeder
             await AddTaskFinishedEvent(task.Entity, userId, exitQueueTime, runningTime, time);
             UpdateStats(normalStatEntity, vipStatEntity, task.Entity.ActualStatus, isPriority);
         }
-        await dbContext.TokenBalances.AddAsync(new() { CurrentAmount = priceSum, LastAdded = DateTime.Now.AddDays(-30.5), UserId = userId });
+        await dbContext.TokenBalances.AddAsync(new() { CurrentAmount = 200 - priceSum, LastAdded = DateTime.Now.AddDays(-30.5), UserId = userId });
         await dbContext.Stats.AddAsync(normalStatEntity);
         await dbContext.Stats.AddAsync(vipStatEntity);
     }
 
+    /// <summary>
+    /// Pomocna funkce pro nahrani souboru
+    /// </summary>
+    private async Task UploadFile(string fileName)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream);
+        writer.WriteLine("seeded");
+        await fileStorageService.UploadFileAsync(fileName, stream);
+    }
+
+    /// <summary>
+    /// Pomocna funkce pro aktualizaci statistik
+    /// </summary>
     private void UpdateStats(StatEntity normalStatEntity, StatEntity vipStatEntity, TaskState actualStatus, bool isPriority)
     {
         switch (actualStatus)
@@ -218,6 +249,7 @@ public class Seeder
                 else
                     normalStatEntity.TimeoutedTasks++;
                 break;
+            case TaskState.Downloaded:
             case TaskState.FinishedSuccess:
                 if (isPriority)
                 {
@@ -245,6 +277,9 @@ public class Seeder
         }
     }
 
+    /// <summary>
+    /// Pomocna funkce pro ziskani ceny tasku na zaklade typu uzivatele
+    /// </summary>
     private static int GetTaskPrice(int taskCount, int index, UserType userType)
     {
         if (userType == UserType.NormalUser)
@@ -258,6 +293,9 @@ public class Seeder
         return 2;
     }
 
+    /// <summary>
+    /// Nahodne (s ruznyma pravd.) se urci jak task skoncil - s nejvyssi pravdepodobnosti je to uspech pak neuspecj, timeout a crash
+    /// </summary>
     private async Task AddTaskFinishedEvent(TaskEntity task, string userId, int exitQueueTime, int runningTime, DateTime time)
     {
         Random random = new(Guid.NewGuid().GetHashCode());

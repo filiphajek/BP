@@ -58,11 +58,18 @@ public class WorkerHub : Hub<IWorkerHub>
 
     private async Task SendTask()
     {
+        var scope = serviceProvider.CreateScope();
+        var taskService = scope.ServiceProvider.GetRequiredService<ITaskService>();
+
         CancellationTokenSource cts = new();
         cts.CancelAfter(7000);
         try
         {
             var model = await balancer.GetNext(cts.Token);
+            while (!await taskService.TaskExists(model))
+            {
+                model = await balancer.GetNext(cts.Token);
+            }
             await Clients.Caller.StartTask(model);
             cache.AddOrSet(Context.ConnectionId, model);
             logger.LogInformation("Worker '{0}' started new task '{1}'", Context.ConnectionId, model.Id);
@@ -87,20 +94,21 @@ public class WorkerHub : Hub<IWorkerHub>
     {
         //update
         var scope = serviceProvider.CreateScope();
-        var updateTaskService = scope.ServiceProvider.GetRequiredService<IUpdateTaskService>();
-        var eventModel = await updateTaskService.UpdateTaskAsync(model);
+        var taskService = scope.ServiceProvider.GetRequiredService<ITaskService>();
+        var eventModel = await taskService.UpdateTaskAsync(model);
 
         //update cache
         var cachedTask = cache[Context.ConnectionId];
         cachedTask!.State = model.State;
 
-        await mediator.Publish(new TaskUpdateNotification(model, eventModel));
+        if(eventModel is not null)
+            await mediator.Publish(new TaskUpdateNotification(model, eventModel));
 
         //pokud to je hotovy
         if (model.State.TaskFinished())
         {
             //ukonci task
-            await updateTaskService.EndTaskAsync(model);
+            await taskService.EndTaskAsync(model);
             logger.LogInformation("Worker '{0}' finished task '{1}'", Context.ConnectionId, model.Id);
             //novy task
             await SendTask();
@@ -110,21 +118,24 @@ public class WorkerHub : Hub<IWorkerHub>
     public async Task TaskTimeouted(TaskModel model)
     {
         var scope = serviceProvider.CreateScope();
-        var updateTaskService = scope.ServiceProvider.GetRequiredService<IUpdateTaskService>();
+        var updateTaskService = scope.ServiceProvider.GetRequiredService<ITaskService>();
         var eventModel = await updateTaskService.UpdateTaskAsync(model);
-        await mediator.Publish(new TaskUpdateNotification(model, eventModel));
+        
+        if (eventModel is not null)
+            await mediator.Publish(new TaskUpdateNotification(model, eventModel));
+        
         await SendTask();
     }
 
     public async Task TaskCrashed(TaskModel model)
     {
         var scope = serviceProvider.CreateScope();
-        var updateTaskService = scope.ServiceProvider.GetRequiredService<IUpdateTaskService>();
+        var taskService = scope.ServiceProvider.GetRequiredService<ITaskService>();
         model.State = TaskState.Crashed;
-        await updateTaskService.UpdateTaskAsync(model);
-        await updateTaskService.EndTaskAsync(model);
+        await taskService.UpdateTaskAsync(model);
+        await taskService.EndTaskAsync(model);
         model.State = TaskState.Created;
-        await updateTaskService.UpdateTaskAsync(model);
+        await taskService.UpdateTaskAsync(model);
         balancer.Enqueue("cancel", model);
     }
 
@@ -145,14 +156,14 @@ public class WorkerHub : Hub<IWorkerHub>
             if (model.State != TaskState.FinishedSuccess || model.State != TaskState.FinishedFailure || model.State != TaskState.Timeouted)
             {
                 var scope = serviceProvider.CreateScope();
-                var updateTaskService = scope.ServiceProvider.GetRequiredService<IUpdateTaskService>();
+                var taskService = scope.ServiceProvider.GetRequiredService<ITaskService>();
 
                 logger.LogInformation("Worker '{0}' crashed. Task '{1}' will be requeued ", Context.ConnectionId, model.Id);
                 model.State = TaskState.Crashed;
-                await updateTaskService.UpdateTaskAsync(model);
-                await updateTaskService.EndTaskAsync(model);
+                await taskService.UpdateTaskAsync(model);
+                await taskService.EndTaskAsync(model);
                 model.State = TaskState.Created;
-                await updateTaskService.UpdateTaskAsync(model);
+                await taskService.UpdateTaskAsync(model);
                 balancer.Enqueue("cancel", model);
             }
         }

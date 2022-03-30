@@ -6,26 +6,30 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Services;
 
-public interface IUpdateTaskService
+public interface ITaskService
 {
-    Task<EventModel> UpdateTaskAsync(TaskModel model);
+    Task<EventModel?> UpdateTaskAsync(TaskModel model);
     Task EndTaskAsync(TaskModel model);
+    Task<bool> TaskExists(TaskModel model);
 }
 
-public class UpdateTaskService : IUpdateTaskService
+public class TaskService : ITaskService
 {
     private readonly AppDbContext dbContext;
     private readonly IMapper mapper;
 
-    public UpdateTaskService(AppDbContext dbContext, IMapper mapper)
+    public TaskService(AppDbContext dbContext, IMapper mapper)
     {
         this.dbContext = dbContext;
         this.mapper = mapper;
     }
 
-    public async Task<EventModel> UpdateTaskAsync(TaskModel model)
+    public async Task<EventModel?> UpdateTaskAsync(TaskModel model)
     {
-        var task = await dbContext.Tasks.IgnoreQueryFilters().SingleAsync(i => i.Id == model.Id);
+        var task = await dbContext.Tasks.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.Id == model.Id);
+        if(task is null)
+            return null;
+
         task.ActualStatus = model.State;
         dbContext.Update(task);
         var ev = new EventEntity() { Status = model.State, Task = task, Time = DateTime.Now, UserId = model.UserId };
@@ -39,10 +43,10 @@ public class UpdateTaskService : IUpdateTaskService
 
     public async Task EndTaskAsync(TaskModel model)
     {
-        var stat1 = await dbContext.Stats.ToListAsync();
-        var stat2 = await dbContext.Stats.IgnoreQueryFilters().ToListAsync();
+        var stat = await dbContext.Stats.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.UserId == model.UserId && i.IsVip == model.IsPriority);
+        if (stat is null)
+            return;
 
-        var stat = await dbContext.Stats.IgnoreQueryFilters().SingleAsync(i => i.UserId == model.UserId && i.IsVip == model.IsPriority);
         switch (model.State)
         {
             case Common.Enums.TaskState.Crashed:
@@ -62,5 +66,11 @@ public class UpdateTaskService : IUpdateTaskService
         }
         dbContext.Update(stat);
         await dbContext.SaveChangesAsync();
+    }
+
+    public async Task<bool> TaskExists(TaskModel model)
+    {
+        var task = await dbContext.Tasks.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.Id == model.Id);
+        return task is not null;
     }
 }

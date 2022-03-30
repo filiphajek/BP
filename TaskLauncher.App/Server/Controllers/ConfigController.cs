@@ -1,5 +1,4 @@
-﻿using Hangfire;
-using MapsterMapper;
+﻿using MapsterMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +6,6 @@ using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
-using TaskLauncher.App.Server.Routines;
 using TaskLauncher.Authorization;
 using TaskLauncher.Common;
 
@@ -20,15 +18,11 @@ namespace TaskLauncher.App.Server.Controllers;
 public class ConfigController : BaseController
 {
     private readonly IMapper mapper;
-    private readonly IRecurringJobManager client;
-    private readonly FileDeletionRoutine routine;
     private readonly AppDbContext dbContext;
 
-    public ConfigController(ILogger<ConfigController> logger, IRecurringJobManager client, FileDeletionRoutine routine, AppDbContext dbContext, IMapper mapper)
+    public ConfigController(ILogger<ConfigController> logger, AppDbContext dbContext, IMapper mapper)
         : base(logger)
     {
-        this.client = client;
-        this.routine = routine;
         this.dbContext = dbContext;
         this.mapper = mapper;
     }
@@ -84,12 +78,6 @@ public class ConfigController : BaseController
         config.Value = request.Value;
         dbContext.Update(config);
         await dbContext.SaveChangesAsync();
-
-        if (request.Key == Constants.Configuration.FileRemovalRoutine)
-        {
-            client.RemoveIfExists(nameof(FileDeletionRoutine));
-            client.AddOrUpdate(nameof(FileDeletionRoutine), () => routine.Perform(), Cron.Minutely);
-        }
         return Ok();
     }
 }

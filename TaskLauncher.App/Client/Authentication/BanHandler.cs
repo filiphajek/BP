@@ -3,6 +3,9 @@ using System.Net;
 
 namespace TaskLauncher.App.Client.Authentication;
 
+/// <summary>
+/// Pokud je uzivatel zabanovan, handler ho odhlasi, presmeruje
+/// </summary>
 public class BanHandler : DelegatingHandler
 {
     private readonly HostAuthenticationStateProvider authenticationStateProvider;

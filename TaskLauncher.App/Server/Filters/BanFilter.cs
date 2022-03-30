@@ -34,17 +34,17 @@ public class BanFilter : IAsyncAuthorizationFilter
 
     private async Task UpdateBalanceToken(AuthenticateResult auth)
     {
-        //bylo by fajn to nacachovat
         var balance = await dbContext.TokenBalances.SingleAsync();
         auth.AddOrUpdateClaim(new Claim("token_balance", balance.CurrentAmount.ToString()));
     }
 
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
+        //pokud je to pristup na signalr nebo gty .. ignoruj
         if (context.HttpContext.User.TryGetClaimValue("azp", out var azp) && azp == "1MBhNBPqfSs8FYlaHoFLe2uRwa5BV5Qa")
-        {
             return;
-        }
+        if (context.HttpContext.User.TryGetClaimValue("gty", out var gty) && gty == "password")
+            return;
 
         if (context.HttpContext.User.TryGetAuth0Id(out var userId))
         {
@@ -67,10 +67,12 @@ public class BanFilter : IAsyncAuthorizationFilter
                 {
                     if (ex.Message != "user is blocked")
                     {
+                        //auth0 exception
                         logger.LogInformation("Exception: {0}", ex);
                         context.Result = new StatusCodeResult(500);
                         return;
                     }
+                    //uzivatel je blocknut, je treba ho odhlasit
                     logger.LogInformation("User is blocked {0} {1}", userId, ex);
                     var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
                     await context.HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
@@ -80,19 +82,14 @@ public class BanFilter : IAsyncAuthorizationFilter
                 }
                 catch (Exception ex)
                 {
+                    //interni chyba
                     logger.LogInformation("Exception: {0}", ex);
                     context.Result = new StatusCodeResult(500);
                     return;
                 }
             }
-            //akualizace tokenu je automaticky (refresh token), lze aktualizovat i v IActionFilter, middleware
 
-            /*var vipClaim = context.HttpContext.User.TryGetClaimValue(TaskLauncherClaimTypes.Vip, out var isVip);
-            var emailClaim = context.HttpContext.User.TryGetClaimValue(TaskLauncherClaimTypes.EmailVerified, out var emailVerified);
-
-            if(!vipClaim || !emailClaim)
-                return;*/
-
+            //uzivatel je blocknut, je treba ho odhlasit
             if (cachedUserClaims.Blocked)
             {
                 var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
@@ -102,6 +99,7 @@ public class BanFilter : IAsyncAuthorizationFilter
                 return;
             }
 
+            //akualizace claim principal
             var auth = await context.HttpContext.AuthenticateCookieAsync();
             if (auth is null || auth.Principal is null)
                 return;

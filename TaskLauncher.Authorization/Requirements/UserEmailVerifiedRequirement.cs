@@ -2,6 +2,6 @@
 
 namespace TaskLauncher.Authorization.Requirements;
 
-public class NoBanRequirement : IAuthorizationRequirement
+public class UserEmailVerifiedRequirement : IAuthorizationRequirement
 {
 }

@@ -12,8 +12,6 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.OData.ModelBuilder;
 using TaskLauncher.Api.Contracts.Responses;
 using Microsoft.OData.Edm;
-using Hangfire;
-using Hangfire.SqlServer;
 using TaskLauncher.Authorization;
 using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Models;
@@ -22,7 +20,6 @@ using TaskLauncher.Authorization.Services;
 using TaskLauncher.App.Server.Tasks;
 using TaskLauncher.App.Server.Seeders;
 using TaskLauncher.App.Server.Hub;
-using TaskLauncher.App.Server.Routines;
 using TaskLauncher.App.Server.Extensions;
 using TaskLauncher.App.Server.Filters;
 using TaskLauncher.App.Server.Proxy;
@@ -116,7 +113,6 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.Name = "__Host-BlazorServer";
     options.Cookie.SameSite = SameSiteMode.Strict;
 })
-//TODO chybi oidc config
 .AddAuth0WebAppAuthentication(options =>
 {
     options.Domain = auth0config.Domain;
@@ -131,23 +127,7 @@ builder.Services.AddAuthentication(options =>
     options.UseRefreshTokens = true;
 });
 
-//hangfire
-builder.Services.AddRoutines<Program>();
-builder.Services.AddHangfire(configuration => configuration
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UseSqlServerStorage(builder.Configuration.GetConnectionString("HangfireConnection"), new SqlServerStorageOptions
-    {
-        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-        QueuePollInterval = TimeSpan.Zero,
-        UseRecommendedIsolationLevel = true,
-        DisableGlobalLocks = true
-    }));
-builder.Services.AddHangfireServer();
-
-builder.Services.AddScoped<IUpdateTaskService, UpdateTaskService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 //autorizace
 builder.Services.AddAuthorizationServer();
@@ -159,7 +139,6 @@ builder.Services.AddAccessTokenManagement();
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 builder.Services.AddProxyMiddlewares(builder.Configuration);
-//TODO udelat nejaky check teto konfigurace .. aby routeId byla stejna
 builder.Services.Configure<ReverseProxyHandlers>(builder.Configuration.GetSection("ReverseProxyExtensions"));
 
 builder.Services.Configure<RouteOptions>(options =>
@@ -208,6 +187,8 @@ builder.Services.AddHttpClient();
 builder.Services.InstallClientFactories();
 builder.Services.AddScoped<IAuth0UserProvider, Auth0UserProvider>();
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -217,6 +198,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskLauncherDocumentation"));
 }
+
+app.UseHealthChecks("/health");
 
 app.UseHttpsRedirection();
 app.UseBlazorFrameworkFiles();
@@ -241,19 +224,22 @@ app.UseEndpoints(endpoints =>
     endpoints.MapHub<UserHub>("/UserHub");
 });
 
-app.UseHangfireDashboard("/hangfire");
-
 var balancer = app.Services.GetRequiredService<Balancer>();
 
 using (var scope = app.Services.CreateScope())
 {
-    var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
-    await seeder.SeedAsync();
+    var seeding = bool.Parse(builder.Configuration["SeederConfig:seed"]);
 
-    var jobClient = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
-    var routine = scope.ServiceProvider.GetRequiredService<FileDeletionRoutine>();
-    jobClient.RemoveIfExists(nameof(FileDeletionRoutine));
-    //jobClient.AddOrUpdate(nameof(FileDeletionRoutine), () => routine.Perform(), Cron.Minutely);
+    if (seeding)
+    {
+        var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
+        await seeder.SeedAsync();
+    }
+    else
+    {
+        var ensureContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await ensureContext.Database.EnsureCreatedAsync();
+    }
 
     var configurator = scope.ServiceProvider.GetRequiredService<Configurator>();
     await configurator.ConfigureDefaultsAsync();
@@ -269,7 +255,8 @@ using (var scope = app.Services.CreateScope())
     
     foreach(var task in tasks)
     {
-        balancer.Enqueue("nonvip", new()
+        var queue = task.IsPriority ? "vip" : "nonvip";
+        balancer.Enqueue(queue, new()
         {
             State = 0,
             Id = task.Id,
@@ -283,5 +270,4 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.MapHangfireDashboard().RequireAuthorization("admin-policy");
 app.Run();

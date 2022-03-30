@@ -22,6 +22,10 @@ public class StatController : BaseController
         this.dbContext = dbContext;
     }
 
+    /// <summary>
+    /// Vraci obecne statistiky pro daneho uzivatele
+    /// Admin musi zadat userId, uzivatel muze ziskat pouze sva data
+    /// </summary>
     [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
     [HttpGet]
     public async Task<ActionResult<List<UserStatResponse>>> GetUserStats(string? userId = null)
@@ -42,9 +46,13 @@ public class StatController : BaseController
         return Ok(userStats.Select(mapper.Map<UserStatResponse>));
     }
 
+    /// <summary>
+    /// Vraci obecne celkove statistiky od vsech uzivatelu
+    /// Pristup ma pouze admin
+    /// </summary>
     [Authorize(Policy = TaskLauncherPolicies.AdminPolicy)]
     [HttpGet("all")]
-    public async Task<ActionResult<List<UserStatResponse>>> GetAllStats(bool? isVip = null)
+    public async Task<ActionResult<List<UserStatResponse>>> GetAllUserStats()
     {
         var tmp = await dbContext.Stats.IgnoreQueryFilters().GroupBy(i => i.IsVip).Select(i => new UserStatResponse
         {
@@ -60,6 +68,11 @@ public class StatController : BaseController
         return Ok(tmp);
     }
 
+    /// <summary>
+    /// Vraci se kolekce statistik poslednich 30 tasku za posledni den souvisejici z danych uzivatelem
+    /// Statistiky udavaji kolik casu dany task stravil ve fronte a ve workeru
+    /// Na tento endpoint ma pristup uzivatel nebo admin, ktery musi specifikovat userId
+    /// </summary>
     [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
     [HttpGet("times")]
     public async Task<ActionResult<List<TaskStatResponse>>> GetUserTasksTimes(string? userId = null)
@@ -77,6 +90,8 @@ public class StatController : BaseController
                 .Include(i => i.Events)
                 .Where(i => i.UserId == userId)
                 .Where(i => i.CreationDate >= minDate)
+                .OrderByDescending(i => i.CreationDate)
+                .Take(30)
                 .ToListAsync())
             {
                 var (TimeInQueue, CpuTime) = GetTimeStats(task);
@@ -87,6 +102,8 @@ public class StatController : BaseController
         foreach (var task in await dbContext.Tasks
             .Include(i => i.Events)
             .Where(i => i.CreationDate >= minDate)
+            .OrderByDescending(i => i.CreationDate)
+            .Take(30)
             .ToListAsync())
         {
             var (TimeInQueue, CpuTime) = GetTimeStats(task);
@@ -95,9 +112,14 @@ public class StatController : BaseController
         return Ok(list);
     }
 
+    /// <summary>
+    /// Vraci se kolekce statistik poslednich 50 tasku za posledni den
+    /// Statistiky udavaji kolik casu dany task stravil ve fronte a ve workeru
+    /// Na tento endpoint ma pristup pouze admin
+    /// </summary>
     [AllowAnonymous]
     [Authorize(Policy = TaskLauncherPolicies.AdminPolicy)]
-    [HttpGet("alltimes")]
+    [HttpGet("times/all")]
     public async Task<ActionResult<List<TaskStatResponse>>> GetAllTaskTimes()
     {
         var minDate = DateTime.Now.AddDays(-1);
@@ -107,6 +129,8 @@ public class StatController : BaseController
             .IgnoreQueryFilters()
             .Include(i => i.Events)
             .Where(i => i.CreationDate >= minDate)
+            .OrderByDescending(i => i.CreationDate)
+            .Take(50)
             .ToListAsync())
         {
             var (TimeInQueue, CpuTime) = GetTimeStats(task);
@@ -115,9 +139,15 @@ public class StatController : BaseController
         return Ok(list);
     }
 
+    /// <summary>
+    /// Vraci kolekci kde polozka je pocet tasku za den
+    /// Vraci se zalozene tasky za poslednich 30 dni od konkretniho uzivatelu
+    /// Musi se specifikovat zda se budou vracet vip nebo normalni tasky
+    /// Na tento endpoint ma pristup uzivatel, ktery muze ziskat pouze sva data nebo uzivatel ktery musi specifikovat userId
+    /// </summary>
     [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
-    [HttpGet("daycount")]
-    public async Task<ActionResult<List<DayTaskCountResponse>>> GetTaskCountInDays(bool vip, string? userId = null)
+    [HttpGet("taskcountperdays")]
+    public async Task<ActionResult<List<DayTaskCountResponse>>> GetTaskCountPerDays(bool vip, string? userId = null)
     {
         var minDate = DateTime.Now.AddDays(-30);
         if (!string.IsNullOrEmpty(userId))
@@ -143,12 +173,19 @@ public class StatController : BaseController
         return Ok(tmp2);
     }
 
+    /// <summary>
+    /// Vraci kolekci kde polozka je pocet tasku za den
+    /// Vraci se zalozene tasky za poslednich 30 dni od vsech uzivatelu
+    /// Musi se specifikovat zda se budou vracet vip nebo normalni tasky
+    /// Na tento endpoint ma pristup pouze admin
+    /// </summary>
     [Authorize(Policy = TaskLauncherPolicies.AdminPolicy)]
-    [HttpGet("dayallcount")]
-    public async Task<ActionResult<List<DayTaskCountResponse>>> GetAllTaskCountInDays()
+    [HttpGet("taskcountperdays/all")]
+    public async Task<ActionResult<List<DayTaskCountResponse>>> GetAllTaskCountPerDays(bool vip)
     {
         var minDate = DateTime.Now.AddDays(-30);
         var tmp = await dbContext.Tasks.IgnoreQueryFilters()
+            .Where(i => i.IsPriority == vip)
             .Where(i => i.CreationDate >= minDate)
             .GroupBy(i => i.CreationDate.Date)
             .Select(x => new DayTaskCountResponse(x.Count(), x.Key))
@@ -156,6 +193,9 @@ public class StatController : BaseController
         return Ok(tmp);
     }
 
+    /// <summary>
+    /// Pomocna funkce pro spocitani hodnoty udavajici kolik casu task stravil ve fronte a jak dlouho ho zpracovaval worker
+    /// </summary>
     private static (TimeSpan TimeInQueue, TimeSpan CpuTime) GetTimeStats(TaskEntity task)
     {
         var timeInQueue = TimeSpan.Zero;
@@ -180,7 +220,7 @@ public class StatController : BaseController
                 timeInQueue += tmpTime;
                 tmpTime = TimeSpan.Zero;
             }
-            if (ev.Status == TaskState.FinishedSuccess || ev.Status == TaskState.FinishedSuccess || ev.Status == TaskState.Crashed || ev.Status == TaskState.Timeouted)
+            if (ev.Status == TaskState.FinishedSuccess || ev.Status == TaskState.FinishedFailure || ev.Status == TaskState.Crashed || ev.Status == TaskState.Timeouted)
             {
                 cpuTime += tmpTime;
                 tmpTime = TimeSpan.Zero;

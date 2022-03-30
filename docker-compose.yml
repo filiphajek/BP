@@ -21,8 +21,24 @@ services:
       - ASPNETCORE_HTTPS_PORT=5001
       - ASPNETCORE_Kestrel__Certificates__Default__Password=mypass123
       - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ConnectionStrings__Default=Server=db-server;Database=TaskLauncherApi;User=sa;Password=Pass1234
     volumes:
       - ./https/aspnetapp.pfx:/https/aspnetapp.pfx:ro
+    depends_on:
+      - db-server
+    networks:
+      - localdev
+
+  tasklauncher.routines:
+    image: tasklauncher.routines
+    container_name: tasklauncher.routines
+    build:
+        context: .
+        dockerfile: TaskLauncher.Routines/Dockerfile
+    restart: always
+    environment:
+      - ConnectionStrings__HangfireConnection=Server=db-server;Database=Hangfire;User=sa;Password=Pass1234
+      - ConnectionStrings__Default=Server=db-server;Database=TaskLauncherApi;User=sa;Password=Pass1234
     depends_on:
       - db-server
     networks:
@@ -46,6 +62,10 @@ services:
     build:
       context: .
       dockerfile: TaskLauncher.Worker/Dockerfile
+    environment:
+      - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
+      - ServiceAddresses__HubAddress=https://tasklauncher.app.server:443/WorkerHub
+      - TaskLauncherConfig__Source=bp_worker-vol
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - worker-vol:/app/tmp
@@ -53,3 +73,6 @@ services:
       - tasklauncher.app.server
     networks:
       - localdev
+
+volumes:
+  worker-vol:

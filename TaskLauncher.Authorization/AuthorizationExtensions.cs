@@ -19,7 +19,7 @@ public static class AuthorizationExtensions
 
     public static void AddAuthorizationClient(this IServiceCollection services)
     {
-        services.AddAuthorizationHandlers<CanCancelHandler>();
+        services.AddSingleton<IAuthorizationHandler, CanCancelHandler>();
         services.AddAuthorizationCore(policies =>
         {
             policies.AddPolicy(TaskLauncherPolicies.CanCancelAccount, p =>
@@ -74,6 +74,7 @@ public static class AuthorizationExtensions
         {
             policies.AddPolicy(TaskLauncherPolicies.CanCancelAccount, p =>
             {
+                p.AddAuthenticationSchemes(AuthorizationConstants.CookieAuth, AuthorizationConstants.BearerAuth);
                 p.Requirements.Add(new CanCancelRequirement());
             });
             policies.AddPolicy(TaskLauncherPolicies.EmailNotConfirmed, p =>
@@ -95,7 +96,7 @@ public static class AuthorizationExtensions
             {
                 p.AddAuthenticationSchemes(AuthorizationConstants.CookieAuth, AuthorizationConstants.BearerAuth);
                 p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
+                p.Requirements.Add(new UserEmailVerifiedRequirement()); //kvuli simulovanemu pristupu
                 p.RequireRole(TaskLauncherRoles.User);
             });
             policies.AddPolicy(TaskLauncherPolicies.LauncherPolicy, p =>

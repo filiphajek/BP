@@ -1,4 +1,6 @@
-﻿namespace TaskLauncher.App.Server.Routines;
+﻿using TaskLauncher.Routines.Routines;
+
+namespace TaskLauncher.Routines.Extensions;
 
 public static class RoutineExtensions
 {

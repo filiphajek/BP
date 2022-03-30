@@ -4,7 +4,7 @@ namespace TaskLauncher.App.Client.Authentication;
 
 /// <summary>
 /// Pomocny http handler zabranujici odeslani pozadavku, pokud uzivatel neni prihlaseny, misto toho se presmeruje na login
-/// inspirovano z https://github.com/berhir/BlazorWebAssemblyCookieAuth
+/// Inspirovano z https://github.com/berhir/BlazorWebAssemblyCookieAuth
 /// </summary>
 public class AuthorizedHandler : DelegatingHandler
 {
