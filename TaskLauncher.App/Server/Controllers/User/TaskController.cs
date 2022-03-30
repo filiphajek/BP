@@ -168,7 +168,7 @@ public class TaskController : UserODataController<TaskResponse>
 
         balancer.Enqueue(vip ? "vip" : "nonvip", new TaskModel
         {
-            IsPriority = true,
+            IsPriority = vip,
             Id = task.Id,
             State = TaskState.Created,
             Time = creationDate,

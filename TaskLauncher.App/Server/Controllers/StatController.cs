@@ -77,7 +77,7 @@ public class StatController : BaseController
                 .Include(i => i.Events)
                 .Where(i => i.UserId == userId)
                 .Where(i => i.CreationDate >= minDate)
-                .OrderBy(i => i.CreationDate)
+                .OrderByDescending(i => i.CreationDate)
                 .Take(30)
                 .ToListAsync())
             {
@@ -89,7 +89,7 @@ public class StatController : BaseController
         foreach (var task in await dbContext.Tasks
             .Include(i => i.Events)
             .Where(i => i.CreationDate >= minDate)
-            .OrderBy(i => i.CreationDate)
+            .OrderByDescending(i => i.CreationDate)
             .Take(30)
             .ToListAsync())
         {
@@ -111,7 +111,7 @@ public class StatController : BaseController
             .IgnoreQueryFilters()
             .Include(i => i.Events)
             .Where(i => i.CreationDate >= minDate)
-            .OrderBy(i => i.CreationDate)
+            .OrderByDescending(i => i.CreationDate)
             .Take(30)
             .ToListAsync())
         {

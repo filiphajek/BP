@@ -97,5 +97,6 @@
         var times = (await client.GetFromJsonAsync<List<TaskStatResponse>>(path))!;
         int j = times.Count, k = times.Count;
         taskTimes = times.Select(i => new TaskStatDataItem(i.CpuTime, i.TimeInQueue, (++j).ToString(), i.IsVip)).ToList();
+        taskTimes.Reverse();
     }
 }

@@ -140,7 +140,8 @@ public class WorkerService : BackgroundService
     {
         isWorking = true;
         actualTask = model;
-        logger.LogInformation("Starting execution of task '{0}'", model.Id);
+        var isPrior = model.IsPriority ? "vip" : "normal";
+        logger.LogInformation("Starting execution of task '{0}' ({1})", model.Id, isPrior);
 
         if(!config.Target.StartsWith("/"))
             config.Target = "/" + config.Target;
@@ -175,7 +176,7 @@ public class WorkerService : BackgroundService
         //ukonceni prace
         actualTask = null;
         isWorking = false;
-        logger.LogInformation("Task '{0}' finished", model.Id);
+        logger.LogInformation("Task '{0}' ({1}) finished", model.Id, isPrior);
         await UpdateTaskAsync(model, exitCode == 0 ? TaskState.FinishedFailure : TaskState.FinishedSuccess, token);
     }
 

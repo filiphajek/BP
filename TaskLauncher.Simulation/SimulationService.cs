@@ -72,7 +72,8 @@ public class SimulationService : BackgroundService
             Console.WriteLine($"{users.Count} was created");
             foreach (var user in users)
             {
-                Console.WriteLine($"{user.Vip}: {user.Email}");
+                var isvip = user.Vip ? "vip" : "normal";
+                Console.WriteLine($"{isvip}: {user.Email}");
             }
 
             foreach (var user in users)
