@@ -13,10 +13,13 @@
 
     Action<IGridColumnCollection<TaskResponse>> columns = c =>
     {
-        c.Add(o => o.Id).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>Detail</a>");
-        c.Add(o => o.Name);
-        c.Add(o => o.Description);
-        c.Add(o => o.ActualStatus);
+        c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
+        c.Add(o => o.Description).RenderValueAs(o => o.Description.Length > 50 ? o.Description[..50] + " ..." : o.Description).Filterable(true);
+        c.Add(o => o.CreationDate).Titled("Creation date").Sortable(true).Filterable(true)
+            .SortInitialDirection(GridShared.Sorting.GridSortDirection.Descending);
+        c.Add(o => o.IsPriority).Titled("Priorized").Sortable(true).Filterable(true);
+        c.Add(o => o.ActualStatus).Sortable(true);
+        c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus)).SetWidth(150);
     };
 
     protected async override Task OnParametersSetAsync()

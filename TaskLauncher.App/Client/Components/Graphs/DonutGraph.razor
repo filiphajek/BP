@@ -11,7 +11,7 @@
         <div class="card">
             <div class="card-title" style="margin:20px 0 0 20px">
                 <h4>Finished/All tasks: <b>@model.FinishedTaskCount</b>/<b>@model.AllTaskCount</b></h4>
-                <button disabled="@disabledSwitch" class="btn btn-primary" @onclick="SwitchDonutGraph">Switch to @(isVip ? "normal" : "vip") task</button>
+                <button disabled="@disabledSwitch" class="btn btn-primary" @onclick="SwitchDonutGraph">Switch to @(isVip ? "normal" : "vip") tasks</button>
             </div>
             <div class="card-body">
                 <RadzenChart>

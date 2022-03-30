@@ -139,7 +139,6 @@ builder.Services.AddAccessTokenManagement();
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 builder.Services.AddProxyMiddlewares(builder.Configuration);
-//TODO udelat nejaky check teto konfigurace .. aby routeId byla stejna
 builder.Services.Configure<ReverseProxyHandlers>(builder.Configuration.GetSection("ReverseProxyExtensions"));
 
 builder.Services.Configure<RouteOptions>(options =>

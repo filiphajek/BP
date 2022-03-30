@@ -66,22 +66,22 @@
 
         if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(TaskLauncherRoles.Admin))
         {
-            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=false&userid=" + UserId);
-            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=true&userid=" + UserId);
+            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/taskcountperdays?vip=false&userid=" + UserId);
+            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/taskcountperdays?vip=true&userid=" + UserId);
             loading = false;
             return;
         }
 
         if (state.User.IsInRole(TaskLauncherRoles.User))
         {
-            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=false");
-            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/daycount?vip=true");
+            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/taskcountperdays?vip=false");
+            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/taskcountperdays?vip=true");
         }
 
         if (state.User.IsInRole(TaskLauncherRoles.Admin))
         {
-            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/dayallcount?vip=false");
-            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/dayallcount?vip=true");
+            normalTasksPerDays = await LoadTaskCountPerDay("api/stat/taskcountperdays/all?vip=false");
+            vipTasksPerDays = await LoadTaskCountPerDay("api/stat/taskcountperdays/all?vip=true");
         }
         loading = false;
     }

@@ -88,7 +88,7 @@
             await LoadTimesStats("api/stat/times");
 
         if (state.User.IsInRole(TaskLauncherRoles.Admin))
-            await LoadTimesStats("api/stat/alltimes");
+            await LoadTimesStats("api/stat/times/all");
         loading = false;
     }
 

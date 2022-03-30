@@ -43,7 +43,7 @@
 
             </div>
 
-            @if (User.Registered)
+            @if (User.Registered && User.EmailVerified!.Value)
             {
                 <div class="card">
                     <div class="card-body">
