@@ -36,12 +36,12 @@ public class SignalRClient : IAsyncDisposable
                     ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
                 };
             })
+            .WithAutomaticReconnect()
             .ConfigureLogging(i =>
             {
                 i.AddProvider(loggerProvider);
                 i.SetMinimumLevel(LogLevel.Debug);
             })
-            .WithAutomaticReconnect()
             .Build();
     }
 
