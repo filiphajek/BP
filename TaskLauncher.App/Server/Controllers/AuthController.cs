@@ -1,4 +1,6 @@
 using Auth0.AspNetCore.Authentication;
+using Auth0.AuthenticationApi;
+using Auth0.ManagementApi;
 using Auth0.ManagementApi.Models;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication;
@@ -31,7 +33,8 @@ public class AuthController : ControllerBase
     private readonly AppDbContext context;
     private readonly IHttpClientFactory clientFactory;
     private readonly ILogger<AuthController> logger;
-    private readonly ManagementApiClientFactory apiClientFactory;
+    private readonly IClientFactory<ManagementApiClient> apiClientFactory;
+    private readonly IClientFactory<AuthenticationApiClient> authApiClientFactory;
     private readonly IMapper mapper;
     private readonly Auth0ApiConfiguration config;
 
@@ -39,15 +42,17 @@ public class AuthController : ControllerBase
         IHttpClientFactory clientFactory,
         ILogger<AuthController> logger,
         IOptions<Auth0ApiConfiguration> config,
-        ManagementApiClientFactory apiClientFactory,
-        IMapper mapper)
+        IMapper mapper,
+        IClientFactory<AuthenticationApiClient> authApiClientFactory, 
+        IClientFactory<ManagementApiClient> apiClientFactory)
     {
         this.context = context;
         this.clientFactory = clientFactory;
         this.logger = logger;
-        this.apiClientFactory = apiClientFactory;
         this.mapper = mapper;
         this.config = config.Value;
+        this.authApiClientFactory = authApiClientFactory;
+        this.apiClientFactory = apiClientFactory;
     }
 
     /// <summary>
@@ -75,6 +80,26 @@ public class AuthController : ControllerBase
         var authenticationProperties = new LogoutAuthenticationPropertiesBuilder().WithRedirectUri("/").Build();
         await HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// Reset hesla, pouze pro cookie auth
+    /// </summary>
+    [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
+    [HttpGet("resetpassword")]
+    public async Task<IActionResult> ChangePassword()
+    {
+        if(!User.TryGetAuth0Id(out _) || !User.TryGetClaimValue(ClaimTypes.Email, out var email))
+            return Unauthorized();
+
+        var authClient = await authApiClientFactory.GetClient();
+        var responsee = await authClient.ChangePasswordAsync(new()
+        {
+            ClientId = config.ClientId,
+            Connection = "Username-Password-Authentication",
+            Email = email,
+        });
+        return Ok(new ResetPasswordResponse(responsee));
     }
 
     /// <summary>

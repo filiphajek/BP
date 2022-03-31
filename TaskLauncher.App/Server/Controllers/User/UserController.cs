@@ -1,4 +1,5 @@
 ﻿using Auth0.AspNetCore.Authentication;
+using Auth0.ManagementApi;
 using Auth0.ManagementApi.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -18,9 +19,9 @@ namespace TaskLauncher.App.Server.Controllers.User;
 public class UserController : BaseController
 {
     private readonly AppDbContext context;
-    private readonly ManagementApiClientFactory apiClientFactory;
+    private readonly IClientFactory<ManagementApiClient> apiClientFactory;
 
-    public UserController(ILogger<UserController> logger, AppDbContext context, ManagementApiClientFactory apiClientFactory) : base(logger)
+    public UserController(ILogger<UserController> logger, AppDbContext context, IClientFactory<ManagementApiClient> apiClientFactory) : base(logger)
     {
         this.context = context;
         this.apiClientFactory = apiClientFactory;

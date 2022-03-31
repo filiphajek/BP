@@ -1,4 +1,5 @@
-﻿using Mapster;
+﻿using Auth0.ManagementApi;
+using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +18,10 @@ namespace TaskLauncher.App.Server.Controllers.Admin;
 public class BanController : AdminODataController<BanResponse>
 {
     private readonly IMapper mapper;
-    private readonly ManagementApiClientFactory clientFactory;
+    private readonly IClientFactory<ManagementApiClient> clientFactory;
     private readonly Cache<UserClaimsModel> cache;
 
-    public BanController(AppDbContext context, IMapper mapper, ManagementApiClientFactory clientFactory, Cache<UserClaimsModel> cache) : base(context)
+    public BanController(AppDbContext context, IMapper mapper, IClientFactory<ManagementApiClient> clientFactory, Cache<UserClaimsModel> cache) : base(context)
     {
         this.mapper = mapper;
         this.clientFactory = clientFactory;

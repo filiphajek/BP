@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Auth0.ManagementApi;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.DAL.Entities;
@@ -24,12 +25,12 @@ public class Seeder
 
     private readonly AppDbContext dbContext;
     private readonly IFileStorageService fileStorageService;
-    private readonly ManagementApiClientFactory clientFactory;
+    private readonly IClientFactory<ManagementApiClient> clientFactory;
 
     private readonly List<string> seededEmails = new() { "tomashavel@test.com", "filipnovak@test.com", "stepannemec@test.com", "jakubstefacek@test.com", "vojtechbrychta@test.com" };
     private readonly Dictionary<UserType, string> seededUsers = new();
 
-    public Seeder(AppDbContext dbContext, IFileStorageService fileStorageService, ManagementApiClientFactory clientFactory)
+    public Seeder(AppDbContext dbContext, IFileStorageService fileStorageService, IClientFactory<ManagementApiClient> clientFactory)
     {
         this.dbContext = dbContext;
         this.fileStorageService = fileStorageService;
