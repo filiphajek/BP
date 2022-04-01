@@ -1,17 +1,16 @@
 ## Úvod
-Projekt se zabývá implementací internetové služby, která poskytuje uživatelům spouštět 
-úlohy. Úloha se spouští jako docker kontejner.
+Projekt se zabývá implementací internetové služby, která umožňuje uživatelům spouštět úlohy. V projektu je implementováno REST API rozhraní pro 
+spouštění úloh. Ty se spouští jako docker kontejner. Dále je implementován systém administrace a systém zpoplatnění za spuštěné úlohy.
 
-Služba je implementována ve frameworku .NET 6. Dále se používá služba 
-Google bucket storage pro ukládání uživatelských souborů a služba Auth0 
+Služba je implementována ve frameworku .NET 6. Pro ukládání uživatelských souborů se využívá služba Google bucket storage a služba Auth0 
 pro autentizaci a autorizaci.
 
 ## Spuštění projektu
 Projekt se spouští přes docker-compose. Nejdříve je ale potřeba vytvořit testovací image, který bude spouštěn a bude simulovat výpočet.
 V kořenovém adresáři spusťte příkaz: ```docker build -t testimage -f .\TestImage\Dockerfile .```
 
-Poté celý projekt spustíte přes ```docker-compose up --build```. Tento proces může trvat 
-několik minut. Výsledkem by měly být čtyři spuštěné docker kontejnery.\
+Poté celý projekt spustíte přes ```docker-compose -f .\docker-compose.yml up --build```. Tento proces může trvat několik minut. 
+Výsledkem by měly být čtyři spuštěné docker kontejnery.\
 Na této adrese <https://localhost:5001/> je dostupná webová aplikace.\
 Na této adrese <https://localhost:5001/swagger/index.html> je dostupná OpenApi dokumentace.
 
@@ -24,11 +23,10 @@ Projekt tak nebude fungovat a certifikát se bude muset vygenerovat nový.
 Pro vytvoření a ověření vývojářského certifikátu jsou potřeba tyto kroky:
 * Stažení .NET 6 SDK https://dotnet.microsoft.com/download/dotnet/6.0
 * Přejít do hlavního adresáře projektu a zadat ```dotnet dev-certs https -ep .\https\aspnetapp.pfx -p mypass123```
-* Potom vše restartujte příkazy: ```docker-compose down```, ```docker-compose up --build```.
+* Potom vše restartujte příkazy: ```docker-compose down```, ```docker-compose -f .\docker-compose.yml up --build```.
 
 Poté by mělo vše fungovat správně. Na adrese <https://localhost:5001/> se vpravo nahoře můžete přihlásit
-nebo zaregistrovat. Zde je tabulka již existujícíh uživatelů. U všech je heslo
-nastavené na ```Password123*```.
+nebo zaregistrovat. Zde je tabulka již existujících uživatelů. U všech je heslo nastavené na ```Password123*```.
 
 | Uživatelský email            | Popis                                                   |
 |------------------------------|---------------------------------------------------------|
@@ -41,108 +39,100 @@ nastavené na ```Password123*```.
 
 Vysvětlení popisu:
 * **Ověřený** - Ověřený přes e-mail
-* **Registrovaný** - Uživatel je přihlášen k auth0, ale nedokončil registraci do aplikace
+* **Neregistrovaný** - Uživatel je přihlášen k auth0, ale nedokončil registraci do aplikace
 
 ## Konfigurace projektu
-Projekt lze konfigurovat přes kongirurační proměnné v docker compose souboru.
-Konfigurační proměnné jsou uložené v souborech ```appsettings.json```. Tyto proměnné
-lze v docker compose souboru změnit.
+Projekt lze konfigurovat přes konfigurační proměnné v docker compose souboru ```docker-compose.yml```.
+Konfigurační proměnné jsou definovány v souborech ```appsettings.json``` a lze je přepsat z docker compose souboru nebo z jiných nasazovacích nástrojů.
 
 Konfigurační soubor ```TaskLauncher.App/Server/appsettings.json``` slouží ke konfiguraci
-serveru. Lze měnit nastavení poskytovatele idenity, připojovací řetězec k databázi,
+serveru. Lze měnit nastavení poskytovatele identity, připojovací řetězec k databázi,
 váhy front úloh a podobně.
 
-Hodnoty, které se mohou měnit a neovlivní zásadně chod serveru jsou:
+Hodnoty, které se mohou měnit a neovlivní zásadně chod serveru:
 * **SeederConfig__seed** Pokud je nastaveno na ```true```, vytvoří se testovací uživatelé s testovacími daty (pouze pokud je prázdná databáze). 
 Pokud je hodnota nastavena ```false```, je tato funkce vypnuta.
-* **PriorityQueues__Queues__nonvip** Určuje jakou váhu má nastavená fronta s normálními úlohy.
-* **PriorityQueues__Queues__vip** Určuje jakou váhu má nastavená fronta s priotitními úlohy.
-* **PriorityQueues__Queues__cancel** Určuje jakou váhu má nastavená fronta s úlohy, které nečekaně selhaly z důvodu odpojení workera nebo nečekané vyjímky.
+* **PriorityQueues__Queues__nonvip** Určuje, jakou váhu má nastavená fronta s neprioritními úlohy.
+* **PriorityQueues__Queues__vip** Určuje, jakou váhu má nastavená fronta s prioritními úlohy.
+* **PriorityQueues__Queues__cancel** Určuje, jakou váhu má nastavená fronta s úlohy, které nečekaně selhaly z důvodu odpojení workera nebo nečekané vyjímky.
 
-Další konfigurace je ```TaskLauncher.Routines/appsettings.json```. Zde by se nic měnit nemělo.
-Konfigurace aplikaci, která vykonává rutinní práce.
+Další konfigurace je ```TaskLauncher.Routines/appsettings.json```, která konfiguruje aplikaci vykonávající rutinní, údržbové práce. Tyto proměnné by se měnit neměly.
 
-Poslední konfigurační soubor je ```TaskLauncher.Worker/appsettings.json```. Ten konfiguruje worker aplikaci, která
-spouští kontejner simlující výpočet.
+Poslední konfigurační soubor je ```TaskLauncher.Worker/appsettings.json```. Ten konfiguruje worker aplikaci, která spouští kontejner simulující výpočet.
 
 Hodnoty, které se zde mohou měnit:
-* **TaskLauncherConfig__Target** Určuje cestu, kam worker bude ukládat soubor. Nedoporučuje se měnit tuto proměnnou.
-* **TaskLauncherConfig__Source** Toto je jméno volume. Stejný volume by měl být přimontován jak k worker kontejneru, tak k workerem spuštěnému kontejneru.
-* **TaskLauncherConfig__ImageName** Jméno testovacího image.
+* **TaskLauncherConfig__Target** Určuje cestu v kontejneru, kam bude namontován volume. Nedoporučuje se neměnit tuto proměnnou, protože ji používá i spuštěný kontejner s výpočtem.
+* **TaskLauncherConfig__Source** Jméno volume. Stejný volume by měl být přimontován jak k worker kontejneru, tak k workerem spuštěnému kontejneru. Jinak
+bude worker ukládat soubor jinam a kontejner s výpočtem nebude moct do tohoto souboru zapsat výsledek výpočtu.
+* **TaskLauncherConfig__ImageName** Jméno testovacího image, který se bude spouštět s volume (definováno proměnnými Target a Source).
 * **TaskLauncherConfig__ContainerArguments__Mode** Zde jsou možné pouze dvě možnosti: "seconds", "minutes". Určuje jednotku času v dalších proměnných.
-* **TaskLauncherConfig__ContainerArguments__Min** Minimální čas, po který poběží spuštěný kontejner s výpočtem. Jednotku určuje proměnná Mode.
-* **TaskLauncherConfig__ContainerArguments__Max** Maximální čas, po který poběží spuštěný kontejner s výpočtem. Jednotku určuje proměnná Mode.
-* **TaskLauncherConfig__ContainerArguments__Max** Určuje šanci na úspěch úlohy (zadávejte jako desetinné číslo od 0 do 1 s tečkou).
+* **TaskLauncherConfig__ContainerArguments__Min** Minimální možný čas, po který poběží spuštěný kontejner s výpočtem. Jednotku určuje proměnná Mode.
+* **TaskLauncherConfig__ContainerArguments__Max** Maximální možný čas, po který poběží spuštěný kontejner s výpočtem. Jednotku určuje proměnná Mode.
+* **TaskLauncherConfig__ContainerArguments__Max** Určuje šanci na úspěch úlohy (zadává se jako desetinné číslo od 0 do 1 s tečkou).
  
 ## Simulace
 Spuštění simulace probíhá opět pomocí docker-compose. Tentokrát se v příkazu uvede 
-soubor s konfigurací pro simulaci ```docker-compose -f .\docker-compose.simulation.yml up --build```.
+soubor s konfigurací pro simulaci ```docker-compose -f .\docker-compose.simulation.yml up --build```. Opět je nutné mít testovací image (viz Spuštění projektu).
 
-Simulace vytvoří několik normálních a několik vip uživatelů. Ti pak vytvoří několik tasků po nějaké době.
-Všechny tyto hodnoty jsou konfigurovatelné. Pro nahlédnutí výsledku nebo fronty se přihlašte do aplikace
+Simulace vytvoří několik standartních a několik vip uživatelů. Ti pak vytvoří několik úloh, každý po určité době.
+Všechny tyto hodnoty jsou opět konfigurovatelné. Pro nahlédnutí výsledku nebo fronty se přihlaste do aplikace
 na adrese <https://localhost:5001/> jako administrátor nebo jako uživatel, který se v simulaci vygeneroval.
-Heslo je vždy stejné: ```Password123*```. Email získáte z logu, který produkuje simulace.
+Heslo je vždy stejné: ```Password123*```. Email se získá z logu, který produkuje simulace.
 
 ## Konfigurace simulace
-V simulaci se nespouští management aplikace, takže související proměnné nelze konfigovat.
+V simulaci se nespouští management aplikace, takže související proměnné nelze konfigurovat.
 Zbývající proměnné jsou stejné jako u standartního spuštění projektu.
 K těmto proměnným přibyly proměnné z konfigurace v souboru ```TaskLauncher.Simulation/appsettings.json```
 
-Hodnoty, které se mohou měnit a neovlivní zásadně chod aplikace jsou:
+Hodnoty, které se mohou měnit a neovlivní zásadně chod:
 * **SimulationConfig__VipUsers** Nastavuje počet vygenerovaných vip uživatelů.
 * **SimulationConfig__NormalUsers** Nastavuje počet standartních uživatelů.
-* **SimulationConfig__TaskCount** Nastavuje počet tasků, který každý vytvořený uživatel nastaví.
-* **SimulationConfig__DelayMin** Hastavuje spodní hranici hodnoty zpoždění v sekundách, kterou se bude čekat po vytvoření tasku.
-* **SimulationConfig__DelayMax** Hastavuje horní hranici hodnoty zpoždění v sekundách, kterou se bude čekat po vytvoření tasku.
+* **SimulationConfig__TaskCount** Nastavuje počet úloh, který každý vytvořený uživatel nastaví.
+* **SimulationConfig__DelayMin** Nastavuje spodní hranici časového intervalu v sekundách. Z intervalu se náhodně vygeneruje zpoždění, po kterém se opět spustí další úloha.
+* **SimulationConfig__DelayMax** Nastavuje horní hranici časového intervalu v sekundách. Z intervalu se náhodně vygeneruje zpoždění, po kterém se opět spustí další úloha.
 
 ### Architektura:
-Projekt je rozdělen na čtyři části (čtyři docker image).
+Projekt je tvořen několika částmi
 * Webová aplikace
 * SQL server databáze
 * Management aplikace
 * Aplikace spouštějící výpočty - Worker
+* Google bucket storage
+* Auth0
 
 ### Schéma:
 ![image info](./Images/schema.jpg)
 
 ### Webová aplikace
-Aplikace byla vytvořena pomocí frameworku ASP.NET Core 6. Dále se
-využil model Blazor WebAssembly ASP.NET Core hosted, který dokáže hostovat webové stránky.
-Vznikají tak dvě aplikace (resp. dvě části). Obě aplikace jsou hostovány na serveru Kestrel. Obě aplikace mají
-stejnou doménu. Pokud se přistoupí na adresu https://{doména}/.. z prohlížeče. Otevřou se klasicky statické stránky.
-Pokud se přistupuje na adresu https://{doména}/api/.. přistupuje se k REST API. Doména je v lokálním spuštění localhost:5001.
-Po spuštění nicméně vzniká pouze jeden kontejner jako jedna aplikace, kterou je server Kestrel. Kestrel tak
-poskytuje statické stránky a zároveň REST API.
-Pokud by byl požadavek rozdělit tento model na více kontejnerů, je několik možnostní. 
+Aplikace byla vytvořena pomocí frameworku ASP.NET Core 6. Využil se hostovací model Blazor WebAssembly ASP.NET Core hosted.
+Tento model je hostován na serveru Kestrel. Vznikají dvě části (aplikace): frontend aplikace (SPA) a backend k frontend aplikaci (BFF). 
+Jelikož jsou obě tyto části hostovány na serveru Kestrel, vzniká jediný kontejner a obě aplikace sdílí stejnou doménu.
+Pokud se přistoupí na url adresu <https://{doména}/..> z prohlížeče. Otevřou se klasicky statické webové stránky (akorát pomocí WebAssembly).
+Pokud se přistupuje na url adresu <https://{doména}/api/..> přistupuje se k REST API. Doména je v lokálním spuštění <localhost:5001>.
+Tento model byl zvolen kvůli jednoduššímu nasazení celé aplikace. Navíc je server Kestrel schopný spolehlivě hostovat backend aplikace (REST API) a zároveň 
+poskytovat statické soubory do prohlížeče.
 
-1. REST API (ASP.NET core 6 backend) by zůstalo na serveru, statické stránky (SPA) by se mohly hostovat na jiné instanci
+Pokud by existoval nějaký požadavek, který by vyžadoval rozdělení tohoto modelu na více kontejnerů (SPA, REST API), lze jednoduše vybrat jiný hostovací model.
+Stačí změnit pouze konfigurační soubory, kód by se v podstatě nemusel měnit.
+
+Možné hostovací modely:
+1. REST API (ASP.NET core 6 backend) by zůstalo na serveru Kestrel, statické stránky (SPA) by se mohly hostovat na jiné instanci
 Kestrel serveru v jiném kontejneru pomocí modelu Blazor WebAssembly nebo na kompletně jiném serveru jako je Nginx.
 2. REST API by se opět neměnilo a blazor aplikace by se nechala nasadit pomocí modelu Blazor Server.
 
-Hostovací model Blazor WebAssembly ASP.NET Core hosted byl zvolen, kvůli jednoduššímu nasazování. 
-Server Kestrel je schopný zvládat jak poskytování statických souborů, tak hostování backend aplikace zároveň.
+Frontend aplikace komunikuje s backend aplikací klasicky přes REST API. Blazor aplikace se dále připojuje na SignalR Hub, který zasílá uživatelům notifikace. Hub je hostovaný v backend aplikaci (.NET 6).
+Backend aplikace obsluhuje databázi a komunikuje se službou Google bucket storage pro ukládání souborů. Dále komunikuje se službou Auth0, která zajišťuje
+autentizaci a autorizaci uživatelů. Server rozděluje úlohy worker aplikacím, pomocí algoritmu round-robin zajišťuje, aby nehladověly neprioritní úlohy. Server posílá  zprávy worker aplikacím pomocí SignalR.
 
-Frontend aplikace komunikuje s REST API backend. Pro autentizaci a autorizaci se používá služba auth0.
-Blazor aplikace se dále připojuje na SignalR hub, který je hostovaný společně s REST API, který zasílá
-uživatelům notifikace. 
-Backend aplikace obsluhuje databázi a komunikuje se službou Google bucket storage pro ukládání souborů.
-Dále rozděluje úlohy worker aplikacím.
-Pro přístup na REST API z prohlížeče se musí uživatel autentizovat a autorizovat pomocí cookie autentizace.
-Autentizace a autorizace probíhá přes službu auth0. Uživatel se může k API dostat i z klasické desktop aplikace,
-přes JWT access token, který získá přihlášením přes password login flow.
+Pro přístup na REST API z prohlížeče se musí uživatel autentizovat a autorizovat pomocí cookie autentizace zajištěné přes Auth0.
+Uživatel se může k API dostat i z klasické desktop aplikace, přes přístupový token, který získá přihlášením přes API, které volá Auth0 vystavující daný token.
 
 ### Management aplikace
 Tato aplikace má za úkol vykonávat rutinní práce jako mazání starých souborů. Aplikace byla implementována
-pomocí balíčku Hangfire, který umí plánovat práce a vykonávat je po dané době. Pokud se objeví požadavek, například
-mazat neaktivní uživatele apod. Lze rutinu naprogramovat a naplánovat ji do Hangfire.
+pomocí balíčku Hangfire, který umí plánovat práce a vykonávat je po určité době. Pokud se objeví nový požadavek, například
+mazat neaktivní uživatele apod. Lze rutinu naprogramovat a naplánovat ji do této aplikace.
 
-### Aplikace spouštějící výpočty
-Aplikace má za úkol spouštět výpočty. Jakmile do aplikace začnou přicházet zprávy (ze SignalR Hub) obsahující informaci o zahájení výpočtu, 
-začnou se hromadit do fronty. Aplikace pak postupně spouští výpočet za výpočtem, dokud není fronta prázdná, jinak aplikace čeká až přijde další
-zpráva o zahájení dalšího výpočtu.
-Než aplikace spustí výpočet, tak vždy stáhne soubor pomocí dotazu na Web Api. Následně spustí docker image s mountem k tomuto souboru. 
-Jakmile výpočet skončí, aplikace uloží výsledný soubor opět pomocí dotazu na Web Api. Mezitím probíhá několik dotazů na Web Api, které aktualizují stav výpočtu.
-Současně se přes SignalR posílají real-time zprávy do frontend aplikace.
-
-Aplikace zatím funguje pouze tak, že spustí testovací docker image a pouze výpočet simuluje. Dále se zatím používá fronta, ale do budoucna nebude nic
-bránit tomu, aby se výpočty spouštěly paralelně.
+### Aplikace spouštějící výpočty - Worker
+Aplikace má za úkol spouštět výpočty. Jakmile do aplikace přijde zpráva (ze SignalR Hub, ze serveru) obsahující informaci o zahájení výpočtu, 
+aplikace zahájí výpočet. Z Google storage se stáhne soubor, ten se uloží do namontovaného volume a spustí se kontejner se stejným volume. Kontejner, který simuluje 
+výpočet zapíše výsledek do souboru. Worker aplikace pak soubor zpátky nahraje na Google. Veškeré události worker zasílá na SignalR hub nebo REST API. Pokud worker náhle ukončí spojení, Hub je o tom informován a úlohu znovu vloží do fronty na serveru. Worker implementuje i timeout úlohy (kvůli detekci zacyklení). Události, které se posílají na server (úloha se dokončila, timeout apod.), vidí daný přihlášený uživatel v reálném čase (díky SignalR spojení).
