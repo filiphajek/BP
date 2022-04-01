@@ -87,7 +87,6 @@ builder.Services.AddSingleton<Cache<AccessToken>>();
 builder.Services.AddSingleton<Cache<UserClaimsModel>>();
 
 builder.Services.AddSingleton<ManagementTokenService>();
-builder.Services.AddSingleton<ManagementApiClientFactory>();
 
 //pristup do google bucket storage
 builder.Services.Configure<StorageConfiguration>(builder.Configuration.GetSection(nameof(StorageConfiguration)));

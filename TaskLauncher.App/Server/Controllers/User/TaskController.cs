@@ -289,11 +289,13 @@ public class TaskController : UserODataController<TaskResponse>
             User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out bool vip);
             balancer.Enqueue(vip ? "vip" : "nonvip", new TaskModel
             {
+                IsPriority = vip,
                 Id = task.Id,
                 State = TaskState.Created,
+                Time = task.CreationDate,
                 Name = task.Name,
-                Time = DateTime.Now,
                 TaskFilePath = task.TaskFile,
+                ResultFilePath = task.ResultFile,
                 UserId = task.UserId
             });
             return Ok(mapper.Map<EventResponse>(ev.Entity));

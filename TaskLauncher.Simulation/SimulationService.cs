@@ -69,7 +69,7 @@ public class SimulationService : BackgroundService
             var tasks = new List<Task>();
             var users = await CreateUsers();
 
-            Console.WriteLine($"{users.Count} was created");
+            Console.WriteLine($"{users.Count} users was created");
             foreach (var user in users)
             {
                 var isvip = user.Vip ? "vip" : "normal";

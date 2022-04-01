@@ -9,6 +9,7 @@
 @inject ApiClient client
 @inject DialogService DialogService
 @inject NavigationManager NavigationManager
+@inject IToastService ToastService
 
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
@@ -18,12 +19,17 @@
                 <ProfileComponent User=User />
             </div>
 
-            <div class="row" style="margin:10px; width:150px">
-                <AuthorizeView Policy="can-cancel-account">
-                    <Authorized>
-                        <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
-                    </Authorized>
-                </AuthorizeView>
+            <div class="row" style="margin:10px; width:350px">
+                <div class="col">
+                    <AuthorizeView Policy="can-cancel-account">
+                        <Authorized>
+                            <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+                <div class="col" style="margin-left:15px">
+                    <button class="btn btn-danger" @onclick="ResetPasswordAsync">Reset password</button>
+                </div>
             </div>
 
             <AuthorizeView Policy="@TaskLauncherPolicies.UserPolicy">
@@ -57,6 +63,13 @@
     {
         User = (await client.GetFromJsonAsync<UserModel>("api/user"))!;
         loading = false;
+    }
+
+    async Task ResetPasswordAsync()
+    {
+        var response = await client.GetFromJsonAsync<ResetPasswordResponse>("auth/resetpassword");
+        if (response is not null)
+            ToastService.ShowInfo(response.Ticket);
     }
 
     async Task CancelAsync()

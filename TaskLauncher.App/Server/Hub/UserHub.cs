@@ -8,10 +8,20 @@ namespace TaskLauncher.App.Server.Hub;
 
 public interface IUserHub
 {
+    /// <summary>
+    /// Oznameni o tom ze skoncil task (Success, Failure, Timeout, Crashed)
+    /// </summary>
     Task TaskFinished(TaskModel model);
+
+    /// <summary>
+    /// Posila event o zmene tasku
+    /// </summary>
     Task SendEvent(EventModel model);
 }
 
+/// <summary>
+/// Hub pro uzivatele, ziskavaji notifikace o svych ulohach
+/// </summary>
 [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
 public class UserHub : Hub<IUserHub>
 {

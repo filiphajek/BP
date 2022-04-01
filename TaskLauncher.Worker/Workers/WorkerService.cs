@@ -27,7 +27,6 @@ public class WorkerService : BackgroundService
     private readonly ManagementTokenService managementTokenService;
     private readonly TaskLauncherConfig config;
 
-    private TaskCompletionSource<bool> tmpCompletionSource = new();
     private TaskModel? actualTask = null;
     private bool isWorking = false;
 
@@ -78,6 +77,7 @@ public class WorkerService : BackgroundService
             //nastaveni tokensource, ukonci task pokud nestihne do zadane doby vykonat
             var timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
             timeoutTokenSource.CancelAfter(TimeSpan.FromMinutes(timeout));
+            logger.LogInformation("Timeout set to {0} minutes", timeout);
             try
             {
                 //vykonani tasku
@@ -89,6 +89,7 @@ public class WorkerService : BackgroundService
                     return;
 
                 //task se nestihl dodelat nebo se zacyklil
+                //vime ze to je timeout, jina vyjimka spadne do druheho catch bloku a pokud crashne cela aplikace, tak vykona nejdriv StopAsync kod
                 logger.LogError("Task '{0}' timeouted", actualTask.Id);
                 actualTask.State = TaskState.Timeouted;
                 await signalrClient.Connection.InvokeTaskTimeouted(actualTask);
@@ -105,8 +106,9 @@ public class WorkerService : BackgroundService
             }
             finally
             {
+                actualTask = null;
+                isWorking = false;
                 timeoutTokenSource.Dispose();
-                timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
             }
         });
         
@@ -123,14 +125,6 @@ public class WorkerService : BackgroundService
         //pripojeni na signalr hub
         await signalrClient.TryToConnect(stoppingToken);
         logger.LogInformation("Connected, worker is starting");
-
-        //smycka
-        while (true)
-        {
-            stoppingToken.ThrowIfCancellationRequested();
-            await tmpCompletionSource.Task;
-            tmpCompletionSource = new();
-        }
     }
 
     /// <summary>

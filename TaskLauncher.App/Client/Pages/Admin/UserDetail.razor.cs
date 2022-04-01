@@ -69,6 +69,7 @@ public partial class UserDetail
         {
             AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false }")
         })).GetModel();
+        User.TokenBalance = tokenBalance.ToString();
     }
 
     async Task VipAsync()
@@ -77,6 +78,7 @@ public partial class UserDetail
         {
             AppMetadata = JsonConvert.DeserializeObject("{ 'vip': true }")
         })).GetModel();
+        User.TokenBalance = tokenBalance.ToString();
     }
 
     async Task BanUserAsync()
