@@ -76,7 +76,7 @@ public class ManagementTokenService
             if (tokenResponse.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 var result = await tokenResponse.Content.ReadFromJsonAsync<AccessTokenItem>();
-                DateTime expirationTime = DateTimeOffset.FromUnixTimeSeconds(result.expires_in).DateTime;
+                DateTime expirationTime = DateTime.Now.AddSeconds(result.expires_in);
                 return new AccessToken
                 {
                     AcessToken = result.access_token,

@@ -27,7 +27,6 @@ public class WorkerService : BackgroundService
     private readonly ManagementTokenService managementTokenService;
     private readonly TaskLauncherConfig config;
 
-    private TaskCompletionSource<bool> tmpCompletionSource = new();
     private TaskModel? actualTask = null;
     private bool isWorking = false;
 
@@ -126,14 +125,6 @@ public class WorkerService : BackgroundService
         //pripojeni na signalr hub
         await signalrClient.TryToConnect(stoppingToken);
         logger.LogInformation("Connected, worker is starting");
-
-        //smycka
-        while (true)
-        {
-            stoppingToken.ThrowIfCancellationRequested();
-            await tmpCompletionSource.Task;
-            tmpCompletionSource = new();
-        }
     }
 
     /// <summary>
