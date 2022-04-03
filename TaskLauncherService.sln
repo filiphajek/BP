@@ -16,6 +16,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B0EE9D8A-4878-4112-AF7F-24DE7B8E2F15}"
 	ProjectSection(SolutionItems) = preProject
 		docker-compose.simulation.yml = docker-compose.simulation.yml
+		docker-compose.worker.yml = docker-compose.worker.yml
 		docker-compose.yml = docker-compose.yml
 		README.md = README.md
 	EndProjectSection
@@ -28,7 +29,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TaskLauncher.App.Client", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TaskLauncher.Simulation", "TaskLauncher.Simulation\TaskLauncher.Simulation.csproj", "{14FB27D2-53D4-4DDB-AEB0-28052650BBDD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskLauncher.Routines", "TaskLauncher.Routines\TaskLauncher.Routines.csproj", "{2A443B4B-7A97-4E7D-AF5E-2939B04A1D5A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TaskLauncher.Routines", "TaskLauncher.Routines\TaskLauncher.Routines.csproj", "{2A443B4B-7A97-4E7D-AF5E-2939B04A1D5A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
