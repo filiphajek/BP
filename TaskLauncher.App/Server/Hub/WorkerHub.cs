@@ -57,29 +57,29 @@ public class WorkerHub : Hub<IWorkerHub>
         var scope = serviceProvider.CreateScope();
         var taskService = scope.ServiceProvider.GetRequiredService<ITaskService>();
 
-        CancellationTokenSource cts = new();
-        cts.CancelAfter(5000);
-        try
+        //ziskej dalsi task
+        var model = balancer.GetNext();
+        if (model is null)
         {
-            var model = await balancer.GetNext(cts.Token);
-            //task mohl byt smazan, ujisteni zda existuje
-            while (!await taskService.TaskExists(model))
+            cache.AddOrSet(Context.ConnectionId, new() { Id = Guid.Empty });
+            return;
+        }
+
+        //task mohl byt smazan, ujisteni zda existuje
+        while (!await taskService.TaskExists(model))
+        {
+            model = balancer.GetNext();
+            if (model is null)
             {
-                model = await balancer.GetNext(cts.Token);
+                cache.AddOrSet(Context.ConnectionId, new() { Id = Guid.Empty });
+                return;
             }
-            //posilani tasku na workera
-            await Clients.Caller.StartTask(model);
-            cache.AddOrSet(Context.ConnectionId, model);
-            logger.LogInformation("Worker '{0}' started new task '{1}'", Context.ConnectionId, model.Id);
         }
-        catch (OperationCanceledException)
-        {
-            cache.AddOrSet(Context.ConnectionId, new() { Id = Guid.Empty});
-        }
-        finally
-        {
-            cts.Dispose();
-        }
+
+        //posilani tasku na workera
+        await Clients.Caller.StartTask(model);
+        cache.AddOrSet(Context.ConnectionId, model);
+        logger.LogInformation("Worker '{0}' started new task '{1}'", Context.ConnectionId, model.Id);
     }
 
     /// <summary>
@@ -166,7 +166,7 @@ public class WorkerHub : Hub<IWorkerHub>
         //pokud task neni ukonceni, jedna se o crash (worker se necekane odpojil apod.)
         if (cache.TryGetValue(Context.ConnectionId, out var model) && model.Id != Guid.Empty)
         {
-            if (model.State != TaskState.FinishedSuccess || model.State != TaskState.FinishedFailure || model.State != TaskState.Timeouted)
+            if (!model.State.TaskFinished() && !balancer.Exists(model))
             {
                 logger.LogInformation("Worker '{0}' crashed. Task '{1}' will be requeued ", Context.ConnectionId, model.Id);
 
