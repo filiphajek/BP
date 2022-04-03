@@ -7,6 +7,10 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Tasks;
 
+/// <summary>
+/// Trida se stara o vsechny fronty
+/// Zajistuje aby neprioritni fronty nehladovaly algoritmem round robin
+/// </summary>
 public class Balancer
 {
     private readonly RoundRobinList<TaskQueue> roundRobin;
@@ -25,6 +29,9 @@ public class Balancer
         this.mediator = mediator;
     }
 
+    /// <summary>
+    /// Rusi task, dochazi k zamceni front, aby nedochazelo k situacim, kdy se zrusi task, ale kvuli zmene kontextu se stihne task poslat na worker
+    /// </summary>
     public bool CancelTask(Guid id)
     {
         canceledTasks.Add(id);
@@ -34,6 +41,7 @@ public class Balancer
         {
             if (queue.Any(i => i.Id == id))
             {
+                logger.LogInformation("Task {0} cancelled", id);
                 canceledTasks.Add(id);
                 result = true;
             }
@@ -42,6 +50,9 @@ public class Balancer
         return result;
     }
 
+    /// <summary>
+    /// Pomocna metoda pro odebrani prvku z fronty, dochazi k zamykani fronty, kvuli kontrole ruseni tasku
+    /// </summary>
     private bool TryDequeue(TaskQueue queue, out TaskModel? task)
     {
         semaphore.Wait();
@@ -56,17 +67,37 @@ public class Balancer
         return false;
     }
 
+    /// <summary>
+    /// Kontroluje zda je task v nektere z front
+    /// </summary>
+    public bool Exists(TaskModel task)
+    {
+        foreach (var queue in taskQueues)
+        {
+            if (queue.Value.Any(i => i.Id == task.Id))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Vlozi novy task do patricne fronty
+    /// </summary>
     public void Enqueue(string queue, TaskModel task)
     {
         if (taskQueues.TryGetValue(queue, out var taskQueue))
         {
+            logger.LogInformation("Task {0} enqueued", task.Id);
             taskQueue.Enqueue(task);
             if(taskQueues.Select(i => i.Value).Sum(i => i.Count) <= 1)
                 mediator.Publish(new NewTaskNotification(task)).Wait();
         }
     }
 
-    public async Task<TaskModel> GetNext(CancellationToken token = default)
+    /// <summary>
+    /// Podle algoritmu round robin, ziska dalsi task z front
+    /// </summary>
+    public TaskModel? GetNext()
     {
         var current = roundRobin.Next();
         if (TryDequeue(current, out var task))
@@ -76,13 +107,13 @@ public class Balancer
         while (true)
         {
             var next = roundRobin.GetNextItem(current);
+            
             if (TryDequeue(next, out var task2))
                 return task2!;
+            
             if (name == next.Name)
-            {
-                logger.LogInformation("Waiting for new tasks");
-                await Task.Delay(3000, token);
-            }
+                return null;
+            
             current = next;
         }
     }

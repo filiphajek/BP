@@ -119,6 +119,7 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = auth0config.ClientId;
     options.Scope = "openid profile email";
     options.SkipCookieMiddleware = true;
+    options.CallbackPath = "/signin-oidc";
 })
 .WithAccessToken(options =>
 {
