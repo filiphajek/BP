@@ -20,10 +20,10 @@
 
     protected async override Task OnParametersSetAsync()
     {
-        string url = NavigationManager.BaseUri + $"odata/admin/payment?$filter=userid eq '{UserId}'";
+        string url = NavigationManager.BaseUri + $"odata/admin/payments?$filter=userid eq '{UserId}'";
         if(string.IsNullOrEmpty(UserId))
         {
-            url = "odata/user/payment";
+            url = "odata/user/payments";
         }
         var paymentClient = new GridODataClient<PaymentResponse>(client, url, new QueryDictionary<StringValues>(), false, "paymentGrid", columns, 10)
             .ChangePageSize(true)

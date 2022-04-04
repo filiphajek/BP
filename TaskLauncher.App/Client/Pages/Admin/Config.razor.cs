@@ -41,7 +41,7 @@ public partial class Config
         {
             if(config.OldValue != config.Value)
             {
-                await Client.PutAsJsonAsync("api/config", new UpdateConfigValueRequest
+                await Client.PutAsJsonAsync("api/admin/config", new UpdateConfigValueRequest
                 {
                     Value = config.Value,
                     Key = config.Key
@@ -52,7 +52,7 @@ public partial class Config
 
     protected override async Task OnInitializedAsync()
     {
-        var tmp = await Client.GetFromJsonAsync<List<ConfigResponse>>("api/config");
+        var tmp = await Client.GetFromJsonAsync<List<ConfigResponse>>("api/admin/config");
         model.Configs = tmp!.Select(i => new ConfigItem(i)).ToList();
     }
 }

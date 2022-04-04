@@ -7,10 +7,16 @@ using TaskLauncher.App.Server.Controllers.Base;
 
 namespace TaskLauncher.App.Server.Controllers.User;
 
-public class PaymentController : UserODataController<PaymentResponse>
+/// <summary>
+/// Payment kontroler ke kteremu ma pristup pouze uzivatel
+/// </summary>
+public class PaymentsController : UserODataController<PaymentResponse>
 {
-    public PaymentController(AppDbContext context) : base(context) { }
+    public PaymentsController(AppDbContext context) : base(context) { }
 
+    /// <summary>
+    /// Zobrazi vsechny uzivatelske platby v systemu, muze se dotazovat pres protokol odata
+    /// </summary>
     [HttpGet]
     [EnableQuery]
     public ActionResult<PaymentResponse> Get()

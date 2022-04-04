@@ -13,6 +13,6 @@
 {
     async Task SendEmail()
     {
-        var result = await httpClient.PostAsJsonAsync("auth/email", new{});
+        var result = await httpClient.PostAsJsonAsync("auth/verify-email", new{});
     }
 }

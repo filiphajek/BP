@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Components.Authorization;
 using TaskLauncher.App.Client.Extensions;
 using Radzen;
 using static TaskLauncher.App.Client.Pages.Tasks.EditTaskDialog;
+using Microsoft.AspNetCore.JsonPatch;
+using TaskLauncher.Api.Contracts.Requests;
 
 namespace TaskLauncher.App.Client.Pages.Tasks;
 
@@ -46,9 +48,9 @@ public partial class TaskDetail : IDisposable
         var state = await authenticationStateTask;
         isAdmin = state.User.IsInRole("admin");
         if (isAdmin)
-            Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/admin/task/" + Id.ToString());
+            Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/admin/tasks/" + Id.ToString());
         else
-            Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/task/" + Id.ToString());
+            Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/tasks/" + Id.ToString());
 
         if (Task is null)
         {
@@ -69,7 +71,10 @@ public partial class TaskDetail : IDisposable
         TaskEditDialogResult? result = await DialogService.OpenAsync<EditTaskDialog>("Edit task", new() { { "Task", Task } }, new() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
         if (result is not null)
         {
-            var response = await Client.PutAsJsonAsync("api/task/" + Task.Id.ToString(), result.TaskUpdate);
+            var patchDoc = new JsonPatchDocument<TaskUpdateRequest>();
+            patchDoc.Replace(e => e.Description, result.TaskUpdate.Description);
+            patchDoc.Replace(e => e.Name, result.TaskUpdate.Name);
+            var response = await Client.PatchAsJsonAsync("api/tasks/" + Task.Id.ToString(), patchDoc);
             if(response.IsSuccessStatusCode)
             {
                 Task.Name = result.TaskUpdate.Name;
@@ -103,14 +108,14 @@ public partial class TaskDetail : IDisposable
 
     private async Task CloseTask()
     {
-        var tmp = await Client.PostAsJsonAsync("api/task/close?taskId=" + Id.ToString(), new {});
+        var tmp = await Client.PostAsJsonAsync($"api/tasks/{Id}/close", new {});
         if (tmp.IsSuccessStatusCode)
             navigationManager.NavigateTo("/tasks", true);
     }
 
     private async Task CancelTask()
     {
-        var tmp = await Client.PostAsJsonAsync("api/task/cancel?taskId=" + Id.ToString(), new {});
+        var tmp = await Client.PostAsJsonAsync($"api/tasks/{Id}/cancel", new {});
         if(tmp.IsSuccessStatusCode)
         {
             var response = await tmp.Content.ReadFromJsonAsync<EventResponse>();
@@ -121,7 +126,7 @@ public partial class TaskDetail : IDisposable
 
     private async Task RestartTask()
     {
-        var tmp = await Client.PostAsJsonAsync("api/task/restart?taskId=" + Id.ToString(), new { });
+        var tmp = await Client.PostAsJsonAsync($"api/tasks/{Id}/restart" + Id.ToString(), new { });
         if (tmp.IsSuccessStatusCode)
         {
             var response = await tmp.Content.ReadFromJsonAsync<EventResponse>();
@@ -134,12 +139,12 @@ public partial class TaskDetail : IDisposable
     {
         if (isAdmin)
         {
-            var tmp1 = await Client.DeleteAsync("api/admin/task?id=" + Id.ToString());
+            var tmp1 = await Client.DeleteAsync("api/admin/tasks/" + Id.ToString());
             if (tmp1.IsSuccessStatusCode)
                 navigationManager.NavigateTo("/queue");
             return;
         }
-        var tmp2 = await Client.DeleteAsync("api/task?id=" + Id.ToString());
+        var tmp2 = await Client.DeleteAsync("api/tasks/" + Id.ToString());
         if (tmp2.IsSuccessStatusCode)
             navigationManager.NavigateTo("/tasks");
     }
@@ -148,9 +153,12 @@ public partial class TaskDetail : IDisposable
     {
         if(Task.ActualStatus == TaskState.FinishedSuccess || Task.ActualStatus == TaskState.FinishedFailure || Task.ActualStatus == TaskState.Downloaded)
         {
-            navigationManager.NavigateTo("api/file?taskId=" + Id.ToString(), true);
-            Task.ActualStatus = TaskState.Downloaded;
-            Task.Events.Add(new() { Description = "", Status = TaskState.Downloaded, Time = DateTime.Now });
+            navigationManager.NavigateTo($"api/tasks/{Id}/file", true);
+            if (!isAdmin && Task.ActualStatus != TaskState.Downloaded)
+            {
+                Task.ActualStatus = TaskState.Downloaded;
+                Task.Events.Add(new() { Description = "", Status = TaskState.Downloaded, Time = DateTime.Now });
+            }
         }
     }
 

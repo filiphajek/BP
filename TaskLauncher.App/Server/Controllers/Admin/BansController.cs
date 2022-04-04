@@ -15,26 +15,35 @@ using TaskLauncher.Common.Services;
 
 namespace TaskLauncher.App.Server.Controllers.Admin;
 
-public class BanController : AdminODataController<BanResponse>
+/// <summary>
+/// Ban kontroler ke kteremu ma pristup pouze admin
+/// </summary>
+public class BansController : AdminODataController<BanResponse>
 {
     private readonly IMapper mapper;
     private readonly IClientFactory<ManagementApiClient> clientFactory;
     private readonly Cache<UserClaimsModel> cache;
 
-    public BanController(AppDbContext context, IMapper mapper, IClientFactory<ManagementApiClient> clientFactory, Cache<UserClaimsModel> cache) : base(context)
+    public BansController(AppDbContext context, IMapper mapper, IClientFactory<ManagementApiClient> clientFactory, Cache<UserClaimsModel> cache) : base(context)
     {
         this.mapper = mapper;
         this.clientFactory = clientFactory;
         this.cache = cache;
     }
 
+    /// <summary>
+    /// Zobrazi vsechny bany v systemu, muze se dotazovat pres protokol odata
+    /// </summary>
     public override ActionResult<IQueryable<BanResponse>> Get()
     {
         return Ok(context.Bans.IgnoreQueryFilters().ProjectToType<BanResponse>());
     }
 
+    /// <summary>
+    /// Detail banu
+    /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<BanResponse>> GetDetail(Guid id)
+    public async Task<ActionResult<BanResponse>> GetDetail([FromRoute] Guid id)
     {
         var ban = await context.Bans.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.Id == id);
         if (ban is null)
@@ -42,6 +51,9 @@ public class BanController : AdminODataController<BanResponse>
         return Ok(mapper.Map<BanResponse>(ban));
     }
 
+    /// <summary>
+    /// Vytvoreni noveho banu
+    /// </summary>
     [HttpPost]
     public async Task<IActionResult> BanUserAsync([FromBody] BanUserRequest request)
     {
@@ -61,37 +73,46 @@ public class BanController : AdminODataController<BanResponse>
 
         await context.SaveChangesAsync();
         await UpdateCache(request.UserId, true);
-        return Ok(tmp);
+        return Ok(mapper.Map<BanResponse>(ban));
     }
 
-    [HttpPost("cancel")]
-    public async Task<IActionResult> UnBanUserAsync(string id)
+    /// <summary>
+    /// Zruseni banu
+    /// </summary>
+    [HttpPost("{id}/cancel")]
+    public async Task<IActionResult> UnBanUserAsync(Guid id)
     {
         var auth0client = await clientFactory.GetClient();
 
-        var user = await auth0client.Users.GetAsync(id);
-        if (user.Blocked.HasValue && !user.Blocked.Value)
+        var ban = await context.Bans.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.Id == id);
+        if (ban is null)
             return BadRequest();
 
-        var ban = await context.Bans.IgnoreQueryFilters().OrderByDescending(i => i.Started).FirstOrDefaultAsync(i => i.UserId == id);
-        if (ban is null)
+        if(ban.Ended is not null)
+            return BadRequest();
+
+        var user = await auth0client.Users.GetAsync(ban.UserId);
+        if (user.Blocked.HasValue && !user.Blocked.Value)
             return BadRequest();
 
         ban.Ended = DateTime.Now;
         context.Update(ban);
         await context.SaveChangesAsync();
 
-        var tmp = (await auth0client.Users.UpdateAsync(id, new()
+        var tmp = (await auth0client.Users.UpdateAsync(user.UserId, new()
         {
             Blocked = false,
         })).GetModel();
 
-        await UpdateCache(id, false);
-        return Ok(tmp);
+        await UpdateCache(user.UserId, false);
+        return Ok(mapper.Map<BanResponse>(ban));
     }
 
-    [HttpDelete]
-    public async Task<IActionResult> DeleteBanAsync(Guid id)
+    /// <summary>
+    /// Smazani banu ze sustemu, ban musi byt nejprve zrusen
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteBanAsync([FromRoute] Guid id)
     {
         var ban = await context.Bans.SingleOrDefaultAsync(i => i.Id == id);
         if (ban is null)

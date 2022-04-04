@@ -15,17 +15,21 @@ using TaskLauncher.App.Server.Controllers.Base;
 using TaskLauncher.App.Server.Tasks;
 using TaskLauncher.Common.Models;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.JsonPatch;
 
 namespace TaskLauncher.App.Server.Controllers.User;
 
-public class TaskController : UserODataController<TaskResponse>
+/// <summary>
+/// Task kontroler, pristupny pouze pro uzivatele
+/// </summary>
+public class TasksController : UserODataController<TaskResponse>
 {
     private readonly IMapper mapper;
     private readonly IFileStorageService fileStorageService;
     private readonly Balancer balancer;
     private readonly SemaphoreSlim semaphoreSlim = new(1, 1); // semafor pro odecitani ze zustatku
 
-    public TaskController(AppDbContext context, IMapper mapper, IFileStorageService fileStorageService, Balancer balancer) : base(context)
+    public TasksController(AppDbContext context, IMapper mapper, IFileStorageService fileStorageService, Balancer balancer) : base(context)
     {
         this.mapper = mapper;
         this.fileStorageService = fileStorageService;
@@ -33,7 +37,7 @@ public class TaskController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Zpristupnuje dotazovani nad celou kolekci tasku daneho uzivatele
+    /// Zpristupnuje dotazovani pres odata nad celou kolekci tasku daneho uzivatele
     /// </summary>
     [HttpGet]
     [EnableQuery]
@@ -46,7 +50,7 @@ public class TaskController : UserODataController<TaskResponse>
     /// Detail tasku, s taskem se vraci i platba a vsechny udalosti
     /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<TaskDetailResponse>> GetDetail(Guid id)
+    public async Task<ActionResult<TaskDetailResponse>> GetDetail([FromRoute] Guid id)
     {
         var payment = await context.Payments.Include(i => i.Task).ThenInclude(i => i.Events).SingleOrDefaultAsync(i => i.Task.Id == id);
         if (payment is not null)
@@ -184,12 +188,16 @@ public class TaskController : UserODataController<TaskResponse>
     /// <summary>
     /// Aktualizace informaci o tasku
     /// </summary>
-    [HttpPut("{id:guid}")]
-    public async Task<ActionResult<TaskResponse>> UpdateTaskAsync([FromRoute] Guid id, [FromBody] TaskUpdateRequest request)
+    [HttpPatch("{id:guid}")]
+    public async Task<ActionResult<TaskResponse>> UpdateTaskAsync([FromRoute] Guid id, [FromBody] JsonPatchDocument<TaskUpdateRequest> patchDoc)
     {
         var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
             return NotFound();
+
+        var request = mapper.Map<TaskUpdateRequest>(task);
+        patchDoc.ApplyTo(request);
+
         var tmp = mapper.Map(request, task);
         context.Update(tmp);
         await context.SaveChangesAsync();
@@ -199,13 +207,13 @@ public class TaskController : UserODataController<TaskResponse>
     /// <summary>
     /// Uzavreni tasku
     /// </summary>
-    [HttpPost("close")]
-    public async Task<IActionResult> CloseTaskAsync(Guid taskId)
+    [HttpPost("{id:guid}/close")]
+    public async Task<IActionResult> CloseTaskAsync(Guid id)
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
 
-        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
             return BadRequest();
 
@@ -222,23 +230,23 @@ public class TaskController : UserODataController<TaskResponse>
     /// <summary>
     /// Zruseni tasku, vraceni tokenu
     /// </summary>
-    [HttpPost("cancel")]
-    public async Task<IActionResult> CancelTaskAsync(Guid taskId)
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<IActionResult> CancelTaskAsync(Guid id)
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
 
         var balance = await context.TokenBalances.SingleAsync();
-        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
             return BadRequest();
 
         if (task.ActualStatus == TaskState.Created)
         {
-            if (!balancer.CancelTask(taskId))
+            if (!balancer.CancelTask(id))
                 return new BadRequestObjectResult(new { error = "Try again" });
             task.ActualStatus = TaskState.Cancelled;
-            balance.CurrentAmount = task.IsPriority ? balance.CurrentAmount + 1 : balance.CurrentAmount + 2;
+            balance.CurrentAmount = task.IsPriority ? balance.CurrentAmount + 2 : balance.CurrentAmount + 1;
             balance.LastAdded = DateTime.Now;
             context.Update(balance);
             context.Update(task);
@@ -252,7 +260,7 @@ public class TaskController : UserODataController<TaskResponse>
     /// <summary>
     /// Smazani tasku
     /// </summary>
-    [HttpDelete]
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteTaskAsync(Guid id)
     {
         var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
@@ -269,13 +277,13 @@ public class TaskController : UserODataController<TaskResponse>
     /// Task ve stavu crashed se restartuje automaticky
     /// Task ktery byl zrusen, nemuze byt restartovan, musi byt zalozen novy
     /// </summary>
-    [HttpPost("restart")]
-    public async Task<IActionResult> RestartTaskAsync(Guid taskId)
+    [HttpPost("{id:guid}/restart")]
+    public async Task<IActionResult> RestartTaskAsync(Guid id)
     {
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
 
-        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == taskId);
+        var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
             return NotFound();
 

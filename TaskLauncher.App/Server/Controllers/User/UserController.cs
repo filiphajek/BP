@@ -4,9 +4,11 @@ using Auth0.ManagementApi.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
 using TaskLauncher.Authorization;
@@ -16,6 +18,9 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Controllers.User;
 
+/// <summary>
+/// Kontroler slouzici pro uzivatele, poskytuje metody pro upravu profilu, zruseni uctu apod.
+/// </summary>
 public class UserController : BaseController
 {
     private readonly AppDbContext context;
@@ -28,7 +33,7 @@ public class UserController : BaseController
     }
 
     /// <summary>
-    /// Smazani uctu a vsech spojenych dat
+    /// Smazani uctu a vsech vytvorenych dat
     /// </summary>
     [Authorize(Policy = TaskLauncherPolicies.CanCancelAccount)]
     [HttpDelete]
@@ -82,38 +87,36 @@ public class UserController : BaseController
         return Ok(user);
     }
 
+    /// <summary>
+    /// Upraveni uzivatelskeho profilu
+    /// </summary>
+    [HttpPatch]
     [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
-    [HttpPut("picture")]
-    public async Task<ActionResult<UserModel>> UpdateUserPicture(string url)
+    public async Task<ActionResult<UserModel>> UpdateUserProfile([FromBody] JsonPatchDocument<UpdateProfileRequest> patchUser)
     {
         if (!User.TryGetAuth0Id(out var userId))
-            return BadRequest();
+            return Unauthorized();
+
+        UpdateProfileRequest request = new();
+        patchUser.ApplyTo(request);
 
         var auth0client = await apiClientFactory.GetClient();
-        var user = (await auth0client.Users.UpdateAsync(userId, new()
-        {
-            UserMetadata = JsonConvert.DeserializeObject(JsonConvert.SerializeObject(new { picture = url }))
-        })).GetModel();
+        UserUpdateRequest userUpdate = new();
+
+        if (!string.IsNullOrEmpty(request.Nickname))
+            userUpdate.NickName = request.Nickname;
+        if (!string.IsNullOrEmpty(request.Picture))
+            userUpdate.UserMetadata = JsonConvert.DeserializeObject(JsonConvert.SerializeObject(new { picture = request.Picture }));
+
+        var user = (await auth0client.Users.UpdateAsync(userId, userUpdate)).GetModel();
         return Ok(user);
     }
 
-    [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
-    [HttpPut("nickname")]
-    public async Task<ActionResult<UserModel>> UpdateUserNickname(string value)
-    {
-        if (!User.TryGetAuth0Id(out var userId))
-            return BadRequest();
-       
-        var auth0client = await apiClientFactory.GetClient();
-        var user = (await auth0client.Users.UpdateAsync(userId, new()
-        {
-            NickName = value
-        })).GetModel();
-        return Ok(user);
-    }
-
+    /// <summary>
+    /// Zobrazi kontakt na jednoho z administratoru, kazdemu uzivateli se muze zobrazit jiny
+    /// </summary>
     [Authorize(Roles = TaskLauncherRoles.User)]
-    [HttpGet("admincontact")]
+    [HttpGet("admin-contact")]
     public async Task<ActionResult<AssignedUser>> GetContactToAdmin()
     {
         Random random = new(DateTime.Now.Millisecond);

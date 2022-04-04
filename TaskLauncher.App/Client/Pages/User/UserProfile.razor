@@ -67,9 +67,12 @@
 
     async Task ResetPasswordAsync()
     {
-        var response = await client.GetFromJsonAsync<ResetPasswordResponse>("auth/resetpassword");
-        if (response is not null)
-            ToastService.ShowInfo(response.Ticket);
+        var response = await client.PostAsJsonAsync("auth/reset-password", new { });
+        if (response is not null && response.IsSuccessStatusCode)
+        {
+            var tmp = await response.Content.ReadFromJsonAsync<ResetPasswordResponse>();
+            ToastService.ShowInfo(tmp!.Message);
+        }
     }
 
     async Task CancelAsync()
