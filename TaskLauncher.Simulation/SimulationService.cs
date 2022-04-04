@@ -133,7 +133,7 @@ public class SimulationService : BackgroundService
         HttpClient client = httpClientFactory.CreateClient("default");
 
         //prihlaseni
-        var auth = await client.PostAsJsonAsync("loginbypasswordflow", new CookieLessLoginRequest(user.Email, "Password123*"), cancellationToken);
+        var auth = await client.PostAsJsonAsync("passwordflow/login", new CookieLessLoginRequest(user.Email, "Password123*"), cancellationToken);
         if (!auth.IsSuccessStatusCode)
             throw new ApplicationException();
 
@@ -150,7 +150,7 @@ public class SimulationService : BackgroundService
             await stream.WriteAsync(Encoding.UTF8.GetBytes("Simulation"), cancellationToken);
             stream.Position = 0;
 
-            var response = await client.SendMultipartFormDataAsync("api/task", stream, new SimTaskModel
+            var response = await client.SendMultipartFormDataAsync("api/tasks", stream, new SimTaskModel
             {
                 Description = "sim",
                 Name = "sim"

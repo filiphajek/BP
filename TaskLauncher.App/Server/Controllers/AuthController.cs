@@ -25,6 +25,8 @@ namespace TaskLauncher.App.Server.Controllers;
 
 /// <summary>
 /// Kontroler zajistujici presmerovani na prihlaseni pres oidc
+/// Poskytuje login endpoint vracejici access token pro klasicke desktop, mobilni aplikace
+/// Jsou zde i zakladni endpointy potrebne k autentizaci/autorizaci jako je reset hesla, user info na zaklade http contextu apod.
 /// </summary>
 [ApiController]
 [Route("[controller]")]
@@ -57,6 +59,7 @@ public class AuthController : ControllerBase
 
     /// <summary>
     /// Login challenge endpoint
+    /// Endpoint presmerovava uzivatele na auth0, pouziva cookie autentizaci
     /// </summary>
     [HttpGet("login")]
     public async Task Login()
@@ -72,6 +75,7 @@ public class AuthController : ControllerBase
 
     /// <summary>
     /// Logout endpoint
+    /// Odhlasi uzivatele (cookie autentizace)
     /// </summary>
     [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     [HttpGet("logout")]
@@ -83,10 +87,10 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Reset hesla, pouze pro cookie auth
+    /// Reset hesla, pouze pro cookie autentizaci
     /// </summary>
     [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
-    [HttpGet("resetpassword")]
+    [HttpPost("reset-password")]
     public async Task<IActionResult> ChangePassword()
     {
         if(!User.TryGetAuth0Id(out _) || !User.TryGetClaimValue(ClaimTypes.Email, out var email))
@@ -103,7 +107,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Ziskani uzivatelskych dat prihlaseneho uzivatele
+    /// Ziskani uzivatelskych dat prihlaseneho uzivatele na zaklade http contextu
     /// </summary>
     [HttpGet("user")]
     [AllowAnonymous]
@@ -133,10 +137,10 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// muze slouzit pro pristup na API nebo pouze jako autorizace sem na server z aplikace
-    /// https://auth0.com/docs/get-started/authentication-and-authorization-flow/call-your-api-using-resource-owner-password-flow
+    /// Slouzit pro pristup na API, pro desktopove nebo mobilni aplikace
+    /// https://auth0.com/docs/get-started/authentication-and-authorization-flow/resource-owner-password-flow
     /// </summary>
-    [HttpPost("/loginbypasswordflow")]
+    [HttpPost("/passwordflow/login")]
     [AllowAnonymous]
     public async Task<IActionResult> LoginM2MAsync(CookieLessLoginRequest request)
     {
@@ -158,8 +162,11 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Registrace uzivatele, pro desktopove nebo mobilni aplikace
+    /// </summary>
     [AllowAnonymous]
-    [HttpPost("/registerbypasswordflow")]
+    [HttpPost("/passwordflow/register")]
     public async Task<IActionResult> RegisterM2MAsync(CookieLessUserRegistrationModel request)
     {
         var auth0client = await apiClientFactory.GetClient();
@@ -192,10 +199,10 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Refresh token endpoint
+    /// Aktualizuje access token pro desktopove nebo mobilni aplikace
     /// </summary>
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [HttpGet("/refresh")]
+    [HttpGet("/passwordflow/refresh/{token}")]
     public async Task<IActionResult> RefreshTokenAsync(string token)
     {
         var client = clientFactory.CreateClient();
@@ -239,7 +246,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Dokonceni registrace
+    /// Dokonceni registrace na webove strance, pouze pro neregistrovane uzivatele
     /// </summary>
     [Authorize(Policy = "not-registered")]
     [HttpPost("signup")]
@@ -249,10 +256,10 @@ public class AuthController : ControllerBase
         if (!User.TryGetAuth0Id(out var userId))
             return BadRequest();
 
-        //assign role
+        //prirad roli
         await auth0client.Users.AssignRolesAsync(userId, new AssignRolesRequest { Roles = new[] { "rol_6Vh7zpX3Z61sN307" } });
 
-        //update profile
+        //aktualizuj profil
         var updateRequest = mapper.Map<UserUpdateRequest>(request);
         updateRequest.Email = null;
         updateRequest.PhoneNumber = null;
@@ -261,7 +268,7 @@ public class AuthController : ControllerBase
         if (result is null)
             return BadRequest(result);
 
-        //init databaze
+        //inicializuj databazi
         var balanceConfig = await context.Configs.SingleAsync(i => i.Key == "starttokenbalance");
         await context.TokenBalances.AddAsync(new() { CurrentAmount = int.Parse(balanceConfig.Value), LastAdded = DateTime.Now, UserId = userId });
         await context.Stats.AddAsync(new() { UserId = userId, IsVip = true });
@@ -278,8 +285,11 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
+    /// <summary>
+    /// Znovu posle verifikacni email
+    /// </summary>
     [Authorize(Policy = "email-not-confirmed")]
-    [HttpPost("email")]
+    [HttpPost("verify-email")]
     public async Task<IActionResult> SendEmailAsync()
     {
         var auth0client = await apiClientFactory.GetClient();

@@ -179,7 +179,7 @@ public class WorkerService : BackgroundService
     /// </summary>
     private async Task<int> GetTimeoutValue(CancellationToken cancellationToken)
     {
-        var config = await httpClient.GetFromJsonAsync<ConfigResponse>("api/config/worker?key=tasktimeout", cancellationToken);
+        var config = await httpClient.GetFromJsonAsync<ConfigResponse>("api/worker/config?key=tasktimeout", cancellationToken);
         var timeout = 40;
         if (config is not null)
             _ = int.TryParse(config.Value, out timeout);

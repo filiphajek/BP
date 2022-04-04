@@ -85,10 +85,10 @@
         var state = await authenticationStateTask;
 
         if (state.User.IsInRole(TaskLauncherRoles.User))
-            await LoadTimesStats("api/stat/times");
+            await LoadTimesStats("api/stats/times");
 
         if (state.User.IsInRole(TaskLauncherRoles.Admin))
-            await LoadTimesStats("api/stat/times/all");
+            await LoadTimesStats("api/admin/stats/times");
         loading = false;
     }
 

@@ -34,17 +34,17 @@ var builder = WebApplication.CreateBuilder(args);
 static IEdmModel GetAdminEdmModel()
 {
     ODataConventionModelBuilder builder = new();
-    builder.EntitySet<PaymentResponse>("Payment");
-    builder.EntitySet<TaskResponse>("Task");
-    builder.EntitySet<BanResponse>("Ban");
+    builder.EntitySet<PaymentResponse>("Payments");
+    builder.EntitySet<TaskResponse>("Tasks");
+    builder.EntitySet<BanResponse>("Bans");
     return builder.GetEdmModel();
 }
 
 static IEdmModel GetUserEdmModel()
 {
     ODataConventionModelBuilder builder = new();
-    builder.EntitySet<PaymentResponse>("Payment");
-    builder.EntitySet<TaskResponse>("Task");
+    builder.EntitySet<PaymentResponse>("Payments");
+    builder.EntitySet<TaskResponse>("Tasks");
     return builder.GetEdmModel();
 }
 
@@ -58,9 +58,11 @@ builder.Services.AddSingleton(serviceAddresses);
 //pridani kontroleru s error stranky a pridani protokolu odata
 builder.Services.AddControllersWithViews(options =>
 {
+    options.AddJsonPatchInputFormatter();
     options.Filters.Add<BanFilter>();
     options.Filters.Add<ValidationFilter>();
 })
+//.AddNewtonsoftJson()
 .AddOData(opt => opt
 .AddRouteComponents("odata/user", GetUserEdmModel())
 .AddRouteComponents("odata/admin", GetAdminEdmModel())

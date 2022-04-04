@@ -1,3 +1,3 @@
 ﻿namespace TaskLauncher.Api.Contracts.Responses;
 
-public record ResetPasswordResponse(string Ticket);
+public record ResetPasswordResponse(string Message);

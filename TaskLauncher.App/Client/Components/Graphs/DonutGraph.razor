@@ -49,7 +49,7 @@
 
         if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(TaskLauncherRoles.Admin))
         {
-            await LoadOverallStats("api/stat?userid=" + UserId);
+            await LoadOverallStats("api/admin/stats?userid=" + UserId);
             loading = false;
             return;
         }
@@ -57,10 +57,10 @@
         state.User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out isVip);
 
         if (state.User.IsInRole(TaskLauncherRoles.User))
-            await LoadOverallStats("api/stat");
+            await LoadOverallStats("api/stats");
 
         if (state.User.IsInRole(TaskLauncherRoles.Admin))
-            await LoadOverallStats("api/stat/all");
+            await LoadOverallStats("api/admin/stats");
 
         await IsSwitchDisabled();
         loading = false;

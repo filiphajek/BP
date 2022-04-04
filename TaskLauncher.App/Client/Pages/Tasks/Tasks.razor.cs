@@ -79,7 +79,7 @@ public partial class Tasks : IDisposable
     {
         if (string.IsNullOrEmpty(Id))
         {
-            await GetTasks("odata/user/task");
+            await GetTasks("odata/user/tasks");
             signalRClient.OnTaskFinished += OnTaskUpdate;
         }
         else
@@ -90,7 +90,7 @@ public partial class Tasks : IDisposable
                 NavigationManager.NavigateTo("tasks", true);
                 return;
             }
-            await GetTasks($"odata/admin/task?userId={Id}");
+            await GetTasks($"odata/admin/tasks?userId={Id}");
         }
     }
     

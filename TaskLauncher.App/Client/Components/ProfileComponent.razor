@@ -1,4 +1,8 @@
-﻿@using Newtonsoft.Json
+﻿@using Microsoft.AspNetCore.JsonPatch
+@using Newtonsoft.Json
+@using System.Text
+@using TaskLauncher.Api.Contracts.Requests
+@using TaskLauncher.App.Client.Extensions
 @using TaskLauncher.App.Client.Pages
 @using TaskLauncher.Common.Extensions
 @using TaskLauncher.Common.Models
@@ -130,7 +134,9 @@
         ImageDialogResult? res = await DialogService.OpenAsync<ImageDialog>("Choose new image", null, new DialogOptions() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
         if (res is not null && res.Success)
         {
-            var response = await client.PutAsJsonAsync($"api/user/picture?url={res.Url}", new { });
+            var patchDoc = new JsonPatchDocument<UpdateProfileRequest>();
+            patchDoc.Replace(e => e.Picture, res.Url);
+            var response = await client.PatchAsJsonAsync("api/user", patchDoc);
             User.Picture = (await response.Content.ReadFromJsonAsync<UserModel>())!.Picture;
         }
     }
@@ -139,8 +145,9 @@
     async Task UpdateNickName()
     {
         isBusy = true;
-        var response = await client.PutAsJsonAsync($"api/user/nickname?value={User.NickName}", new { });
-        User.NickName = (await response.Content.ReadFromJsonAsync<UserModel>())!.NickName;
+        var patchDoc = new JsonPatchDocument<UpdateProfileRequest>();
+        patchDoc.Replace(e => e.Nickname, User.NickName);
+        var response = await client.PatchAsJsonAsync("api/user", patchDoc);
         isBusy = false;
     }
 }

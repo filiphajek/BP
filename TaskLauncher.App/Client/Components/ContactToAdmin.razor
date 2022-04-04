@@ -21,6 +21,6 @@
     {
         var state = await authenticationStateTask;
         if (state.User.IsInRole(TaskLauncherRoles.User))
-            admin = (await httpClient.GetFromJsonAsync<AssignedUser>("api/user/admincontact"))!;
+            admin = (await httpClient.GetFromJsonAsync<AssignedUser>("api/user/admin-contact"))!;
     }
 }

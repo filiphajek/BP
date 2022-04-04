@@ -24,10 +24,10 @@
 
     protected async override Task OnParametersSetAsync()
     {
-        string url = NavigationManager.BaseUri + $"odata/admin/task?$filter=userid eq '{UserId}'";
+        string url = NavigationManager.BaseUri + $"odata/admin/tasks?$filter=userid eq '{UserId}'";
         if(string.IsNullOrEmpty(UserId))
         {
-            url = "odata/user/task";
+            url = "odata/user/tasks";
         }
         var taskClient = new GridODataClient<TaskResponse>(client, url, new QueryDictionary<StringValues>(), false, "taskGrid", columns, 10)
             .ChangePageSize(true)

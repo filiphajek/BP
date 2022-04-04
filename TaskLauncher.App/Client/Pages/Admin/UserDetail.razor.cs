@@ -42,7 +42,7 @@ public partial class UserDetail
 
     protected async Task UpdateBalance()
     {
-        var tmp = await client.PutAsJsonAsync("api/token", new UpdateBalanceRequest() { Amount = tokenBalance, UserId = User.UserId });
+        var tmp = await client.PutAsJsonAsync("api/admin/token", new UpdateBalanceRequest() { Amount = tokenBalance, UserId = User.UserId });
         if(tmp.IsSuccessStatusCode)
             User.TokenBalance = tokenBalance.ToString();
     }
@@ -56,7 +56,7 @@ public partial class UserDetail
             userIsNotVerifiedOrRegistered = true;
         else
         {
-            var balance = await client.GetFromJsonAsync<TokenBalanceResponse>($"api/token/{Id}");
+            var balance = await client.GetFromJsonAsync<TokenBalanceResponse>($"api/admin/token?userid={Id}");
             User.TokenBalance = balance!.CurrentAmount.ToString();
             tokenBalance = (int)balance!.CurrentAmount;
         }
@@ -87,18 +87,30 @@ public partial class UserDetail
             new Dictionary<string, object>() { { "UserId", User.UserId } },
             new DialogOptions() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
 
-        var result = await client.PostAsJsonAsync("api/admin/ban", new BanUserRequest { Reason = res.Reason, UserId = User.UserId });
-        User = (await result.Content.ReadFromJsonAsync<UserModel>())!;
+        var result = await client.PostAsJsonAsync("api/admin/bans", new BanUserRequest { Reason = res.Reason, UserId = User.UserId });
+        if (!result.IsSuccessStatusCode)
+            return;
+
+        User.Blocked = true;
         await banComponent.BanClient.UpdateGrid();
+
         banComponent.Refresh();
         StateHasChanged();
     }
 
     async Task UnBanUserAsync()
     {
-        var result = await client.PostAsJsonAsync($"api/admin/ban/cancel?id={User.UserId}", new { });
-        User = (await result.Content.ReadFromJsonAsync<UserModel>())!;
+        var ban = banComponent.BanClient.Grid.Items.FirstOrDefault(i => i.Ended == null);
+        if (ban is null)
+            return;
+
+        var result = await client.PostAsJsonAsync($"api/admin/bans/{ban.Id}/cancel", new { });
+        if (!result.IsSuccessStatusCode)
+            return;
+
+        User.Blocked = false;
         await banComponent.BanClient.UpdateGrid();
+
         banComponent.Refresh();
         StateHasChanged();
     }

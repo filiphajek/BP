@@ -49,7 +49,7 @@ public class UserFactory
 
         var model = faker.Generate();
 
-        var registration = await client.PostAsJsonAsync("registerbypasswordflow", new CookieLessUserRegistrationModel
+        var registration = await client.PostAsJsonAsync("/passwordflow/register", new CookieLessUserRegistrationModel
         {
             FirstName = model.FirstName,
             LastName = model.LastName,

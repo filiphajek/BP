@@ -8,22 +8,31 @@ using TaskLauncher.App.Server.Controllers.Base;
 
 namespace TaskLauncher.App.Server.Controllers.Admin;
 
-public class TaskController : AdminODataController<TaskResponse>
+/// <summary>
+/// Task kontroler ke kteremu ma pristup pouze admin
+/// </summary>
+public class TasksController : AdminODataController<TaskResponse>
 {
     private readonly IMapper mapper;
 
-    public TaskController(AppDbContext context, IMapper mapper) : base(context)
+    public TasksController(AppDbContext context, IMapper mapper) : base(context)
     {
         this.mapper = mapper;
     }
 
+    /// <summary>
+    /// Zobrazi vsechny tasky v systemu, muze se dotazovat pres protokol odata
+    /// </summary>
     public override ActionResult<IQueryable<TaskResponse>> Get()
     {
         return Ok(context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>());
     }
 
+    /// <summary>
+    /// Zobrazi detail tasku
+    /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<TaskDetailResponse>> GetDetail(Guid id)
+    public async Task<ActionResult<TaskDetailResponse>> GetDetail([FromRoute] Guid id)
     {
         var payment = await context.Payments.IgnoreQueryFilters().Include(i => i.Task).ThenInclude(i => i.Events).SingleOrDefaultAsync(i => i.Task.Id == id);
         if (payment is not null)
@@ -42,8 +51,8 @@ public class TaskController : AdminODataController<TaskResponse>
     /// <summary>
     /// Smazani tasku
     /// </summary>
-    [HttpDelete]
-    public async Task<IActionResult> DeleteTaskAsync(Guid id)
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteTaskAsync([FromRoute] Guid id)
     {
         var task = await context.Tasks.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)

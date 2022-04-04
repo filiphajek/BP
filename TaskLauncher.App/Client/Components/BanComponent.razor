@@ -16,16 +16,16 @@
     Action<IGridColumnCollection<BanResponse>> columns = c =>
     {
         c.Add(o => o.Description);
-        c.Add(o => o.Started);
+        c.Add(o => o.Started).SortInitialDirection(GridShared.Sorting.GridSortDirection.Descending);
         c.Add(o => o.Ended);
     };
 
     protected async override Task OnParametersSetAsync()
     {
-        string url = NavigationManager.BaseUri + $"odata/admin/ban?$filter=userid eq '{UserId}'";
+        string url = NavigationManager.BaseUri + $"odata/admin/bans?$filter=userid eq '{UserId}'";
         if(string.IsNullOrEmpty(UserId))
         {
-            url = "odata/user/ban";
+            url = "odata/user/bans";
         }
         BanClient = new GridODataClient<BanResponse>(client, url, new QueryDictionary<StringValues>(), false, "banGrid", columns, 10)
             .ChangePageSize(true)

@@ -7,10 +7,16 @@ using TaskLauncher.App.Server.Controllers.Base;
 
 namespace TaskLauncher.App.Server.Controllers.Admin;
 
-public class PaymentController : AdminODataController<PaymentResponse>
+/// <summary>
+/// Payment kontroler ke kteremu ma pristup pouze admin
+/// </summary>
+public class PaymentsController : AdminODataController<PaymentResponse>
 {
-    public PaymentController(AppDbContext context) : base(context) { }
+    public PaymentsController(AppDbContext context) : base(context) { }
 
+    /// <summary>
+    /// Zobrazi vsechny platby v systemu, muze se dotazovat pres protokol odata
+    /// </summary>
     public override ActionResult<IQueryable<PaymentResponse>> Get()
     {
         return Ok(context.Payments.IgnoreQueryFilters().ProjectToType<PaymentResponse>());

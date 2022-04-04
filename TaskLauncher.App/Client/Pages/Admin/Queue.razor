@@ -60,7 +60,7 @@ else
         };
 
         customFilters.Add("TaskStatusFilter", typeof(TaskStatusFilterComponent));
-        string url = NavigationManager.BaseUri + "odata/admin/task"; // ?$orderby=ActualStatus asc
+        string url = NavigationManager.BaseUri + "odata/admin/tasks"; // ?$orderby=ActualStatus asc
         var query = new QueryDictionary<StringValues>();
 
         var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "queueGrid", columns, 10)

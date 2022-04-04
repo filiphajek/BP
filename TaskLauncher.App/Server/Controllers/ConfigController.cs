@@ -15,6 +15,7 @@ namespace TaskLauncher.App.Server.Controllers;
 /// Kontroler, ktery slouzi pouze pro administatora
 /// Ziskava a nastavuje systemove hodnoty
 /// </summary>
+[Route("api/admin/[controller]")]
 public class ConfigController : BaseController
 {
     private readonly IMapper mapper;
@@ -31,7 +32,7 @@ public class ConfigController : BaseController
     /// Ziska vsechny konfiguracni hodnoty nebo pouze jednu hodnotu, pokud je specifikovan parametr 'key' (jeden endpoint pro admina, druhy pro workery)
     /// </summary>
     [Authorize(Policy = TaskLauncherPolicies.CanViewConfigPolicy)]
-    [HttpGet("worker")]
+    [HttpGet("/api/worker/config")]
     public async Task<IActionResult> GetConfiguratioWorkerAsync(string? key = null) => await GetConfiguratioAsync(key);
 
     [Authorize(Policy = TaskLauncherPolicies.AdminPolicy)]
