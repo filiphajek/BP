@@ -5,6 +5,8 @@ spouštění úloh. Ty se spouští jako docker kontejner. Dále je implementov�
 Služba je implementována ve frameworku .NET 6. Pro ukládání uživatelských souborů se využívá služba Google bucket storage. Pro autentizaci a autorizaci se
 zvolila služba Auth0.
 
+Projekt je aktuálně nasazený na Azure na této adrese <https://auth0blazorwasmserverapp.azurewebsites.net/>. Worker procesy/kontejnery jsou vypnuty z důvodu ceny provozu.
+
 ## Spuštění projektu
 Projekt se spouští přes docker-compose. Nejdříve je ale potřeba vytvořit testovací image, který bude spouštěn a bude simulovat výpočet.
 V kořenovém adresáři spusťte příkaz: ```docker build -t testimage -f .\TestImage\Dockerfile .```
