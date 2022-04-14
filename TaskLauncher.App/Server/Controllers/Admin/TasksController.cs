@@ -1,6 +1,7 @@
 ﻿using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Query;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.DAL;
@@ -23,7 +24,9 @@ public class TasksController : AdminODataController<TaskResponse>
     /// <summary>
     /// Zobrazi vsechny tasky v systemu, muze se dotazovat pres protokol odata
     /// </summary>
-    public override ActionResult<IQueryable<TaskResponse>> Get()
+    [HttpGet]
+    [EnableQuery]
+    public ActionResult<IQueryable<TaskResponse>> Get()
     {
         return Ok(context.Tasks.IgnoreQueryFilters().ProjectToType<TaskResponse>());
     }

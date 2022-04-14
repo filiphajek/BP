@@ -3,6 +3,7 @@ using Blazored.Toast.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Client.Components;
@@ -66,12 +67,12 @@ public class NotificationComponent : ComponentBase
         }
     }
 
-    private bool IsRegistered(ClaimsPrincipal? principal)
+    private static bool IsRegistered(ClaimsPrincipal? principal)
     {
         if (principal is null)
             return false;
 
-        var claim = principal.Claims.FirstOrDefault(i => i.Type == "https://wutshot-test-api.com/registered");
+        var claim = principal.Claims.FirstOrDefault(i => i.Type == Constants.ClaimTypes.Registered);
         if (claim is null)
             return false;
 

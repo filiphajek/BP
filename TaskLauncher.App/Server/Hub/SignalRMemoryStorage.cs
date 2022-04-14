@@ -1,7 +1,8 @@
 ﻿namespace TaskLauncher.App.Server.Hub;
 
 /// <summary>
-/// In memory uloziste signalr spojeni, prevzato s oficialni dokumentace SignalR
+/// In memory uloziste signalr spojeni, inspirovano z oficialni dokumentace SignalR
+/// https://docs.microsoft.com/en-us/aspnet/signalr/overview/guide-to-the-api/mapping-users-to-connections
 /// </summary>
 public class SignalRMemoryStorage
 {

@@ -1,5 +1,8 @@
 ﻿namespace TaskLauncher.Simulation;
 
+/// <summary>
+/// Trida pro konfiguraci simulace
+/// </summary>
 public class SimulationConfig
 {
     public int NormalUsers { get; set; }

@@ -5,6 +5,9 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Filters;
 
+/// <summary>
+/// Validacni filter, pokud dotaz neni validni, vrati formatovanou odpoved s danymi chybami
+/// </summary>
 public class ValidationFilter : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)

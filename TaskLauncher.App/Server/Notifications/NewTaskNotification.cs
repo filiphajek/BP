@@ -6,6 +6,9 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Notifications;
 
+/// <summary>
+/// Notifikace o udalosti vytvoreni noveho tasku
+/// </summary>
 public class NewTaskNotification : INotification
 {
     public TaskModel Task { get; }
@@ -16,6 +19,9 @@ public class NewTaskNotification : INotification
     }
 }
 
+/// <summary>
+/// Handler, ktery se vyvola po vygenerovani nove udalosti NewTaskNotification
+/// </summary>
 public class NewTaskHandler : INotificationHandler<NewTaskNotification>
 {
     private readonly IHubContext<WorkerHub, IWorkerHub> workerHub;

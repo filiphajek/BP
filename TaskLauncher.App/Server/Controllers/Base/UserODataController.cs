@@ -5,6 +5,9 @@ using TaskLauncher.App.DAL;
 
 namespace TaskLauncher.App.Server.Controllers.Base;
 
+/// <summary>
+/// Abstraktni bazova trida pro uzivatelske kontrolery s odata
+/// </summary>
 [ODataRouteComponent("odata/user")]
 [Route("api/[controller]")]
 [Authorize(Policy = "user-policy")]

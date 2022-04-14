@@ -1,12 +1,15 @@
 ﻿using Auth0.ManagementApi.Models;
 using Mapster;
-using System.Security.Claims;
 using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.Common.Extensions;
 
 public static class UserExtensions
 {
+    /// <summary>
+    /// Vraci DTO model ziskany z modelu Auth0.ManagementApi.Models.User
+    /// Model premapuje i vlastnosti jako Vip, Registered, IsAdmin, ktere jinak nejsou dostupne
+    /// </summary>
     public static UserModel GetModel(this User user)
     {
         var config = new TypeAdapterConfig();
@@ -31,13 +34,15 @@ public static class UserExtensions
         return model;
     }
 
+    /// <summary>
+    /// Vraci model UserClaimsModel, obsahujici informace vip, blocked, emailverified ziskane z UserInfo modelu
+    /// </summary>
     public static UserClaimsModel GetUserClaims(this Auth0.AuthenticationApi.Models.UserInfo userInfo)
     {
-        var hasVipClaim = userInfo.AdditionalClaims.TryGetValue("https://wutshot-test-api.com/vip", out var vip);
+        var hasVipClaim = userInfo.AdditionalClaims.TryGetValue(Constants.ClaimTypes.Vip, out var vip);
         return new()
         {
             Blocked = false,
-            TokenBalance = "100",
             Vip = hasVipClaim ? bool.Parse(vip!.ToString()) : false,
             EmailVerified = userInfo.EmailVerified!.Value
         };

@@ -2,6 +2,9 @@
 
 namespace TaskLauncher.Common.Configuration;
 
+/// <summary>
+/// Konfigurace pro google cloud storage
+/// </summary>
 public class StorageConfiguration
 {
     public string GoogleCredentialFile

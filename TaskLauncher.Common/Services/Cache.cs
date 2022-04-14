@@ -3,11 +3,18 @@ using System.Text.Json;
 
 namespace TaskLauncher.Common.Services;
 
+/// <summary>
+/// Konfigurace cache, nastavujici absolutni expiraci
+/// </summary>
 public class CacheConfiguration<T>
 {
     public TimeSpan AbsoluteExpiration { get; set; }
 }
 
+/// <summary>
+/// Genericka implementace cache
+/// Serializuje a deserializuje objekty
+/// </summary>
 public class Cache<T> where T : class
 {
     private readonly IDistributedCache cache;

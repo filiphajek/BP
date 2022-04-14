@@ -6,8 +6,6 @@ using MapsterMapper;
 using Mapster;
 using TaskLauncher.Common.Installers;
 using TaskLauncher.Common.Services;
-using Swashbuckle.AspNetCore.Filters;
-using TaskLauncher.Api.Contracts.SwaggerExamples;
 using Microsoft.AspNetCore.OData;
 using Microsoft.OData.ModelBuilder;
 using TaskLauncher.Api.Contracts.Responses;
@@ -28,9 +26,12 @@ using Microsoft.EntityFrameworkCore;
 using MediatR;
 using TaskLauncher.App.Server.Services;
 using TaskLauncher.Common.Enums;
+using System.Reflection;
+using TaskLauncher.Api.Contracts.Requests;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//edm model pro admin odata endpointy
 static IEdmModel GetAdminEdmModel()
 {
     ODataConventionModelBuilder builder = new();
@@ -40,6 +41,7 @@ static IEdmModel GetAdminEdmModel()
     return builder.GetEdmModel();
 }
 
+//edm model pro uzivatelske odata endpointy
 static IEdmModel GetUserEdmModel()
 {
     ODataConventionModelBuilder builder = new();
@@ -48,21 +50,16 @@ static IEdmModel GetUserEdmModel()
     return builder.GetEdmModel();
 }
 
+//mediatr sluzba
 builder.Services.AddMediatR(typeof(Program).Assembly);
-
-//vycteni konfigurace z appsettings.json
-var serviceAddresses = new ServiceAddresses();
-builder.Configuration.Bind(nameof(ServiceAddresses), serviceAddresses);
-builder.Services.AddSingleton(serviceAddresses);
 
 //pridani kontroleru s error stranky a pridani protokolu odata
 builder.Services.AddControllersWithViews(options =>
 {
     options.AddJsonPatchInputFormatter();
-    options.Filters.Add<BanFilter>();
+    options.Filters.Add<AuthFilter>();
     options.Filters.Add<ValidationFilter>();
 })
-//.AddNewtonsoftJson()
 .AddOData(opt => opt
 .AddRouteComponents("odata/user", GetUserEdmModel())
 .AddRouteComponents("odata/admin", GetAdminEdmModel())
@@ -70,11 +67,12 @@ builder.Services.AddControllersWithViews(options =>
 
 builder.Services.AddRazorPages();
 
+//mapper
 var config = new TypeAdapterConfig();
 config.Scan(typeof(Program).Assembly);
 builder.Services.AddSingleton(config);
 builder.Services.AddScoped<IMapper, ServiceMapper>();
-builder.Services.InstallServicesInAssemblyOf<RepositoryInstaller>(builder.Configuration);
+builder.Services.InstallServicesInAssemblyOf<DatabaseInstaller>(builder.Configuration);
 
 //auth config
 builder.Services.Configure<Auth0ApiConfiguration>(builder.Configuration.GetSection(nameof(Auth0ApiConfiguration)));
@@ -97,7 +95,7 @@ builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 //httpclient
 builder.Services.AddHttpClient();
 
-//auth0 autentizace
+//auth0 cookie autentizace
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -106,13 +104,17 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.Authority = "https://dev-8nhuxay1.us.auth0.com/";
-    options.Audience = "https://wutshot-test-api.com";
+    options.Authority = $"https://{builder.Configuration["Auth0ApiConfiguration:Domain"]}/";
+    options.Audience = builder.Configuration["Auth0ApiConfiguration:Audience"];
 })
 .AddCookie(options =>
 {
     options.Cookie.Name = "__Host-BlazorServer";
     options.Cookie.SameSite = SameSiteMode.Strict;
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+    options.Cookie.HttpOnly = true;
+    options.SlidingExpiration = true;
+    options.Cookie.IsEssential = true;
 })
 .AddAuth0WebAppAuthentication(options =>
 {
@@ -148,19 +150,21 @@ builder.Services.Configure<RouteOptions>(options =>
     options.LowercaseUrls = true;
 });
 
-//pridani signalr s pomonym in memory ulozistem vsech real-time spojeni
+//pridani signalr s pomocnym in memory ulozistem vsech real-time spojeni
 builder.Services.AddSingleton<SignalRMemoryStorage>();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<TaskCache>();
 builder.Services.AddSingleton<Balancer>();
 builder.Services.Configure<PriorityQueuesConfiguration>(builder.Configuration.GetSection("PriorityQueues"));
 
+//pridani open api dokumentace
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddSwaggerGen(options =>
 {
-    c.DocumentFilter<SwaggerFilter>();
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskLauncher", Version = "v1" });
-    //c.ExampleFilters();
+    options.DocumentFilter<SwaggerFilter>();
+    options.DocumentFilter<JsonPatchDocumentFilter>();
+
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskLauncher", Version = "v1" });
     var securitySchema = new OpenApiSecurityScheme
     {
         Description = "Using the Authorization header with the Bearer scheme.",
@@ -174,21 +178,31 @@ builder.Services.AddSwaggerGen(c =>
             Id = "Bearer"
         }
     };
-    c.AddSecurityDefinition("Bearer", securitySchema);
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityDefinition("Bearer", securitySchema);
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         { securitySchema, new[] { "Bearer" } }
     });
-});
-//builder.Services.AddSwaggerExamplesFromAssemblyOf<CookieLessLoginRequestExample>();
 
+    options.OperationFilter<ContentTypeOperationFilter>();
+    options.OperationFilter<ODataOperationFilter>();
+
+    var xml1 = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xml2 = $"{Assembly.GetAssembly(typeof(BanUserRequest))!.GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xml1));
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xml2));
+});
+
+//pridani seedovacich trid
 builder.Services.AddScoped<Seeder>();
 builder.Services.AddScoped<Configurator>();
 
-builder.Services.AddHttpClient();
+//auth0 klientské faktory
 builder.Services.InstallClientFactories();
+//registrace pomocne servise tridy pro ziskani aktualniho uzivatele
 builder.Services.AddScoped<IAuth0UserProvider, Auth0UserProvider>();
 
+//pridani health kontroly
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
@@ -198,9 +212,14 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
     app.UseWebAssemblyDebugging();
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskLauncherDocumentation"));
+    app.UseSwaggerUI(options =>
+    {
+        options.DefaultModelsExpandDepth(-1);
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskLauncherDocumentation");
+    });
 }
 
+//pouzivani vestavenych middlewaru, middlewary jsou volany presne v tomto poradi
 app.UseHealthChecks("/health");
 
 app.UseHttpsRedirection();
@@ -218,6 +237,7 @@ app.MapReverseProxy(opt =>
     opt.UseProxyMiddlewares<Program>();
 }).RequireAuthorization("admin-policy");
 
+//namapovani koncovych bodu na kontrolery a signalr
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
@@ -230,19 +250,23 @@ var balancer = app.Services.GetRequiredService<Balancer>();
 
 using (var scope = app.Services.CreateScope())
 {
+    //urceni zda se budou seedovat data
     var seeding = bool.Parse(builder.Configuration["SeederConfig:seed"]);
 
     if (seeding)
     {
+        //seedovani
         var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
         await seeder.SeedAsync();
     }
     else
     {
+        //ujisteni zda databaze existuje
         var ensureContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await ensureContext.Database.EnsureCreatedAsync();
     }
 
+    //inicializace kongiguracnich promennych pokud jiz nejsou v databazi
     var configurator = scope.ServiceProvider.GetRequiredService<Configurator>();
     await configurator.ConfigureDefaultsAsync();
 
@@ -255,6 +279,7 @@ using (var scope = app.Services.CreateScope())
                     i.ActualStatus == TaskState.Ready)
         .ToListAsync();
     
+    //inicializace fronty
     foreach(var task in tasks)
     {
         var queue = task.IsPriority ? "vip" : "nonvip";

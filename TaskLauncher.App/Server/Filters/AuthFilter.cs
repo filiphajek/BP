@@ -17,14 +17,17 @@ using TaskLauncher.App.Server.Extensions;
 
 namespace TaskLauncher.App.Server.Filters;
 
-public class BanFilter : IAsyncAuthorizationFilter
+/// <summary>
+/// Filter, ktery odhali a odhlasi zabanovaneho uzivatele, aktualizuje informace o uzivateli (zmena vip, tokenu apod.)
+/// </summary>
+public class AuthFilter : IAsyncAuthorizationFilter
 {
     private readonly Cache<UserClaimsModel> cache;
     private readonly IAuth0UserProvider userProvider;
-    private readonly ILogger<BanFilter> logger;
+    private readonly ILogger<AuthFilter> logger;
     private readonly AppDbContext dbContext;
 
-    public BanFilter(Cache<UserClaimsModel> cache, IAuth0UserProvider userProvider, ILogger<BanFilter> logger, AppDbContext dbContext)
+    public AuthFilter(Cache<UserClaimsModel> cache, IAuth0UserProvider userProvider, ILogger<AuthFilter> logger, AppDbContext dbContext)
     {
         this.cache = cache;
         this.userProvider = userProvider;

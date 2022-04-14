@@ -47,8 +47,12 @@ public class TasksController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Detail tasku, s taskem se vraci i platba a vsechny udalosti
+    /// Detail úlohy, s taskem se vraci i platba a vsechny udalosti
     /// </summary>
+    /// <param name="id">Id úlohy</param>
+    /// <returns></returns>
+    [ProducesResponseType(200)]
+    [Produces("application/json")]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<TaskDetailResponse>> GetDetail([FromRoute] Guid id)
     {

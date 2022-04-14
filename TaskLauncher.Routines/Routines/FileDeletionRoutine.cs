@@ -3,6 +3,9 @@ using TaskLauncher.Common.Services;
 
 namespace TaskLauncher.Routines.Routines;
 
+/// <summary>
+/// Definice rutinni prace, ktera jednou za cas smaze stare soubory
+/// </summary>
 public class FileDeletionRoutine : IRoutine
 {
     private readonly IFileStorageService fileStorageService;

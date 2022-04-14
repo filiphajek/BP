@@ -4,6 +4,9 @@ using TaskLauncher.Common.Configuration;
 
 namespace TaskLauncher.Common.Services;
 
+/// <summary>
+/// Interace, ktery se pouziva pro praci se soubory
+/// </summary>
 public interface IFileStorageService
 {
     Task DownloadFileAsync(string path, Stream stream, CancellationToken cancellationToken = default);
@@ -13,7 +16,7 @@ public interface IFileStorageService
 }
 
 /// <summary>
-/// Zabaleni StorageClient pro pristup do google bucket storage
+/// Zabaleni StorageClient pro pristup do google bucket storage, implementuje IFileStorageService
 /// </summary>
 public class FileStorageService : IFileStorageService
 {

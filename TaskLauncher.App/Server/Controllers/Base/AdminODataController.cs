@@ -9,6 +9,9 @@ using TaskLauncher.App.DAL;
 
 namespace TaskLauncher.App.Server.Controllers.Base;
 
+/// <summary>
+/// Abstraktni bazova trida pro admin kontrolery s odata
+/// </summary>
 [ODataRouteComponent("odata/admin")]
 [Route("api/admin/[controller]")]
 [Authorize(Policy = "admin-policy")]
@@ -20,30 +23,5 @@ public abstract class AdminODataController<TResponse> : ControllerBase
     public AdminODataController(AppDbContext context)
     {
         this.context = context;
-    }
-
-    [HttpGet]
-    [EnableQuery]
-    public abstract ActionResult<IQueryable<TResponse>> Get();
-}
-
-public abstract class AdminODataController<TEntity, TResponse> : ControllerBase
-    where TEntity : class, IUserKeyProtection
-    where TResponse : class
-{
-    protected readonly AppDbContext context;
-
-    public AdminODataController(AppDbContext context)
-    {
-        this.context = context;
-    }
-
-    public ActionResult<IQueryable<TResponse>> Get(string userId = "")
-    {
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Ok(context.Set<TEntity>().IgnoreQueryFilters().ProjectToType<TResponse>());
-        }
-        return Ok(context.Set<TEntity>().IgnoreQueryFilters().Where(i => i.UserId == userId).ProjectToType<TResponse>());
     }
 }

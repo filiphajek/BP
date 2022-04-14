@@ -2,6 +2,7 @@
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Query;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
@@ -34,7 +35,9 @@ public class BansController : AdminODataController<BanResponse>
     /// <summary>
     /// Zobrazi vsechny bany v systemu, muze se dotazovat pres protokol odata
     /// </summary>
-    public override ActionResult<IQueryable<BanResponse>> Get()
+    [HttpGet]
+    [EnableQuery]
+    public ActionResult<IQueryable<BanResponse>> Get()
     {
         return Ok(context.Bans.IgnoreQueryFilters().ProjectToType<BanResponse>());
     }
