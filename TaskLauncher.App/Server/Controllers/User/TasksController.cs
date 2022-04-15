@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.OData.Query;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
-using TaskLauncher.Authorization;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Services;
@@ -20,7 +20,7 @@ using Microsoft.AspNetCore.JsonPatch;
 namespace TaskLauncher.App.Server.Controllers.User;
 
 /// <summary>
-/// Task kontroler, pristupny pouze pro uzivatele
+/// Task kontroler, pristupny pouze pro prihlaseneho uzivatele
 /// </summary>
 public class TasksController : UserODataController<TaskResponse>
 {
@@ -37,18 +37,24 @@ public class TasksController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Zpristupnuje dotazovani pres odata nad celou kolekci tasku daneho uzivatele
+    /// Zpřístupňuje dotazovaní přes odata nad celou kolekcí úloh přihlášeného uživatele
     /// </summary>
-    [HttpGet]
     [EnableQuery]
-    public ActionResult<TaskResponse> Get()
+    [ProducesResponseType(typeof(List<PaymentResponse>), 200)]
+    [Produces("application/json")]
+    [HttpGet]
+    public ActionResult<List<TaskResponse>> Get()
     {
         return Ok(context.Tasks.Where(i => i.ActualStatus != TaskState.Closed).AsQueryable().ProjectToType<TaskResponse>());
     }
 
     /// <summary>
-    /// Detail tasku, s taskem se vraci i platba a vsechny udalosti
+    /// Vrací detail úlohy společně s platbou a všemi událostmi
     /// </summary>
+    /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
+    [ProducesResponseType(typeof(TaskDetailResponse), 200)]
+    [ProducesResponseType(404)]
+    [Produces("application/json")]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<TaskDetailResponse>> GetDetail([FromRoute] Guid id)
     {
@@ -98,31 +104,39 @@ public class TasksController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Vytvoreni noveho tasku
+    /// Vytvoření nové úlohy
     /// </summary>
+    [ProducesResponseType(typeof(TaskResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(typeof(ErrorMessageResponse), 400)]
+    [Produces("application/json")]
     [HttpPost]
     public async Task<ActionResult<TaskResponse>> CreateTaskAsync([FromForm] TaskCreateRequest request, IFormFile file)
     {
+        //validace
         if (!User.TryGetAuth0Id(out var userId))
             return Unauthorized();
 
         if (request.Name.Contains('(') || request.Name.Contains(')'))
-            return BadRequest();
+            return BadRequest(new ErrorMessageResponse("Name should not contain '(' and ')'"));
 
+        //vytvoreni originalniho jmena
         request.Name = await GetUniqueName(request.Name);
 
+        //urceni ceny tasku podle vip
         double price = 0;
-        if (User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out bool vip) && vip)
+        if (User.TryGetClaimAsBool(Constants.ClaimTypes.Vip, out bool vip) && vip)
         {
-            var tmp = (await context.Configs.SingleAsync(i => i.Key == "viptaskprice")).Value;
+            var tmp = (await context.Configs.SingleAsync(i => i.Key == Constants.Configuration.VipTaskPrice)).Value;
             price = double.Parse(tmp);
         }
         else
         {
-            var tmp = (await context.Configs.SingleAsync(i => i.Key == "normaltaskprice")).Value;
+            var tmp = (await context.Configs.SingleAsync(i => i.Key == Constants.Configuration.NormalTaskPrice)).Value;
             price = double.Parse(tmp);
         }
 
+        //odecteni tokenu z celkove castky uzivatele
         await semaphoreSlim.WaitAsync();
         var token = await context.TokenBalances.SingleOrDefaultAsync();
         if (token is null || token.CurrentAmount <= 0)
@@ -137,6 +151,7 @@ public class TasksController : UserODataController<TaskResponse>
         await context.SaveChangesAsync();
         semaphoreSlim.Release();
 
+        //ulozeni souboru
         var creationDate = DateTime.Now;
         var fileId = file.Name + creationDate.Ticks.ToString();
         var path = $"{userId}/{fileId}/task";
@@ -145,6 +160,7 @@ public class TasksController : UserODataController<TaskResponse>
             await fileStorageService.UploadFileAsync(path, stream);
         }
 
+        //aktualizace databaze
         var eventEntity = new EventEntity { Status = TaskState.Created, Time = creationDate, UserId = userId };
         TaskEntity task = new()
         {
@@ -170,6 +186,7 @@ public class TasksController : UserODataController<TaskResponse>
 
         await context.SaveChangesAsync();
 
+        //zarazeni tasku do fronty
         balancer.Enqueue(vip ? "vip" : "nonvip", new TaskModel
         {
             IsPriority = vip,
@@ -184,10 +201,13 @@ public class TasksController : UserODataController<TaskResponse>
 
         return Ok(mapper.Map<TaskResponse>(taskEntity));
     }
-
     /// <summary>
-    /// Aktualizace informaci o tasku
+    /// Aktualizace informací úlohy
     /// </summary>
+    /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
+    [ProducesResponseType(typeof(TaskResponse), 200)]
+    [ProducesResponseType(404)]
+    [Produces("application/json")]
     [HttpPatch("{id:guid}")]
     public async Task<ActionResult<TaskResponse>> UpdateTaskAsync([FromRoute] Guid id, [FromBody] JsonPatchDocument<TaskUpdateRequest> patchDoc)
     {
@@ -201,12 +221,18 @@ public class TasksController : UserODataController<TaskResponse>
         var tmp = mapper.Map(request, task);
         context.Update(tmp);
         await context.SaveChangesAsync();
-        return Ok(tmp);
+        return Ok(mapper.Map<TaskResponse>(tmp));
     }
 
     /// <summary>
-    /// Uzavreni tasku
+    /// Příkaz o uzavření úlohy, neposílá se žádná informace v těle dotazu
     /// </summary>
+    /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
+    [ProducesResponseType(404)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(typeof(ErrorMessageResponse), 400)]
+    [ProducesResponseType(typeof(EventResponse), 200)]
+    [Produces("application/json")]
     [HttpPost("{id:guid}/close")]
     public async Task<IActionResult> CloseTaskAsync(Guid id)
     {
@@ -215,21 +241,27 @@ public class TasksController : UserODataController<TaskResponse>
 
         var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
-            return BadRequest();
+            return NotFound();
 
         if (task.ActualStatus != TaskState.Downloaded)
-            return BadRequest();
+            return BadRequest(new ErrorMessageResponse("Task is not in Downloaded state"));
 
         task.ActualStatus = TaskState.Closed;
         context.Update(task);
-        await context.Events.AddAsync(new() { Task = task, Status = TaskState.Closed, Time = DateTime.Now, UserId = userId });
+        var ev = await context.Events.AddAsync(new() { Task = task, Status = TaskState.Closed, Time = DateTime.Now, UserId = userId });
         await context.SaveChangesAsync();
-        return Ok();
+        return Ok(mapper.Map<EventResponse>(ev.Entity));
     }
 
     /// <summary>
-    /// Zruseni tasku, vraceni tokenu
+    /// Příkaz o zrušení úlohy a vrácení tokenu, neposílá se žádná informace v těle dotazu
     /// </summary>
+    /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
+    [ProducesResponseType(404)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(typeof(ErrorMessageResponse), 400)]
+    [ProducesResponseType(typeof(EventResponse), 200)]
+    [Produces("application/json")]
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> CancelTaskAsync(Guid id)
     {
@@ -239,7 +271,7 @@ public class TasksController : UserODataController<TaskResponse>
         var balance = await context.TokenBalances.SingleAsync();
         var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
-            return BadRequest();
+            return NotFound();
 
         if (task.ActualStatus == TaskState.Created)
         {
@@ -254,18 +286,21 @@ public class TasksController : UserODataController<TaskResponse>
             await context.SaveChangesAsync();
             return Ok(mapper.Map<EventResponse>(ev.Entity));
         }
-        return BadRequest();
+        return BadRequest(new ErrorMessageResponse("Task is not in Create State"));
     }
 
     /// <summary>
-    /// Smazani tasku
+    /// Smazání úlohy, neposílá se žádná informace v těle dotazu
     /// </summary>
+    /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
+    [ProducesResponseType(404)]
+    [ProducesResponseType(200)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteTaskAsync(Guid id)
     {
         var task = await context.Tasks.SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
-            return BadRequest();
+            return NotFound();
 
         context.Remove(task);
         await context.SaveChangesAsync();
@@ -273,10 +308,14 @@ public class TasksController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Restartuje task pokud je ve stavu timeouted
-    /// Task ve stavu crashed se restartuje automaticky
-    /// Task ktery byl zrusen, nemuze byt restartovan, musi byt zalozen novy
+    /// Restartuje úlohu pokud je ve stavu Vypršel, úloha ve stavu Zhavarováno se restartuje automaticky, zrušená úloha nemůže být restartována
     /// </summary>
+    /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
+    [ProducesResponseType(404)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(typeof(EventResponse), 200)]
+    [ProducesResponseType(typeof(ErrorMessageResponse), 400)]
+    [Produces("application/json")]
     [HttpPost("{id:guid}/restart")]
     public async Task<IActionResult> RestartTaskAsync(Guid id)
     {
@@ -294,7 +333,7 @@ public class TasksController : UserODataController<TaskResponse>
             var ev = await context.Events.AddAsync(new() { Task = task, Status = TaskState.Created, Time = DateTime.Now, UserId = userId });
             await context.SaveChangesAsync();
 
-            User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out bool vip);
+            User.TryGetClaimAsBool(Constants.ClaimTypes.Vip, out bool vip);
             balancer.Enqueue(vip ? "vip" : "nonvip", new TaskModel
             {
                 IsPriority = vip,
@@ -308,6 +347,6 @@ public class TasksController : UserODataController<TaskResponse>
             });
             return Ok(mapper.Map<EventResponse>(ev.Entity));
         }
-        return BadRequest();
+        return BadRequest(new ErrorMessageResponse("Task is not in Timeouted state"));
     }
 }

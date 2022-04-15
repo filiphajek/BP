@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.Server.Controllers.Base;
-using TaskLauncher.Authorization;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Services;
@@ -12,7 +13,7 @@ using TaskLauncher.Common.Services;
 namespace TaskLauncher.App.Server.Controllers;
 
 /// <summary>
-/// Pridava k task endpointum endpoint pro ziskani souboru
+/// Pridava k task endpointum dalsi endpoint pro ziskani souboru
 /// </summary>
 public class TasksController : BaseController
 {
@@ -26,9 +27,12 @@ public class TasksController : BaseController
     }
 
     /// <summary>
-    /// Vraci vysledny soubor daneho souboru
+    /// Vrací výsledný soubor dané úlohy
     /// </summary>
-    [Authorize(Policy = TaskLauncherPolicies.CanViewTaskPolicy)]
+    /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
+    [Authorize(Policy = Constants.Policies.CanViewTaskPolicy)]
+    [ProducesResponseType(typeof(FileStreamResult), 200, contentType: "application/octet-stream")]
+    [ProducesResponseType(typeof(ErrorMessageResponse), 400, contentType: "application/json")]
     [HttpGet("{id:guid}/file")]
     public async Task<IActionResult> DownloadFileAsync(Guid id)
     {
@@ -36,7 +40,7 @@ public class TasksController : BaseController
             return Unauthorized();
 
         //pokud je to admin
-        if (User.IsInRole(TaskLauncherRoles.Admin))
+        if (User.IsInRole(Constants.Roles.Admin))
         {
             var downloadedTask = await context.Tasks.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.Id == id);
             if (downloadedTask is null)
@@ -62,9 +66,12 @@ public class TasksController : BaseController
 
         if (task.ActualStatus == TaskState.Downloaded)
             return await DownloadFileAsync(task);
-        return BadRequest();
+        return BadRequest(new ErrorMessageResponse("Task is not in finished state"));
     }
 
+    /// <summary>
+    /// Stazeni souboru
+    /// </summary>
     private async Task<IActionResult> DownloadFileAsync(TaskEntity task)
     {
         MemoryStream stream = new();

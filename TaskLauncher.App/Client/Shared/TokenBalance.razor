@@ -1,8 +1,8 @@
-﻿@using TaskLauncher.Authorization
+﻿@using TaskLauncher.Common
 @using TaskLauncher.Common.Extensions
 @using TaskLauncher.App.Client.Store
 
-<AuthorizeView Policy="@TaskLauncherPolicies.UserPolicy">
+<AuthorizeView Policy="@Constants.Policies.UserPolicy">
     <Authorized>
         @if(!string.IsNullOrEmpty(balance))
         {

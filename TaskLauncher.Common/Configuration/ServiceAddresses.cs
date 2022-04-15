@@ -1,5 +1,8 @@
 ﻿namespace TaskLauncher.Common.Configuration;
 
+/// <summary>
+/// Konfigurace pro ziskani adres na API a Hub
+/// </summary>
 public class ServiceAddresses
 {
     private string webApiaddress;

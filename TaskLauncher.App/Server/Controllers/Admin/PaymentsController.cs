@@ -1,5 +1,6 @@
 ﻿using Mapster;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Query;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.DAL;
@@ -15,9 +16,13 @@ public class PaymentsController : AdminODataController<PaymentResponse>
     public PaymentsController(AppDbContext context) : base(context) { }
 
     /// <summary>
-    /// Zobrazi vsechny platby v systemu, muze se dotazovat pres protokol odata
+    /// Vrací všechny platby v systému, dotazuje se přes odata
     /// </summary>
-    public override ActionResult<IQueryable<PaymentResponse>> Get()
+    [ProducesResponseType(typeof(List<PaymentResponse>), 200)]
+    [Produces("application/json")]
+    [HttpGet]
+    [EnableQuery]
+    public ActionResult<IQueryable<PaymentResponse>> Get()
     {
         return Ok(context.Payments.IgnoreQueryFilters().ProjectToType<PaymentResponse>());
     }

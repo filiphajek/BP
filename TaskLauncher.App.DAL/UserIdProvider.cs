@@ -3,12 +3,17 @@ using TaskLauncher.Common.Extensions;
 
 namespace TaskLauncher.App.DAL;
 
+/// <summary>
+/// Poskytuje userid
+/// </summary>
 public interface IUserIdProvider
 {
     string GetUserId();
 }
 
-
+/// <summary>
+/// Implementace IUserIdProvider, ziskava userid z http contextu
+/// </summary>
 public class UserIdProvider : IUserIdProvider
 {
     private readonly IHttpContextAccessor accessor;

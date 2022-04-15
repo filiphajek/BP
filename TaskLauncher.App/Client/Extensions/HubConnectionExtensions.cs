@@ -3,6 +3,9 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Client.Extensions;
 
+/// <summary>
+/// SignalR client extenze
+/// </summary>
 public static class HubConnectionExtensions
 {
     public static IDisposable OnTaskFinished(this HubConnection connection, Action<TaskModel> handler)

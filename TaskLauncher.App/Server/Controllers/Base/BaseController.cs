@@ -2,9 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TaskLauncher.App.Server.Controllers.Base;
 
+/// <summary>
+/// Abstraktni bazova trida pro vsechny kontrolery
+/// </summary>
 [Route("api/[controller]")]
 [ApiController]
-public class BaseController : ControllerBase
+public abstract class BaseController : ControllerBase
 {
     protected ILogger logger;
 

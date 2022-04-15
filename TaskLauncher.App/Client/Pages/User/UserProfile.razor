@@ -2,18 +2,18 @@
 @using System.Security.Claims
 @using Microsoft.Extensions.Primitives
 @using TaskLauncher.Api.Contracts.Responses
-@using TaskLauncher.Authorization
+@using TaskLauncher.Common
 @using TaskLauncher.Common.Extensions
 @using TaskLauncher.Common.Models
-@attribute [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
+@attribute [Authorize(Policy = Constants.Policies.CanHaveProfilePolicy)]
 @inject ApiClient client
 @inject DialogService DialogService
 @inject NavigationManager NavigationManager
 @inject IToastService ToastService
 
+@*Stranka pro uzivatelsky profil*@
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
-
         <div class="container">
             <div class="row">
                 <ProfileComponent User=User />
@@ -21,7 +21,7 @@
 
             <div class="row" style="margin:10px; width:350px">
                 <div class="col">
-                    <AuthorizeView Policy="can-cancel-account">
+                    <AuthorizeView Policy="@Constants.Policies.CanCancelAccount">
                         <Authorized>
                             <button class="btn btn-danger" @onclick="CancelAsync">Cancel account</button>
                         </Authorized>
@@ -32,7 +32,7 @@
                 </div>
             </div>
 
-            <AuthorizeView Policy="@TaskLauncherPolicies.UserPolicy">
+            <AuthorizeView Policy="@Constants.Policies.UserPolicy">
                 <Authorized>
                     <div class="card">
                         <div class="card-body">
@@ -65,6 +65,7 @@
         loading = false;
     }
 
+    //reset hesla
     async Task ResetPasswordAsync()
     {
         var response = await client.PostAsJsonAsync("auth/reset-password", new { });
@@ -75,6 +76,7 @@
         }
     }
 
+    //zruseni uctu (pouze pro normalniho uzivatele)
     async Task CancelAsync()
     {
         var tmp = await DialogService.Confirm("Are you sure?", "Accout deletion", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });

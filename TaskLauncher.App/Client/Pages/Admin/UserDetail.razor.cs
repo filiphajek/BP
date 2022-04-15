@@ -40,6 +40,7 @@ public partial class UserDetail
 
     bool userIsNotVerifiedOrRegistered = false;
 
+    //pridani/odebrani tokenu
     protected async Task UpdateBalance()
     {
         var tmp = await client.PutAsJsonAsync("api/admin/token", new UpdateBalanceRequest() { Amount = tokenBalance, UserId = User.UserId });
@@ -47,6 +48,7 @@ public partial class UserDetail
             User.TokenBalance = tokenBalance.ToString();
     }
 
+    //nacteni detailu uzivatele
     protected async override Task OnParametersSetAsync()
     {
         loading = true;
@@ -63,6 +65,7 @@ public partial class UserDetail
         loading = false;
     }
 
+    //odebrani vip
     async Task UnVipAsync()
     {
         User = (await auth0client.Users.UpdateAsync(User.UserId, new()
@@ -72,6 +75,7 @@ public partial class UserDetail
         User.TokenBalance = tokenBalance.ToString();
     }
 
+    //prideleni vip
     async Task VipAsync()
     {
         User = (await auth0client.Users.UpdateAsync(User.UserId, new()
@@ -81,6 +85,7 @@ public partial class UserDetail
         User.TokenBalance = tokenBalance.ToString();
     }
 
+    //prideleni banu
     async Task BanUserAsync()
     {
         BanDialogResult res = await DialogService.OpenAsync<BanDialog>($"Give ban to {User.NickName}",
@@ -98,6 +103,7 @@ public partial class UserDetail
         StateHasChanged();
     }
 
+    //odebrani banu
     async Task UnBanUserAsync()
     {
         var ban = banComponent.BanClient.Grid.Items.FirstOrDefault(i => i.Ended == null);

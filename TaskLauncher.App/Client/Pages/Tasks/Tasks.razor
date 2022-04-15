@@ -1,9 +1,12 @@
 ﻿@page "/tasks"
 @page "/{id}/tasks"
 @using TaskLauncher.Api.Contracts.Responses
-@attribute [Authorize(Policy = "user-policy")]
+@using TaskLauncher.Common
+@attribute [Authorize(Policy = Constants.Policies.UserPolicy)]
 
 <PageTitle>Tasks</PageTitle>
+
+@*Stranka zobrazujici uzivatelske tasky*@
 
 <div style="margin-bottom: 20px;">
     <a class="btn btn-primary" href="/tasks/add"> <span class="si-text">Add new task</span> </a>

@@ -10,6 +10,7 @@ using Radzen;
 using static TaskLauncher.App.Client.Pages.Tasks.EditTaskDialog;
 using Microsoft.AspNetCore.JsonPatch;
 using TaskLauncher.Api.Contracts.Requests;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Client.Pages.Tasks;
 
@@ -45,8 +46,9 @@ public partial class TaskDetail : IDisposable
 
     protected override async Task OnParametersSetAsync()
     {
+        //nacteni tasku podle role
         var state = await authenticationStateTask;
-        isAdmin = state.User.IsInRole("admin");
+        isAdmin = state.User.IsInRole(Constants.Roles.Admin);
         if (isAdmin)
             Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/admin/tasks/" + Id.ToString());
         else
@@ -57,12 +59,13 @@ public partial class TaskDetail : IDisposable
             navigationManager.NavigateTo("tasks");
             return;
         }
-        
+        //init signalr
         signalRClient.OnTaskFinished += StatusChanged;
         eventSubscription = signalRClient.Connection.OnNewEvent(NewEvent);
         isLoading = false;
     }
 
+    //aktualizace informaci, jen pro uzivatele
     async Task UpdateAsync()
     {
         if (isAdmin)
@@ -83,6 +86,7 @@ public partial class TaskDetail : IDisposable
         }
     }
 
+    //callback pro signalr ktery prida udalost do kolekce
     private void NewEvent(EventModel model)
     {
         if (model.TaskId != Task!.Id)
@@ -99,6 +103,7 @@ public partial class TaskDetail : IDisposable
         StateHasChanged();
     }
 
+    //callback pro signalr ktery meni stav tasku
     private void StatusChanged(TaskModel model)
     {
         Console.WriteLine($"Status changed: {model.State} on task: {model.Id}");
@@ -106,6 +111,7 @@ public partial class TaskDetail : IDisposable
         StateHasChanged();
     }
 
+    //uzavreni tasku
     private async Task CloseTask()
     {
         var tmp = await Client.PostAsJsonAsync($"api/tasks/{Id}/close", new {});
@@ -113,6 +119,7 @@ public partial class TaskDetail : IDisposable
             navigationManager.NavigateTo("/tasks", true);
     }
 
+    //zruseni tasku
     private async Task CancelTask()
     {
         var tmp = await Client.PostAsJsonAsync($"api/tasks/{Id}/cancel", new {});
@@ -124,6 +131,7 @@ public partial class TaskDetail : IDisposable
         }
     }
 
+    //restart tasku
     private async Task RestartTask()
     {
         var tmp = await Client.PostAsJsonAsync($"api/tasks/{Id}/restart" + Id.ToString(), new { });
@@ -135,6 +143,7 @@ public partial class TaskDetail : IDisposable
         }
     }
 
+    //smazani tasku
     private async Task DeleteTask()
     {
         if (isAdmin)
@@ -149,6 +158,7 @@ public partial class TaskDetail : IDisposable
             navigationManager.NavigateTo("/tasks");
     }
 
+    //stahnuti souboru
     private void DownloadResultFile()
     {
         if(Task.ActualStatus == TaskState.FinishedSuccess || Task.ActualStatus == TaskState.FinishedFailure || Task.ActualStatus == TaskState.Downloaded)
@@ -162,6 +172,7 @@ public partial class TaskDetail : IDisposable
         }
     }
 
+    //uvolneni signalr spojeni
     public void Dispose()
     {
         signalRClient.OnTaskFinished -= StatusChanged;

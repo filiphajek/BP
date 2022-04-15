@@ -6,13 +6,30 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Services;
 
+/// <summary>
+/// Interface definujici nektere operace spojene s taskem, ktere se pouzivaji na vice mistech aplikace
+/// </summary>
 public interface ITaskService
 {
+    /// <summary>
+    /// Aktualizace tasku, vraci novou udalost, ktera informuje o zmene stavu tasku
+    /// </summary>
     Task<EventModel?> UpdateTaskAsync(TaskModel model);
+
+    /// <summary>
+    /// Ukoncuje dany task, aktualizace statistiky
+    /// </summary>
     Task EndTaskAsync(TaskModel model);
+
+    /// <summary>
+    /// Vraci true pokud task existuje v databazi, jinak false
+    /// </summary>
     Task<bool> TaskExists(TaskModel model);
 }
 
+/// <summary>
+/// Pomocna trida implementujici ITaskService pro aktualizaci informaci o tasku
+/// </summary>
 public class TaskService : ITaskService
 {
     private readonly AppDbContext dbContext;

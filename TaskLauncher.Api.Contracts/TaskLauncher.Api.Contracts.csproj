@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<NoWarn>$(NoWarn);1591</NoWarn>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -8,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="10.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="6.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore.Filters.Abstractions" Version="7.0.2" />
   </ItemGroup>
 

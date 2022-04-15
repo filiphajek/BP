@@ -1,8 +1,10 @@
 ﻿@page "/users/{id}"
 @using TaskLauncher.Api.Contracts.Responses
 @using TaskLauncher.App.Client.Components.Graphs
-@attribute [Authorize(Policy = "admin-policy")]
+@using TaskLauncher.Common
+@attribute [Authorize(Policy = Constants.Policies.AdminPolicy)]
 
+@*Stranka detailu uzivatele s bany, platby apod.*@
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
 

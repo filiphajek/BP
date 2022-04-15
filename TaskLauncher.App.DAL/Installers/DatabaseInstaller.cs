@@ -5,6 +5,9 @@ using TaskLauncher.Common.Installers;
 
 namespace TaskLauncher.App.DAL.Installers;
 
+/// <summary>
+/// Do DI pridava db context a poskytovatele userid
+/// </summary>
 public class DatabaseInstaller : IInstaller
 {
     public void Install(IServiceCollection services, IConfiguration configuration)

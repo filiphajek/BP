@@ -6,12 +6,16 @@ using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.DAL;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Controllers.Base;
 
+/// <summary>
+/// Abstraktni bazova trida pro admin kontrolery s odata
+/// </summary>
 [ODataRouteComponent("odata/admin")]
 [Route("api/admin/[controller]")]
-[Authorize(Policy = "admin-policy")]
+[Authorize(Policy = Constants.Policies.AdminPolicy)]
 public abstract class AdminODataController<TResponse> : ControllerBase
     where TResponse : class
 {
@@ -20,30 +24,5 @@ public abstract class AdminODataController<TResponse> : ControllerBase
     public AdminODataController(AppDbContext context)
     {
         this.context = context;
-    }
-
-    [HttpGet]
-    [EnableQuery]
-    public abstract ActionResult<IQueryable<TResponse>> Get();
-}
-
-public abstract class AdminODataController<TEntity, TResponse> : ControllerBase
-    where TEntity : class, IUserKeyProtection
-    where TResponse : class
-{
-    protected readonly AppDbContext context;
-
-    public AdminODataController(AppDbContext context)
-    {
-        this.context = context;
-    }
-
-    public ActionResult<IQueryable<TResponse>> Get(string userId = "")
-    {
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Ok(context.Set<TEntity>().IgnoreQueryFilters().ProjectToType<TResponse>());
-        }
-        return Ok(context.Set<TEntity>().IgnoreQueryFilters().Where(i => i.UserId == userId).ProjectToType<TResponse>());
     }
 }

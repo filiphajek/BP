@@ -4,6 +4,9 @@ using Radzen.Blazor;
 
 namespace TaskLauncher.App.Client.Validators;
 
+/// <summary>
+/// Validator kontroluje zda v textboxu nejsou znaky '( )'
+/// </summary>
 public class InvalidCharactersValidator : ValidatorBase
 {
     [Parameter]

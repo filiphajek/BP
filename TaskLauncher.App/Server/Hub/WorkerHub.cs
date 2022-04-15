@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using TaskLauncher.App.Server.Notifications;
 using TaskLauncher.App.Server.Services;
 using TaskLauncher.App.Server.Tasks;
-using TaskLauncher.Authorization;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
@@ -27,7 +27,7 @@ public interface IWorkerHub
 /// <summary>
 /// Hub pro workery, worker posila aktualizace o stavu tasku, server prideluje praci
 /// </summary>
-[Authorize(Policy = TaskLauncherPolicies.LauncherPolicy)]
+[Authorize(Policy = Constants.Policies.WorkerPolicy)]
 public class WorkerHub : Hub<IWorkerHub>
 {
     private readonly ILogger<WorkerHub> logger;

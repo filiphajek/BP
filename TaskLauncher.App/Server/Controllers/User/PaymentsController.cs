@@ -15,8 +15,10 @@ public class PaymentsController : UserODataController<PaymentResponse>
     public PaymentsController(AppDbContext context) : base(context) { }
 
     /// <summary>
-    /// Zobrazi vsechny uzivatelske platby v systemu, muze se dotazovat pres protokol odata
+    /// Vrací všechny platby uživatele, dotazuje se přes protokol odata
     /// </summary>
+    [ProducesResponseType(typeof(List<PaymentResponse>), 200)]
+    [Produces("application/json")]
     [HttpGet]
     [EnableQuery]
     public ActionResult<PaymentResponse> Get()

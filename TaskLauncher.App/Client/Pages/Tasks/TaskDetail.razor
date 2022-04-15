@@ -1,7 +1,9 @@
 ﻿@page "/tasks/{id:guid}"
-@using TaskLauncher.Authorization
+@using TaskLauncher.Common
 @using TaskLauncher.Common.Enums
-@attribute [Authorize(Policy = TaskLauncherPolicies.CanViewTaskPolicy)]
+@attribute [Authorize(Policy = Constants.Policies.CanViewTaskPolicy)]
+
+@*Stranka s detailem tasku*@
 
 <SpinLoader IsLoading="@(isLoading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
@@ -35,7 +37,7 @@
                             <button @onclick="DownloadResultFile" disabled="@isRunning" class="btn btn-primary">Download result</button>
                         }
 
-                        <AuthorizeView Policy="@TaskLauncherPolicies.UserPolicy">
+                        <AuthorizeView Policy="@Constants.Policies.UserPolicy">
                             <Authorized>
                                 @if (Task.ActualStatus == TaskState.Created)
                                 {
@@ -64,7 +66,7 @@
                             </Authorized>
                         </AuthorizeView>
 
-                        <AuthorizeView Policy="@TaskLauncherPolicies.AdminPolicy">
+                        <AuthorizeView Policy="@Constants.Policies.AdminPolicy">
                             <Authorized>
                                 @if (Task.ActualStatus == TaskState.Closed || Task.ActualStatus == TaskState.Cancelled)
                                 {

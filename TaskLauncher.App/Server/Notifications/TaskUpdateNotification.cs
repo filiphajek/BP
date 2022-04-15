@@ -7,6 +7,9 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Server.Notifications;
 
+/// <summary>
+/// Notifikace na udalost aktualizace tasku
+/// </summary>
 public class TaskUpdateNotification : INotification
 {
     public TaskModel Task { get; }
@@ -19,6 +22,9 @@ public class TaskUpdateNotification : INotification
     }
 }
 
+/// <summary>
+/// Handler, ktery se vyvola po vygenerovani nove udalosti TaskUpdateNotification
+/// </summary>
 public class TaskUpdateHandler : INotificationHandler<TaskUpdateNotification>
 {
     private readonly SignalRMemoryStorage userConnectionsStorage;

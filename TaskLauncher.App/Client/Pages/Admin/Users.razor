@@ -1,11 +1,9 @@
 ﻿@page "/users"
+@using TaskLauncher.Common
 @using TaskLauncher.Common.Models
-@attribute [Authorize(Policy = "admin-policy")]
+@attribute [Authorize(Policy = Constants.Policies.AdminPolicy)]
 
-<div style="margin-bottom: 20px;">
-    <a class="btn btn-primary" href="users/add">Add user</a>
-</div>
-
+@*Stranka s kolekci vsech uzivatelu*@
 @if (task.IsCompleted)
 {
     <GridComponent T="UserModel" Grid="@grid"></GridComponent>

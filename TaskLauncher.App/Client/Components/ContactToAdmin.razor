@@ -1,8 +1,9 @@
 ﻿@using Auth0.ManagementApi.Models
-@using TaskLauncher.Authorization
+@using TaskLauncher.Common
 @inject ApiClient httpClient
 
-<AuthorizeView Roles="user">
+@*Komponenta s kontaktem na administratora*@
+<AuthorizeView Roles="@Constants.Roles.User">
     <Authorized>
         <div class="navbar fixed-bottom">
             <p class="navbar-brand" style="margin:30px; color: white; font-size: 15px; text-align:center">Contact the administrator <br/> <b><a href="mailto: @admin.Email">@admin.Email</a></b></p>
@@ -20,7 +21,7 @@
     protected async override Task OnInitializedAsync()
     {
         var state = await authenticationStateTask;
-        if (state.User.IsInRole(TaskLauncherRoles.User))
+        if (state.User.IsInRole(Constants.Roles.User))
             admin = (await httpClient.GetFromJsonAsync<AssignedUser>("api/user/admin-contact"))!;
     }
 }

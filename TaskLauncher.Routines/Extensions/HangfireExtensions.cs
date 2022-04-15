@@ -3,6 +3,9 @@ using Hangfire.SqlServer;
 
 namespace TaskLauncher.Routines.Extensions;
 
+/// <summary>
+/// Pridava hangfire do DI
+/// </summary>
 public static class HangfireExtensions
 {
     public static void AddHangfire<TAssembly>(this IServiceCollection services, IConfiguration config)

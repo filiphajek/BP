@@ -1,5 +1,6 @@
 ﻿@using TaskLauncher.Common.Enums
 
+@*Graficky zobrazuje stav tasku*@
 @if (State == TaskState.Running || State == TaskState.Created || State == TaskState.Ready)
 {
     <SpinLoader IsLoading="@(true)" Spinner="SpinnerType.CircleFade" Size="1.1em"/>

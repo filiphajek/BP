@@ -6,6 +6,9 @@ using TaskLauncher.Common.Enums;
 
 namespace TaskLauncher.App.Server.Seeders;
 
+/// <summary>
+/// Trida inicializuje vsechny konfiguracni promenne, pokud jiz v databazi neexistuji
+/// </summary>
 public class Configurator
 {
     private readonly AppDbContext dbContext;

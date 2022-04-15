@@ -1,9 +1,11 @@
 ﻿@page "/config"
 @using TaskLauncher.Api.Contracts.Requests
 @using TaskLauncher.App.Client.Validators
+@using TaskLauncher.Common
 @using TaskLauncher.Common.Enums
-@attribute [Authorize(Policy = "admin-policy")]
+@attribute [Authorize(Policy = Constants.Policies.AdminPolicy)]
 
+@*Stranka s konfiguracema*@
 <div class="container">
     <RadzenTemplateForm @ref="@form" TItem="ConfigurationModel" Data="@model" Submit="SaveChangesAsync">
 

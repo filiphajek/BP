@@ -3,6 +3,9 @@ using Microsoft.Extensions.Options;
 
 namespace TaskLauncher.Authorization.Auth0;
 
+/// <summary>
+/// Tovarna vraci AuthenticationApiClient
+/// </summary>
 public class AuthenticationApiClientFactory : IClientFactory<AuthenticationApiClient>
 {
     private readonly Auth0ApiConfiguration config;
@@ -14,6 +17,9 @@ public class AuthenticationApiClientFactory : IClientFactory<AuthenticationApiCl
         this.httpClientFactory = httpClientFactory;
     }
 
+    /// <summary>
+    /// Vraci noveho AuthenticationApiClient
+    /// </summary>
     public Task<AuthenticationApiClient> GetClient()
     {
         var client = httpClientFactory.CreateClient();

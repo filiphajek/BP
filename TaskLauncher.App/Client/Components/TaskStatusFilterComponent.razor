@@ -7,6 +7,7 @@
 @using TaskLauncher.Authorization
 @using TaskLauncher.Common.Enums
 
+@*Custom filter pro grid, ktery filtruje kolekci podle zvoleneho stavu ulohy*@
 @if (visible)
 {
     <div class="dropdown dropdown-menu grid-dropdown opened" style="display:block;position:relative;" @onclick:stopPropagation @onkeyup:stopPropagation>

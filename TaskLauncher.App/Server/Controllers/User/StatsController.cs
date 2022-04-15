@@ -4,18 +4,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.DAL;
-using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.Server.Controllers.Base;
 using TaskLauncher.App.Server.Helpers;
-using TaskLauncher.Authorization;
-using TaskLauncher.Common.Enums;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Controllers.User;
 
 /// <summary>
 /// Stat kontroler, ktery vraci statistiky pro prihlaseneho uzivatele
 /// </summary>
-[Authorize(Policy = TaskLauncherPolicies.UserPolicy)]
+[Authorize(Policy = Constants.Policies.UserPolicy)]
 public class StatsController : BaseController
 {
     private readonly IMapper mapper;
@@ -28,21 +26,24 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vraci obecne statistiky pro prihlaseneho uzivatele
+    /// Vrací obecné statistiky pro přihlášeného uživatele
     /// </summary>
+    [ProducesResponseType(typeof(List<UserStatResponse>), 200)]
+    [Produces("application/json")]
     [HttpGet]
     public async Task<ActionResult<List<UserStatResponse>>> GetUserStats()
     {
         var userStats = await dbContext.Stats.ToListAsync();
         if (userStats is null)
-            return BadRequest();
+            return NotFound();
         return Ok(userStats.Select(mapper.Map<UserStatResponse>));
     }
 
     /// <summary>
-    /// Vraci se kolekce statistik poslednich 30 tasku za posledni den souvisejici od prihlaseho uzivatele
-    /// Statistiky udavaji kolik casu dany task stravil ve fronte a ve workeru
+    /// Vrací se kolekce statistik posledních 30 úloh za poslední den od přihlášeného uživatele
+    /// Statistiky udaávají kolik času daná úloha strávila ve workeru a jak dlouho se počítala
     /// </summary>
+    [Produces("application/json")]
     [HttpGet("times")]
     public async Task<ActionResult<List<TaskStatResponse>>> GetUserTasksTimes()
     {
@@ -63,11 +64,12 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vraci kolekci kde polozka je pocet tasku za den
-    /// Vraci se zalozene tasky za poslednich 30 dni od prihlaseneho uzivatelu
-    /// Musi se specifikovat zda se budou vracet vip nebo normalni tasky
+    /// Vrací kolekci kde položka je počet úloh spuštěných za den, jsou to úlohy za posledních 30 dní
+    /// Musí se specifikovat, zda se budou vracet vip nebo normalní úlohy
     /// </summary>
-    [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
+    /// <param name="vip" example="true">Vip</param>
+    [Produces("application/json")]
+    [Authorize(Policy = Constants.Policies.CanViewGraphsPolicy)]
     [HttpGet("taskcountperdays")]
     public async Task<ActionResult<List<DayTaskCountResponse>>> GetTaskCountPerDays(bool vip)
     {

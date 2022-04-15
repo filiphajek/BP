@@ -11,8 +11,8 @@ using Newtonsoft.Json;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
-using TaskLauncher.Authorization;
 using TaskLauncher.Authorization.Auth0;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
 
@@ -33,9 +33,9 @@ public class UserController : BaseController
     }
 
     /// <summary>
-    /// Smazani uctu a vsech vytvorenych dat
+    /// Smazání učtu a všech jeho vytvořených dat
     /// </summary>
-    [Authorize(Policy = TaskLauncherPolicies.CanCancelAccount)]
+    [Authorize(Policy = Constants.Policies.CanCancelAccount)]
     [HttpDelete]
     public async Task<IActionResult> DeleteAccountAsync()
     {
@@ -67,19 +67,20 @@ public class UserController : BaseController
     }
 
     /// <summary>
-    /// Ziska vsechny aktualni informace o prihlasenem uzivateli
+    /// Získá všechny aktuální informace o přihlášeném uživateli
     /// </summary>
-    [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
+    [Produces("application/json")]
+    [Authorize(Policy = Constants.Policies.CanHaveProfilePolicy)]
     [HttpGet]
     public async Task<ActionResult<UserModel>> GetUserData()
     {
         if (!User.TryGetAuth0Id(out var userId))
-            return BadRequest();
+            return Unauthorized();
 
         var auth0client = await apiClientFactory.GetClient();
         var user = (await auth0client.Users.GetAsync(userId)).GetModel();
 
-        if(User.IsInRole(TaskLauncherRoles.User))
+        if(User.IsInRole(Constants.Roles.User))
         {
             var balance = await context.TokenBalances.SingleAsync();
             user.TokenBalance = balance.CurrentAmount.ToString();
@@ -88,10 +89,11 @@ public class UserController : BaseController
     }
 
     /// <summary>
-    /// Upraveni uzivatelskeho profilu
+    /// Upravení uživatelského profilu
     /// </summary>
+    [Produces("application/json")]
     [HttpPatch]
-    [Authorize(Policy = TaskLauncherPolicies.CanHaveProfilePolicy)]
+    [Authorize(Policy = Constants.Policies.CanHaveProfilePolicy)]
     public async Task<ActionResult<UserModel>> UpdateUserProfile([FromBody] JsonPatchDocument<UpdateProfileRequest> patchUser)
     {
         if (!User.TryGetAuth0Id(out var userId))
@@ -113,9 +115,10 @@ public class UserController : BaseController
     }
 
     /// <summary>
-    /// Zobrazi kontakt na jednoho z administratoru, kazdemu uzivateli se muze zobrazit jiny
+    /// Zobrazí kontakt na jednoho z administrátorů
     /// </summary>
-    [Authorize(Roles = TaskLauncherRoles.User)]
+    [Produces("application/json")]
+    [Authorize(Roles = Constants.Roles.User)]
     [HttpGet("admin-contact")]
     public async Task<ActionResult<AssignedUser>> GetContactToAdmin()
     {

@@ -3,6 +3,9 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace TaskLauncher.App.Server.Filters;
 
+/// <summary>
+/// Filter pro swagger, ktery odstanuje vsechny odata endpointy
+/// </summary>
 public class SwaggerFilter : IDocumentFilter
 {
     public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)

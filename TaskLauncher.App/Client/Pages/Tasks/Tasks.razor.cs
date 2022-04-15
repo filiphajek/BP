@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Primitives;
 using TaskLauncher.Api.Contracts.Responses;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Models;
 
@@ -51,6 +52,7 @@ public partial class Tasks : IDisposable
         string url = NavigationManager.BaseUri + path;
         var query = new QueryDictionary<StringValues>();
 
+        //nastaveni gridu
         Action<IGridColumnCollection<TaskResponse>> columns = c =>
         {
             c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
@@ -64,7 +66,7 @@ public partial class Tasks : IDisposable
             });
             c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus)).SetWidth(150);
         };
-
+        //ziskani tasku
         var gridClient = new GridODataClient<TaskResponse>(Client, url, query, false, "taskGrid", columns, 10)
             .ChangePageSize(true)
             .WithMultipleFilters()
@@ -85,7 +87,7 @@ public partial class Tasks : IDisposable
         else
         {
             var state = await authenticationStateTask;
-            if (!state.User.IsInRole("admin"))
+            if (!state.User.IsInRole(Constants.Roles.Admin))
             {
                 NavigationManager.NavigateTo("tasks", true);
                 return;

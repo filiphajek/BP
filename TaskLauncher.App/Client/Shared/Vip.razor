@@ -1,4 +1,4 @@
-﻿@using TaskLauncher.Authorization
+﻿@using TaskLauncher.Common
 @using TaskLauncher.Common.Extensions
 
 @if(isVip)
@@ -16,7 +16,7 @@
     protected override async Task OnInitializedAsync()
     {
         var state = await authenticationStateTask;
-        if(state.User.TryGetClaimValue(TaskLauncherClaimTypes.Vip, out var value) && value.ToLower() == "true")
+        if(state.User.TryGetClaimValue(Constants.ClaimTypes.Vip, out var value) && value.ToLower() == "true")
         {
             isVip = true;
         }

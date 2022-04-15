@@ -8,7 +8,7 @@ namespace TaskLauncher.App.Client.Authentication;
 
 /// <summary>
 /// Implementace AuthenticationStateProvider komponenty 
-/// Inspirovano z https://github.com/berhir/BlazorWebAssemblyCookieAuth 
+/// Inspirovano z https://github.com/berhir/BlazorWebAssemblyCookieAuth od Bernda Hirschmanna a Dominicka Baiera
 /// </summary>
 public class HostAuthenticationStateProvider : AuthenticationStateProvider
 {

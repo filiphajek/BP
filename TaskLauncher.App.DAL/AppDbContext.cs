@@ -3,6 +3,9 @@ using TaskLauncher.App.DAL.Entities;
 
 namespace TaskLauncher.App.DAL;
 
+/// <summary>
+/// Pristup do databaze
+/// </summary>
 public class AppDbContext : DbContext
 {
     private readonly IUserIdProvider service;
@@ -24,6 +27,7 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<ConfigEntity>().HasKey(i => new { i.Key });
 
+        //nastaveni globalnich filteru
         modelBuilder.Entity<EventEntity>().HasQueryFilter(i => i.UserId == service.GetUserId());
         modelBuilder.Entity<TaskEntity>().HasQueryFilter(i => i.UserId == service.GetUserId());
         modelBuilder.Entity<PaymentEntity>().HasQueryFilter(i => i.UserId == service.GetUserId());

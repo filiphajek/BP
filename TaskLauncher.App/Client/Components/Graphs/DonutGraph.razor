@@ -1,13 +1,13 @@
 ﻿@using Auth0.ManagementApi.Models
 @using TaskLauncher.Api.Contracts.Responses
-@using TaskLauncher.Authorization
+@using TaskLauncher.Common
 @using TaskLauncher.Common.Extensions
 @inject ApiClient client
-@attribute [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
+@attribute [Authorize(Policy = Constants.Policies.CanViewGraphsPolicy)]
 
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
-
+        @*Graf zobrazujici obecne statistiky*@
         <div class="card">
             <div class="card-title" style="margin:20px 0 0 20px">
                 <h4>Finished/All tasks: <b>@model.FinishedTaskCount</b>/<b>@model.AllTaskCount</b></h4>
@@ -47,38 +47,41 @@
         loading = true;
         var state = await authenticationStateTask;
 
-        if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(TaskLauncherRoles.Admin))
+        //statistiky zadaneho uzivatele
+        if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(Constants.Roles.Admin))
         {
             await LoadOverallStats("api/admin/stats?userid=" + UserId);
             loading = false;
             return;
         }
 
-        state.User.TryGetClaimAsBool(TaskLauncherClaimTypes.Vip, out isVip);
-
-        if (state.User.IsInRole(TaskLauncherRoles.User))
+        state.User.TryGetClaimAsBool(Constants.ClaimTypes.Vip, out isVip);
+        //uzivatelske statistiky
+        if (state.User.IsInRole(Constants.Roles.User))
             await LoadOverallStats("api/stats");
-
-        if (state.User.IsInRole(TaskLauncherRoles.Admin))
+        //statistiky seskupene od vsech uzivatelu
+        if (state.User.IsInRole(Constants.Roles.Admin))
             await LoadOverallStats("api/admin/stats");
 
         await IsSwitchDisabled();
         loading = false;
     }
 
+    //urcuje zda bude switch vypnut
     async Task IsSwitchDisabled()
     {
         var state = await authenticationStateTask;
-        if (state.User.IsInRole(TaskLauncherRoles.User))
+        if (state.User.IsInRole(Constants.Roles.User))
         {
             disabledSwitch = overallStats.Any(i => i.AllTaskCount == 0);
         }
-        if (state.User.IsInRole(TaskLauncherRoles.Admin))
+        if (state.User.IsInRole(Constants.Roles.Admin))
         {
             disabledSwitch = false;
         }
     }
 
+    //nacteni obecnych statistik
     async Task LoadOverallStats(string path)
     {
         overallStats = (await client.GetFromJsonAsync<List<UserStatResponse>>(path))!;
@@ -86,6 +89,7 @@
         data = new DataItem[] { new("Success", model.SuccessTasks), new("Failed", model.FailedTasks), new("Crashed", model.CrashedTasks), new("Timeouted", model.TimeoutedTasks) };
     }
 
+    //prepnuti mezi vip a normalnimi tasky
     void SwitchDonutGraph()
     {
         isVip = !isVip;

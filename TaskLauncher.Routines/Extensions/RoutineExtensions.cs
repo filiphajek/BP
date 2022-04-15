@@ -2,6 +2,9 @@
 
 namespace TaskLauncher.Routines.Extensions;
 
+/// <summary>
+/// Pridani rutinnich praci do DI
+/// </summary>
 public static class RoutineExtensions
 {
     public static void AddRoutines<TAssembly>(this IServiceCollection services)

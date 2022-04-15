@@ -3,6 +3,10 @@ using TaskLauncher.Authorization.Auth0;
 
 namespace TaskLauncher.App.Server.Proxy;
 
+/// <summary>
+/// Middleware ktery pridava hlavicku Authorization, ve ktere je access token pro managemenet api
+/// Dotaz se dale preposila na auth0, vse konfigurovane pres appsetting.json
+/// </summary>
 public class Auth0ManagementTokenMiddleware : ProxyHandlerMiddleware
 {
     private readonly ManagementTokenService managementTokenService;

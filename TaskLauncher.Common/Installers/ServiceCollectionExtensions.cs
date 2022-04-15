@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TaskLauncher.Common.Installers;
 
+/// <summary>
+/// POmocne metody pro pridavani zavisloti do DI
+/// </summary>
 public static class ServiceCollectionExtensions
 {
     public static void InstallServicesInAssemblyOf<T>(this IServiceCollection services, IConfiguration configuration)

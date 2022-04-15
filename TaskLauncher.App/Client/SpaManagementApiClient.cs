@@ -2,6 +2,9 @@
 
 namespace TaskLauncher.App.Client;
 
+/// <summary>
+/// Volani auth0 management api z SPA .. dotaz jde pres backend, kde se dosadi hlavicka Authorization
+/// </summary>
 public class SpaManagementApiClient : ManagementApiClient
 {
     public SpaManagementApiClient(Auth0ApiClientConfiguration options)

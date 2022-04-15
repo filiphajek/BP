@@ -1,6 +1,4 @@
 using Hangfire;
-using Microsoft.EntityFrameworkCore;
-using TaskLauncher.App.DAL;
 using TaskLauncher.App.DAL.Installers;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Common.Services;
@@ -27,8 +25,8 @@ app.UseHttpsRedirection();
 app.UseRouting();
 app.UseHangfireDashboard("/hangfire");
 app.MapHangfireDashboard();
-//
 
+//inicializace rutin
 using (var scope = app.Services.CreateScope())
 {
     var jobClient = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
