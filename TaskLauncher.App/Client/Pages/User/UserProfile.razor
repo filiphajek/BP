@@ -11,9 +11,9 @@
 @inject NavigationManager NavigationManager
 @inject IToastService ToastService
 
+@*Stranka pro uzivatelsky profil*@
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
-
         <div class="container">
             <div class="row">
                 <ProfileComponent User=User />
@@ -65,6 +65,7 @@
         loading = false;
     }
 
+    //reset hesla
     async Task ResetPasswordAsync()
     {
         var response = await client.PostAsJsonAsync("auth/reset-password", new { });
@@ -75,6 +76,7 @@
         }
     }
 
+    //zruseni uctu (pouze pro normalniho uzivatele)
     async Task CancelAsync()
     {
         var tmp = await DialogService.Confirm("Are you sure?", "Accout deletion", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });

@@ -12,6 +12,7 @@
 
 <PageTitle>Task queue</PageTitle>
 
+@*Zobrazuje vsechny tasky*@
 @if (!loading)
 {
     <GridComponent @ref="gridComponent" T="TaskResponse" Grid="@grid" CustomFilters="@customFilters"></GridComponent>
@@ -46,6 +47,7 @@ else
     {
         loading = true;
 
+        //nastaveni gridu
         Action<IGridColumnCollection<TaskResponse>> columns = c =>
         {
             c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
@@ -64,6 +66,7 @@ else
         string url = NavigationManager.BaseUri + "odata/admin/tasks"; // ?$orderby=ActualStatus asc
         var query = new QueryDictionary<StringValues>();
 
+        //ziskani kolekce
         var client = new GridODataClient<TaskResponse>(HttpClient, url, query, false, "queueGrid", columns, 10)
             .ChangePageSize(true)
             .WithMultipleFilters()
@@ -77,12 +80,11 @@ else
         loading = false;
     }
 
-    //refresh queue
-
     private Task timerTask;
     private readonly CancellationTokenSource cts = new();
     private GridComponent<TaskResponse> gridComponent;
 
+    //po nejake dobe se aktualizuje kolekce
     public void Refreshing(TimeSpan timeSpan)
     {
         async Task FetchAsync()

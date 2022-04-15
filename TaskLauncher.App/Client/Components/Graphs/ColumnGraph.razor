@@ -6,7 +6,7 @@
 
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
-
+        @*Graf zobrazujici pocty uloh za jednotlive dny*@
         <div class="card">
             <div class="card-title" style="margin:20px 0 0 20px">
                 <h4>Count of tasks in last 20 days</h4>
@@ -64,6 +64,7 @@
         loading = true;
         var state = await authenticationStateTask;
 
+        //zobrazeni statistiky od zadaneho uzivatele
         if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(Constants.Roles.Admin))
         {
             normalTasksPerDays = await LoadTaskCountPerDay($"api/admin/stats/taskcountperdays?userid={UserId}&vip=false");
@@ -71,13 +72,13 @@
             loading = false;
             return;
         }
-
+        //statistiky prihlaseneho uzivatele
         if (state.User.IsInRole(Constants.Roles.User))
         {
             normalTasksPerDays = await LoadTaskCountPerDay("api/stats/taskcountperdays?vip=false");
             vipTasksPerDays = await LoadTaskCountPerDay("api/stats/taskcountperdays?vip=true");
         }
-
+        //statistiky od vsech uzivatelu
         if (state.User.IsInRole(Constants.Roles.Admin))
         {
             normalTasksPerDays = await LoadTaskCountPerDay("api/admin/stats/taskcountperdays?vip=false");
@@ -86,6 +87,7 @@
         loading = false;
     }
 
+    //nacteni dat pro graf
     async Task<List<DayTaskCountDataItem>> LoadTaskCountPerDay(string path)
     {
         var days = (await client.GetFromJsonAsync<List<DayTaskCountResponse>>(path))!;

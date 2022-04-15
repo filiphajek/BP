@@ -6,6 +6,9 @@ namespace TaskLauncher.App.Client.Extensions;
 
 public static class HttpClientExtensions
 {
+    /// <summary>
+    /// Patch extenze pro httpclienta
+    /// </summary>
     public static async Task<HttpResponseMessage> PatchAsJsonAsync<TModel>(this HttpClient client, string uri, JsonPatchDocument<TModel> patchDoc) 
         where TModel : class
     {

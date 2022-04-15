@@ -2,6 +2,9 @@
 
 namespace TaskLauncher.App.Client.Store;
 
+/// <summary>
+/// Trida zajistuje aktualizaci castky tokenu pres localstorage
+/// </summary>
 public class TokenStore
 {
     private readonly ILocalStorageService storage;

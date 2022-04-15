@@ -3,6 +3,7 @@
 @using TaskLauncher.Common.Models
 @attribute [Authorize(Policy = Constants.Policies.AdminPolicy)]
 
+@*Stranka s kolekci vsech uzivatelu*@
 @if (task.IsCompleted)
 {
     <GridComponent T="UserModel" Grid="@grid"></GridComponent>

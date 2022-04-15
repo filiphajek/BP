@@ -1,6 +1,5 @@
 using Blazored.Toast.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Net.Http.Json;
 using TaskLauncher.Api.Contracts.Responses;
@@ -42,10 +41,12 @@ public partial class AddTask
 
         using (var stream = file.OpenReadStream())
         {
+            //dotaz obsahuje soubor a payload
             var response = await Client.SendMultipartFormDataAsync("api/tasks", stream, Model, file.Name);
             if (response.IsSuccessStatusCode)
             {
                 navigationManager.NavigateTo("/tasks");
+                //aktualizace tokenu
                 var balance = await Client.GetFromJsonAsync<TokenBalanceResponse>("api/token");
                 await TokenStore.UpdateBalanceAsync(balance!.CurrentAmount.ToString());
             }

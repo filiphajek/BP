@@ -10,6 +10,7 @@
 @inject ApiClient client
 @inject DialogService DialogService
 
+@*Profilova stranka*@
 <div class="container">
     <div class="card">
         <div class="card-body">
@@ -129,6 +130,7 @@
     bool isReadOnly = true;
     string visibility = "hidden";
 
+    //novy obrazek
     async Task Upload()
     {
         ImageDialogResult? res = await DialogService.OpenAsync<ImageDialog>("Choose new image", null, new DialogOptions() { Width = "500px", Height = "400px", Resizable = true, Draggable = true });
@@ -141,6 +143,7 @@
         }
     }
 
+    //nova prezdivka
     bool isBusy = false;
     async Task UpdateNickName()
     {

@@ -52,6 +52,7 @@ public partial class Tasks : IDisposable
         string url = NavigationManager.BaseUri + path;
         var query = new QueryDictionary<StringValues>();
 
+        //nastaveni gridu
         Action<IGridColumnCollection<TaskResponse>> columns = c =>
         {
             c.Add(o => o.Name).Encoded(false).Sanitized(false).RenderValueAs(o => $"<a href='tasks/{o.Id}'>{o.Name}</a>").Sortable(true).Filterable(true);
@@ -65,7 +66,7 @@ public partial class Tasks : IDisposable
             });
             c.Add().RenderComponentAs(typeof(Components.ColumnTaskStatus)).SetWidth(150);
         };
-
+        //ziskani tasku
         var gridClient = new GridODataClient<TaskResponse>(Client, url, query, false, "taskGrid", columns, 10)
             .ChangePageSize(true)
             .WithMultipleFilters()

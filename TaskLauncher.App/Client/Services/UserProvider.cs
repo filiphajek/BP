@@ -1,5 +1,4 @@
-﻿using Auth0.ManagementApi.Models;
-using Auth0.ManagementApi.Paging;
+﻿using Auth0.ManagementApi.Paging;
 using GridCore.Server;
 using GridShared;
 using GridShared.Utility;
@@ -9,6 +8,9 @@ using TaskLauncher.Common.Models;
 
 namespace TaskLauncher.App.Client.Services;
 
+/// <summary>
+/// Trida implementujici IUserProvider poskytujici pres auth0 seznam uzivatelu pro grid
+/// </summary>
 public class UserProvider : IUserProvider
 {
     private readonly SpaManagementApiClient auth0client;

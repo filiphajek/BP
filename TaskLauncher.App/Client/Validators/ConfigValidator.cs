@@ -5,6 +5,9 @@ using TaskLauncher.Common.Enums;
 
 namespace TaskLauncher.App.Client.Validators;
 
+/// <summary>
+/// Kontrola pro konfiguracni promenne
+/// </summary>
 public class ConfigValidator : ValidatorBase
 {
     [Parameter]

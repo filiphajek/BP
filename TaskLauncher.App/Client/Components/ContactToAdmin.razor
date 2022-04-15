@@ -2,6 +2,7 @@
 @using TaskLauncher.Common
 @inject ApiClient httpClient
 
+@*Komponenta s kontaktem na administratora*@
 <AuthorizeView Roles="@Constants.Roles.User">
     <Authorized>
         <div class="navbar fixed-bottom">

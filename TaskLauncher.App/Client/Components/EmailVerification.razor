@@ -1,6 +1,7 @@
 ﻿@using TaskLauncher.Common
 @inject ApiClient httpClient
 
+@*Komponenta obsahujici tlacitko pro verifikaci emailu*@
 <AuthorizeView Policy="@Constants.Policies.EmailNotConfirmed">
     <Authorized>
         <div class="display: block">

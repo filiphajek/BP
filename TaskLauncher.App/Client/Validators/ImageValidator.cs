@@ -4,6 +4,9 @@ using Radzen.Blazor;
 
 namespace TaskLauncher.App.Client.Validators;
 
+/// <summary>
+/// Kontrola url
+/// </summary>
 public class ImageValidator : ValidatorBase
 {
     [Parameter]

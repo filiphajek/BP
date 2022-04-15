@@ -3,6 +3,7 @@
 @inject NavigationManager NavigationManager
 @inject ApiClient client
 
+@*Grid s bany*@
 <GridComponent T="BanResponse" Grid="@banGrid"></GridComponent>
 
 @code{
@@ -22,6 +23,7 @@
 
     protected async override Task OnParametersSetAsync()
     {
+        //nacteni uzivatelskych banu
         string url = NavigationManager.BaseUri + $"odata/admin/bans?$filter=userid eq '{UserId}'";
         if(string.IsNullOrEmpty(UserId))
         {
