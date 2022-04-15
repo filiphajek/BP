@@ -3,10 +3,11 @@
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using TaskLauncher.Api.Contracts.Responses
+@using TaskLauncher.Common
 @using TaskLauncher.Common.Enums
 @inject NavigationManager NavigationManager
 @inject ApiClient HttpClient
-@attribute [Authorize(Policy = "admin-policy")]
+@attribute [Authorize(Policy = Constants.Policies.AdminPolicy)]
 @implements IDisposable
 
 <PageTitle>Task queue</PageTitle>

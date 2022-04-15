@@ -5,7 +5,7 @@ using TaskLauncher.App.Server.Controllers.Base;
 using TaskLauncher.App.Server.Notifications;
 using TaskLauncher.App.Server.Services;
 using TaskLauncher.App.Server.Tasks;
-using TaskLauncher.Authorization;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
@@ -15,7 +15,7 @@ namespace TaskLauncher.App.Server.Controllers;
 /// <summary>
 /// Kontroler vyhrazeny pro workery
 /// </summary>
-[Authorize(Policy = TaskLauncherPolicies.LauncherPolicy)]
+[Authorize(Policy = Constants.Policies.WorkerPolicy)]
 public class WorkerController : BaseController
 {
     private readonly IMediator mediator;
@@ -30,8 +30,10 @@ public class WorkerController : BaseController
     }
 
     /// <summary>
-    /// Worker dostane dalsi task
+    /// Přidělí se další úloha
     /// </summary>
+    [ProducesResponseType(typeof(TaskModel), 200)]
+    [Produces("application/json")]
     [HttpGet]
     public ActionResult<TaskModel> GetTask()
     {
@@ -42,8 +44,11 @@ public class WorkerController : BaseController
     }
 
     /// <summary>
-    /// Worker zasila event informujici o stavu tasku
+    /// Zasílá se nová událost informujicí o stavu úlohy
     /// </summary>
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(EventModel), 200)]
+    [Produces("application/json")]
     [HttpPost]
     public async Task<ActionResult<EventModel>> CreateNewTaskEvent(TaskModel model)
     {

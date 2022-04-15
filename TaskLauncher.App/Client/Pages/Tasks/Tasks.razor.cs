@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Primitives;
 using TaskLauncher.Api.Contracts.Responses;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Models;
 
@@ -85,7 +86,7 @@ public partial class Tasks : IDisposable
         else
         {
             var state = await authenticationStateTask;
-            if (!state.User.IsInRole("admin"))
+            if (!state.User.IsInRole(Constants.Roles.Admin))
             {
                 NavigationManager.NavigateTo("tasks", true);
                 return;

@@ -8,6 +8,14 @@ public record DayTaskCountResponse
         Date = date;
     }
 
+    /// <summary>
+    /// Počet úloh
+    /// </summary>
+    /// <example>25</example>
     public int Count { get; set; }
+
+    /// <summary>
+    /// Den
+    /// </summary>
     public DateTime Date { get; set; }
 }

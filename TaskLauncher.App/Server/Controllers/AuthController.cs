@@ -16,7 +16,7 @@ using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Extensions;
-using TaskLauncher.Authorization;
+using TaskLauncher.Common;
 using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
@@ -34,7 +34,6 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext context;
     private readonly IHttpClientFactory clientFactory;
-    private readonly ILogger<AuthController> logger;
     private readonly IClientFactory<ManagementApiClient> apiClientFactory;
     private readonly IClientFactory<AuthenticationApiClient> authApiClientFactory;
     private readonly IMapper mapper;
@@ -42,7 +41,6 @@ public class AuthController : ControllerBase
 
     public AuthController(AppDbContext context,
         IHttpClientFactory clientFactory,
-        ILogger<AuthController> logger,
         IOptions<Auth0ApiConfiguration> config,
         IMapper mapper,
         IClientFactory<AuthenticationApiClient> authApiClientFactory, 
@@ -50,7 +48,6 @@ public class AuthController : ControllerBase
     {
         this.context = context;
         this.clientFactory = clientFactory;
-        this.logger = logger;
         this.mapper = mapper;
         this.config = config.Value;
         this.authApiClientFactory = authApiClientFactory;
@@ -58,8 +55,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Login challenge endpoint
-    /// Endpoint presmerovava uzivatele na auth0, pouziva cookie autentizaci
+    /// Pøihlášení pøes službu auth0, uživatel je pøesmìrován na auth0, pouze z prohlížeèe (cookie autentizace)
     /// </summary>
     [HttpGet("login")]
     public async Task Login()
@@ -74,8 +70,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Logout endpoint
-    /// Odhlasi uzivatele (cookie autentizace)
+    /// Odhlášení uzivatele (cookie autentizace)
     /// </summary>
     [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     [HttpGet("logout")]
@@ -87,11 +82,12 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Reset hesla, pouze pro cookie autentizaci
+    /// Reset hesla (cookie autentizace)
     /// </summary>
+    [Produces("application/json")]
     [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     [HttpPost("reset-password")]
-    public async Task<IActionResult> ChangePassword()
+    public async Task<ActionResult<ResetPasswordResponse>> ChangePassword()
     {
         if(!User.TryGetAuth0Id(out _) || !User.TryGetClaimValue(ClaimTypes.Email, out var email))
             return Unauthorized();
@@ -107,11 +103,12 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Ziskani uzivatelskych dat prihlaseneho uzivatele na zaklade http contextu
+    /// Získání uživatelských dat pøihlášeného uživatele na základì http kontextu
     /// </summary>
+    [Produces("application/json")]
     [HttpGet("user")]
     [AllowAnonymous]
-    public IActionResult GetUserData()
+    public ActionResult<UserInfo> GetUserData()
     {
         if (User.Identity is null || !User.Identity.IsAuthenticated)
             return Ok(UserInfo.Anonymous);
@@ -137,12 +134,13 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Slouzit pro pristup na API, pro desktopove nebo mobilni aplikace
-    /// https://auth0.com/docs/get-started/authentication-and-authorization-flow/resource-owner-password-flow
+    /// Slouží pro pøístup na API, pro desktopové nebo mobilní aplikace
     /// </summary>
+    [Consumes("application/json")]
+    [Produces("application/json")]
     [HttpPost("/passwordflow/login")]
     [AllowAnonymous]
-    public async Task<IActionResult> LoginM2MAsync(CookieLessLoginRequest request)
+    public async Task<ActionResult<AuthResponse>> LoginM2MAsync(CookieLessLoginRequest request)
     {
         var response = await clientFactory.CreateClient().PostAsJsonAsync($"https://{config.Domain}/oauth/token", new
         {
@@ -163,11 +161,13 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Registrace uzivatele, pro desktopove nebo mobilni aplikace
+    /// Registrace uživatele, pro desktopové nebo mobilní aplikace
     /// </summary>
+    [Consumes("application/json")]
+    [Produces("application/json")]
     [AllowAnonymous]
     [HttpPost("/passwordflow/register")]
-    public async Task<IActionResult> RegisterM2MAsync(CookieLessUserRegistrationModel request)
+    public async Task<ActionResult<UserModel>> RegisterM2MAsync(CookieLessUserRegistrationModel request)
     {
         var auth0client = await apiClientFactory.GetClient();
         var user = await auth0client.Users.CreateAsync(new()
@@ -189,7 +189,7 @@ public class AuthController : ControllerBase
 
         //init databaze
         var userId = user.UserId;
-        var balanceConfig = await context.Configs.SingleAsync(i => i.Key == "starttokenbalance");
+        var balanceConfig = await context.Configs.SingleAsync(i => i.Key == Constants.Configuration.StartTokenBalance);
         await context.TokenBalances.AddAsync(new() { CurrentAmount = int.Parse(balanceConfig.Value), LastAdded = DateTime.Now, UserId = userId });
         await context.Stats.AddAsync(new() { UserId = userId, IsVip = true });
         await context.Stats.AddAsync(new() { UserId = userId, IsVip = false });
@@ -199,11 +199,12 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Aktualizuje access token pro desktopove nebo mobilni aplikace
+    /// Aktualizuje pøístupový token, pro desktopové nebo mobilní aplikace
     /// </summary>
+    [Produces("application/json")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [HttpGet("/passwordflow/refresh/{token}")]
-    public async Task<IActionResult> RefreshTokenAsync(string token)
+    public async Task<ActionResult<RefreshTokenResponse>> RefreshTokenAsync(string token)
     {
         var client = clientFactory.CreateClient();
         var response = await client.PostAsJsonAsync($"https://{config.Domain}/oauth/token", new
@@ -246,15 +247,16 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Dokonceni registrace na webove strance, pouze pro neregistrovane uzivatele
+    /// Dokonèení registrace na webové stránce, pouze pro neregistrované uživatele
     /// </summary>
-    [Authorize(Policy = "not-registered")]
+    [Consumes("application/json")]
+    [Authorize(Policy = Constants.Policies.UserNotRegistered)]
     [HttpPost("signup")]
     public async Task<IActionResult> SignUpAsync(UserRegistrationModel request)
     {
         var auth0client = await apiClientFactory.GetClient();
         if (!User.TryGetAuth0Id(out var userId))
-            return BadRequest();
+            return Unauthorized();
 
         //prirad roli
         await auth0client.Users.AssignRolesAsync(userId, new AssignRolesRequest { Roles = new[] { "rol_6Vh7zpX3Z61sN307" } });
@@ -266,10 +268,10 @@ public class AuthController : ControllerBase
         updateRequest.AppMetadata = JsonConvert.DeserializeObject("{ 'registered': true }");
         var result = await auth0client.Users.UpdateAsync(userId, updateRequest);
         if (result is null)
-            return BadRequest(result);
+            return Unauthorized();
 
         //inicializuj databazi
-        var balanceConfig = await context.Configs.SingleAsync(i => i.Key == "starttokenbalance");
+        var balanceConfig = await context.Configs.SingleAsync(i => i.Key == Constants.Configuration.StartTokenBalance);
         await context.TokenBalances.AddAsync(new() { CurrentAmount = int.Parse(balanceConfig.Value), LastAdded = DateTime.Now, UserId = userId });
         await context.Stats.AddAsync(new() { UserId = userId, IsVip = true });
         await context.Stats.AddAsync(new() { UserId = userId, IsVip = false });
@@ -278,23 +280,24 @@ public class AuthController : ControllerBase
         await AddClaimsToPrincipal(new Claim[] 
         {
             new Claim(ClaimTypes.Role, "user"),
-            new Claim(TaskLauncherClaimTypes.Registered, "true"), 
-            new Claim(TaskLauncherClaimTypes.TokenBalance, balanceConfig.Value)
+            new Claim(Constants.ClaimTypes.Registered, "true"), 
+            new Claim(Constants.ClaimTypes.TokenBalance, balanceConfig.Value)
         });
 
         return Ok();
     }
 
     /// <summary>
-    /// Znovu posle verifikacni email
+    /// Posílá verifikaèní email
     /// </summary>
-    [Authorize(Policy = "email-not-confirmed")]
+    [Produces("application/json")]
+    [Authorize(Policy = Constants.Policies.EmailNotConfirmed)]
     [HttpPost("verify-email")]
-    public async Task<IActionResult> SendEmailAsync()
+    public async Task<ActionResult<Job>> SendEmailAsync()
     {
         var auth0client = await apiClientFactory.GetClient();
         if (!User.TryGetAuth0Id(out var userId))
-            return BadRequest();
+            return Unauthorized();
 
         var job = await auth0client.Jobs.SendVerificationEmailAsync(new()
         {

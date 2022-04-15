@@ -1,10 +1,11 @@
 ﻿@page "/registration"
 @using Auth0.ManagementApi.Models
 @using MapsterMapper
+@using TaskLauncher.Common
 @using TaskLauncher.Common.Models
 @using System.Text.Json
 
-@attribute [Authorize(Policy = "not-registered")]
+@attribute [Authorize(Policy = @Constants.Policies.UserNotRegistered)]
 @inject IMapper mapper
 @inject HttpClient httpClient
 @inject NavigationManager navigationManager

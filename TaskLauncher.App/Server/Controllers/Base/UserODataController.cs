@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using TaskLauncher.App.DAL;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Controllers.Base;
 
@@ -10,7 +11,7 @@ namespace TaskLauncher.App.Server.Controllers.Base;
 /// </summary>
 [ODataRouteComponent("odata/user")]
 [Route("api/[controller]")]
-[Authorize(Policy = "user-policy")]
+[Authorize(Policy = Constants.Policies.UserPolicy)]
 public abstract class UserODataController<TResponse> : ControllerBase
 where TResponse : class
 {

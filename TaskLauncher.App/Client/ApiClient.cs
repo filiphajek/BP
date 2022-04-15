@@ -2,6 +2,9 @@
 
 namespace TaskLauncher.App.Client;
 
+/// <summary>
+/// Typovany http klient
+/// </summary>
 public class ApiClient : HttpClient
 {
     public HttpClient Client { get; }

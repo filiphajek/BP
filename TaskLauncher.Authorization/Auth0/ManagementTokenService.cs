@@ -5,6 +5,10 @@ using TaskLauncher.Common.Services;
 
 namespace TaskLauncher.Authorization.Auth0;
 
+/// <summary>
+/// Trida zajistujici obsluhu pristupoveho tokenu k management api nebo protected api
+/// Aktualizuje token apod.
+/// </summary>
 public class ManagementTokenService
 {
     private readonly ILogger<ManagementTokenService> logger;
@@ -35,6 +39,9 @@ public class ManagementTokenService
         return accessToken.ExpiresIn > DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Zkusi ziskat api token z cache, pokud tam neni nebo token vyprsel, zavola se auth0 a ziska se novy
+    /// </summary>
     public async Task<string> GetApiToken(HttpClient client, string api_name, bool audienceIsDomain = true)
     {
         var accessToken = cache.Get(api_name);
@@ -55,6 +62,9 @@ public class ManagementTokenService
         return newAccessToken.AcessToken;
     }
 
+    /// <summary>
+    /// Novy token pro protected api (pokud je audienceIsDomain false) nebo management api
+    /// </summary>
     private async Task<AccessToken> GetApiTokenClient(HttpClient client, bool audienceIsDomain)
     {
         string aud = $"https://{config.Domain}/api/v2/";

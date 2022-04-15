@@ -3,6 +3,9 @@ using Microsoft.Extensions.Options;
 
 namespace TaskLauncher.Authorization.Auth0;
 
+/// <summary>
+/// Tovarna na ManagementApiClient
+/// </summary>
 public class ManagementApiClientFactory : IClientFactory<ManagementApiClient>
 {
     private readonly ManagementTokenService managementTokenService;
@@ -14,6 +17,9 @@ public class ManagementApiClientFactory : IClientFactory<ManagementApiClient>
         client = new("", config.Value.Domain);
     }
 
+    /// <summary>
+    /// Vraci ManagementApiClient, ktery bude mit vzdy aktualizovany pristupovy token na managment api
+    /// </summary>
     public async Task<ManagementApiClient> GetClient()
     {
         var accessToken = await managementTokenService.GetApiToken(new(), "managment_api");

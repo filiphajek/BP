@@ -1,9 +1,9 @@
 ﻿@using Auth0.ManagementApi.Models
 @using TaskLauncher.Api.Contracts.Responses
-@using TaskLauncher.Authorization
+@using TaskLauncher.Common
 @using TaskLauncher.Common.Extensions
 @inject ApiClient client
-@attribute [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
+@attribute [Authorize(Policy = Constants.Policies.CanViewGraphsPolicy)]
 
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
@@ -84,10 +84,10 @@
         loading = true;
         var state = await authenticationStateTask;
 
-        if (state.User.IsInRole(TaskLauncherRoles.User))
+        if (state.User.IsInRole(Constants.Roles.User))
             await LoadTimesStats("api/stats/times");
 
-        if (state.User.IsInRole(TaskLauncherRoles.Admin))
+        if (state.User.IsInRole(Constants.Roles.Admin))
             await LoadTimesStats("api/admin/stats/times");
         loading = false;
     }

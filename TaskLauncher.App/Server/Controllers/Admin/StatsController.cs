@@ -3,17 +3,17 @@ using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using TaskLauncher.Authorization;
 using TaskLauncher.Api.Contracts.Responses;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.App.Server.Helpers;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Controllers.Admin;
 
 /// <summary>
 /// Stat kontroler pristupny pouze pro admina, vraci vsechny statistiky z cele aplikace
 /// </summary>
-[Authorize(Policy = TaskLauncherPolicies.AdminPolicy)]
+[Authorize(Policy = Constants.Policies.AdminPolicy)]
 [Route("api/admin/[controller]")]
 public class StatsController : BaseController
 {
@@ -27,8 +27,11 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vraci obecne seskupene statistiky od vsech uzivatelu nebo obecne statistiky zadaneho uzivatele pres query parametr
+    /// Vrací obecne seskupené statistiky od všech uživatelů nebo obecné statistiky zadaného uživatele pres parametr userId
     /// </summary>
+    /// <param name="userId" example="auth0|622033411a44b70076f2790">Id uživatele</param>
+    [ProducesResponseType(typeof(List<UserStatResponse>), 200)]
+    [Produces("application/json")]
     [HttpGet]
     public async Task<ActionResult<List<UserStatResponse>>> GetUserStats(string? userId = null)
     {
@@ -36,7 +39,7 @@ public class StatsController : BaseController
         {
             var stats = await dbContext.Stats.IgnoreQueryFilters().Where(i => i.UserId == userId).ToListAsync();
             if (stats is null)
-                return BadRequest();
+                return NotFound();
             return Ok(stats.Select(mapper.Map<UserStatResponse>));
         }
 
@@ -56,10 +59,12 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vraci se kolekce statistik poslednich 30 tasku za posledni den od zadaneho uzivatele
-    /// Pokud se pres query parametr nespecifikuje uzivatel, vraci se kolekce statistik poslednich 50 tasku celeho systemu za posledni den
-    /// Statistiky udavaji kolik casu dany task stravil ve fronte a ve workeru
+    /// Vrací se kolekce statistik posledních 30 úloh za poslední den od zadaného uživatele
+    /// Pokud se přes parametr userId nespecifikuje uživatel, vrací se kolekce statistik posledních 50 úloh celého systému za poslední den
+    /// Statistiky udávají kolik času daná úloha strávila ve frontě a ve worker aplikaci
     /// </summary>
+    /// <param name="userId" example="auth0|622033411a44b70076f2790">Id uživatele</param>
+    [Produces("application/json")]
     [HttpGet("times")]
     public async Task<ActionResult<List<TaskStatResponse>>> GetUserTasksTimes(string? userId = null)
     {
@@ -97,11 +102,14 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vraci se kolekce kde polozka je pocet zalozenych tasku za den
-    /// Vraci se zalozene tasky za poslednich 30 dni od zadaneho uzivatelu, pokud se uzivatel nespecifikuje, vrati se od tasky od vsech uzivatelu
-    /// Musi se specifikovat zda se budou vracet vip nebo normalni tasky
+    /// Vrací se kolekce, kde položka je počet založených úloh za den
+    /// Vrací se založené úlohy za posledních 30 dni od zadaného uživatele, pokud není specifikován, vratí se od úlohy od všech uživatelů
+    /// Musí se specifikovat, zda se budou vracet vip nebo normalní úlohy
     /// </summary>
-    [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
+    /// <param name="vip" example="true">Vip</param>
+    /// <param name="userId" example="auth0|622033411a44b70076f2790">Id uživatele</param>
+    [Produces("application/json")]
+    [Authorize(Policy = Constants.Policies.CanViewGraphsPolicy)]
     [HttpGet("taskcountperdays")]
     public async Task<ActionResult<List<DayTaskCountResponse>>> GetTaskCountPerDays(bool vip, string? userId = null)
     {

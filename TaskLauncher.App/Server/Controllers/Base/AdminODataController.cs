@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.App.DAL;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Controllers.Base;
 
@@ -14,7 +15,7 @@ namespace TaskLauncher.App.Server.Controllers.Base;
 /// </summary>
 [ODataRouteComponent("odata/admin")]
 [Route("api/admin/[controller]")]
-[Authorize(Policy = "admin-policy")]
+[Authorize(Policy = Constants.Policies.AdminPolicy)]
 public abstract class AdminODataController<TResponse> : ControllerBase
     where TResponse : class
 {

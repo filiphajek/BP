@@ -10,6 +10,7 @@ using Radzen;
 using static TaskLauncher.App.Client.Pages.Tasks.EditTaskDialog;
 using Microsoft.AspNetCore.JsonPatch;
 using TaskLauncher.Api.Contracts.Requests;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Client.Pages.Tasks;
 
@@ -46,7 +47,7 @@ public partial class TaskDetail : IDisposable
     protected override async Task OnParametersSetAsync()
     {
         var state = await authenticationStateTask;
-        isAdmin = state.User.IsInRole("admin");
+        isAdmin = state.User.IsInRole(Constants.Roles.Admin);
         if (isAdmin)
             Task = await Client.GetFromJsonAsync<TaskDetailResponse>("api/admin/tasks/" + Id.ToString());
         else

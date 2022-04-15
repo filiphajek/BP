@@ -1,8 +1,8 @@
 ﻿@using Auth0.ManagementApi.Models
 @using TaskLauncher.Api.Contracts.Responses
-@using TaskLauncher.Authorization
+@using TaskLauncher.Common
 @inject ApiClient client
-@attribute [Authorize(Policy = TaskLauncherPolicies.CanViewGraphsPolicy)]
+@attribute [Authorize(Policy = Constants.Policies.CanViewGraphsPolicy)]
 
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>
@@ -64,7 +64,7 @@
         loading = true;
         var state = await authenticationStateTask;
 
-        if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(TaskLauncherRoles.Admin))
+        if(!string.IsNullOrEmpty(UserId) && state.User.IsInRole(Constants.Roles.Admin))
         {
             normalTasksPerDays = await LoadTaskCountPerDay($"api/admin/stats/taskcountperdays?userid={UserId}&vip=false");
             vipTasksPerDays = await LoadTaskCountPerDay($"api/admin/stats/taskcountperdays?userid={UserId}&vip=true");
@@ -72,13 +72,13 @@
             return;
         }
 
-        if (state.User.IsInRole(TaskLauncherRoles.User))
+        if (state.User.IsInRole(Constants.Roles.User))
         {
             normalTasksPerDays = await LoadTaskCountPerDay("api/stats/taskcountperdays?vip=false");
             vipTasksPerDays = await LoadTaskCountPerDay("api/stats/taskcountperdays?vip=true");
         }
 
-        if (state.User.IsInRole(TaskLauncherRoles.Admin))
+        if (state.User.IsInRole(Constants.Roles.Admin))
         {
             normalTasksPerDays = await LoadTaskCountPerDay("api/admin/stats/taskcountperdays?vip=false");
             vipTasksPerDays = await LoadTaskCountPerDay("api/admin/stats/taskcountperdays?vip=true");

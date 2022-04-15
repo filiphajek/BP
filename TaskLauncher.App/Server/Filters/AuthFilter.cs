@@ -1,5 +1,4 @@
 ﻿using Auth0.AspNetCore.Authentication;
-using Auth0.AuthenticationApi.Models;
 using Auth0.Core.Exceptions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -14,6 +13,7 @@ using TaskLauncher.Common.Models;
 using TaskLauncher.Common.Services;
 using TaskLauncher.Authorization.Services;
 using TaskLauncher.App.Server.Extensions;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Filters;
 
@@ -25,13 +25,15 @@ public class AuthFilter : IAsyncAuthorizationFilter
     private readonly Cache<UserClaimsModel> cache;
     private readonly IAuth0UserProvider userProvider;
     private readonly ILogger<AuthFilter> logger;
+    private readonly IConfiguration configuration;
     private readonly AppDbContext dbContext;
 
-    public AuthFilter(Cache<UserClaimsModel> cache, IAuth0UserProvider userProvider, ILogger<AuthFilter> logger, AppDbContext dbContext)
+    public AuthFilter(Cache<UserClaimsModel> cache, IAuth0UserProvider userProvider, ILogger<AuthFilter> logger, IConfiguration configuration, AppDbContext dbContext)
     {
         this.cache = cache;
         this.userProvider = userProvider;
         this.logger = logger;
+        this.configuration = configuration;
         this.dbContext = dbContext;
     }
 
@@ -44,17 +46,17 @@ public class AuthFilter : IAsyncAuthorizationFilter
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         //pokud je to pristup na signalr nebo gty .. ignoruj
-        if (context.HttpContext.User.TryGetClaimValue("azp", out var azp) && azp == "1MBhNBPqfSs8FYlaHoFLe2uRwa5BV5Qa")
+        if (context.HttpContext.User.TryGetClaimValue("azp", out var azp) && azp == configuration["ProtectedApiAzp"])
             return;
         if (context.HttpContext.User.TryGetClaimValue("gty", out var gty) && gty == "password")
             return;
 
         if (context.HttpContext.User.TryGetAuth0Id(out var userId))
         {
-            if (context.HttpContext.User.IsInRole(TaskLauncherRoles.Admin))
+            if (context.HttpContext.User.IsInRole(Constants.Roles.Admin))
                 return;
 
-            if (context.HttpContext.User.TryGetClaimAsBool(TaskLauncherClaimTypes.Registered, out var value) && !value)
+            if (context.HttpContext.User.TryGetClaimAsBool(Constants.ClaimTypes.Registered, out var value) && !value)
                 return;
 
             UserClaimsModel? cachedUserClaims = await cache.GetAsync(userId);
@@ -107,8 +109,8 @@ public class AuthFilter : IAsyncAuthorizationFilter
             if (auth is null || auth.Principal is null)
                 return;
 
-            auth.AddOrUpdateClaim(new Claim(TaskLauncherClaimTypes.Vip, cachedUserClaims.Vip.ToString().ToLower()));
-            auth.AddOrUpdateClaim(new Claim(TaskLauncherClaimTypes.EmailVerified, cachedUserClaims.EmailVerified.ToString().ToLower()));
+            auth.AddOrUpdateClaim(new Claim(Constants.ClaimTypes.Vip, cachedUserClaims.Vip.ToString().ToLower()));
+            auth.AddOrUpdateClaim(new Claim(Constants.ClaimTypes.EmailVerified, cachedUserClaims.EmailVerified.ToString().ToLower()));
 
             await UpdateBalanceToken(auth);
 

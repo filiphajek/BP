@@ -1,9 +1,10 @@
 ﻿@using TaskLauncher.App.Client.Pages;
 @using TaskLauncher.App.Client.Models
 @using TaskLauncher.App.Client.Validators
+@using TaskLauncher.Common
 
 @page "/tasks/add"
-@attribute [Authorize(Policy = "user-policy")]
+@attribute [Authorize(Policy = @Constants.Policies.UserPolicy)]
 
 <PageTitle>Add new task</PageTitle>
 

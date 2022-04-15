@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 namespace TaskLauncher.App.Server.Extensions;
 
 /// <summary>
-/// Inspirovano z https://docs.microsoft.com/en-us/aspnet/core/web-api/jsonpatch?view=aspnetcore-6.0
+/// Inspirovano z oficialni dokumentace https://docs.microsoft.com/en-us/aspnet/core/web-api/jsonpatch?view=aspnetcore-6.0
 /// Pridava format podporu pro json patch
 /// </summary>
 public static class NewtonsoftJsonPatchInstaller

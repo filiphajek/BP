@@ -22,8 +22,10 @@ public class TasksController : AdminODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Zobrazi vsechny tasky v systemu, muze se dotazovat pres protokol odata
+    /// Vrací všechny úlohy v systému, dotazuje přes odata
     /// </summary>
+    [ProducesResponseType(typeof(List<TaskResponse>), 200)]
+    [Produces("application/json")]
     [HttpGet]
     [EnableQuery]
     public ActionResult<IQueryable<TaskResponse>> Get()
@@ -32,8 +34,12 @@ public class TasksController : AdminODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Zobrazi detail tasku
+    /// Zobrazí detail jakékoli úlohy v systému
     /// </summary>
+    /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
+    [ProducesResponseType(typeof(TaskDetailResponse), 200)]
+    [ProducesResponseType(404)]
+    [Produces("application/json")]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<TaskDetailResponse>> GetDetail([FromRoute] Guid id)
     {
@@ -52,14 +58,17 @@ public class TasksController : AdminODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Smazani tasku
+    /// Smazaní úlohy
     /// </summary>
+    /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
+    [ProducesResponseType(404)]
+    [ProducesResponseType(200)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteTaskAsync([FromRoute] Guid id)
     {
         var task = await context.Tasks.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.Id == id);
         if (task is null)
-            return BadRequest();
+            return NotFound();
 
         context.Remove(task);
         await context.SaveChangesAsync();

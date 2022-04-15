@@ -28,6 +28,7 @@ using TaskLauncher.App.Server.Services;
 using TaskLauncher.Common.Enums;
 using System.Reflection;
 using TaskLauncher.Api.Contracts.Requests;
+using TaskLauncher.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -134,7 +135,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<ITaskService, TaskService>();
 
 //autorizace
-builder.Services.AddAuthorizationServer();
+builder.Services.AddAuthorizationServer(builder.Configuration);
 
 //access token management
 builder.Services.AddAccessTokenManagement();
@@ -184,13 +185,14 @@ builder.Services.AddSwaggerGen(options =>
         { securitySchema, new[] { "Bearer" } }
     });
 
-    options.OperationFilter<ContentTypeOperationFilter>();
     options.OperationFilter<ODataOperationFilter>();
 
     var xml1 = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xml2 = $"{Assembly.GetAssembly(typeof(BanUserRequest))!.GetName().Name}.xml";
+    var xml3 = $"{Assembly.GetAssembly(typeof(EventModel))!.GetName().Name}.xml";
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xml1));
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xml2));
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xml3));
 });
 
 //pridani seedovacich trid
@@ -235,7 +237,7 @@ app.UseAuthorization();
 app.MapReverseProxy(opt =>
 {
     opt.UseProxyMiddlewares<Program>();
-}).RequireAuthorization("admin-policy");
+}).RequireAuthorization(Constants.Policies.AdminPolicy);
 
 //namapovani koncovych bodu na kontrolery a signalr
 app.UseEndpoints(endpoints =>

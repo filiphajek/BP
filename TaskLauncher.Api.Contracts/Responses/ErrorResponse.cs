@@ -7,5 +7,17 @@ public record ErrorResponse
     public List<ErrorModel> Errors { get; set; } = new();
 }
 
-public record ErrorMessageResponse(string Error);
+public record ErrorMessageResponse
+{
+    /// <summary>
+    /// Chyba
+    /// </summary>
+    /// <example>Chybová zpáva</example>
+    public string Error { get; }
+
+    public ErrorMessageResponse(string error)
+    {
+        Error = error;
+    }
+}
 

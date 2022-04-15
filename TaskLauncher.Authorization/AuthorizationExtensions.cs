@@ -1,10 +1,15 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TaskLauncher.Authorization.Handlers;
 using TaskLauncher.Authorization.Requirements;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.Authorization;
 
+/// <summary>
+/// Pomocne metody pro pridani autorizace na server i klient aplikaci
+/// </summary>
 public static class AuthorizationExtensions
 {
     public static void AddAuthorizationHandlers<TAssembly>(this IServiceCollection services)
@@ -22,112 +27,114 @@ public static class AuthorizationExtensions
         services.AddSingleton<IAuthorizationHandler, CanCancelHandler>();
         services.AddAuthorizationCore(policies =>
         {
-            policies.AddPolicy(TaskLauncherPolicies.CanCancelAccount, p =>
+            policies.AddPolicy(Constants.Policies.CanCancelAccount, p =>
             {
                 p.Requirements.Add(new CanCancelRequirement());
             });
-            policies.AddPolicy(TaskLauncherPolicies.EmailNotConfirmed, p =>
+            policies.AddPolicy(Constants.Policies.EmailNotConfirmed, p =>
             {
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "false");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "false");
             });
-            policies.AddPolicy(TaskLauncherPolicies.UserNotRegistered, p =>
+            policies.AddPolicy(Constants.Policies.UserNotRegistered, p =>
             {
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "false");
+                p.RequireClaim(Constants.ClaimTypes.Registered, "false");
             });
-            policies.AddPolicy(TaskLauncherPolicies.UserPolicy, p =>
+            policies.AddPolicy(Constants.Policies.UserPolicy, p =>
             {
-                p.RequireRole(TaskLauncherRoles.User);
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
+                p.RequireRole(Constants.Roles.User);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "true");
             });
-            policies.AddPolicy(TaskLauncherPolicies.AdminPolicy, p =>
+            policies.AddPolicy(Constants.Policies.AdminPolicy, p =>
             {
-                p.RequireRole(TaskLauncherRoles.Admin);
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
+                p.RequireRole(Constants.Roles.Admin);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "true");
             });
-            policies.AddPolicy(TaskLauncherPolicies.CanViewTaskPolicy, p =>
+            policies.AddPolicy(Constants.Policies.CanViewTaskPolicy, p =>
             {
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
-                p.RequireRole(TaskLauncherRoles.Admin, TaskLauncherRoles.User);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "true");
+                p.RequireRole(Constants.Roles.Admin, Constants.Roles.User);
             });
-            policies.AddPolicy(TaskLauncherPolicies.CanHaveProfilePolicy, p =>
+            policies.AddPolicy(Constants.Policies.CanHaveProfilePolicy, p =>
             {
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
-                p.RequireRole(TaskLauncherRoles.Admin, TaskLauncherRoles.User);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "true");
+                p.RequireRole(Constants.Roles.Admin, Constants.Roles.User);
             });
-            policies.AddPolicy(TaskLauncherPolicies.CanViewGraphsPolicy, p =>
+            policies.AddPolicy(Constants.Policies.CanViewGraphsPolicy, p =>
             {
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
-                p.RequireRole(TaskLauncherRoles.Admin, TaskLauncherRoles.User);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "true");
+                p.RequireRole(Constants.Roles.Admin, Constants.Roles.User);
             });
         });
     }
 
-    public static void AddAuthorizationServer(this IServiceCollection services)
+    public static void AddAuthorizationServer(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddAuthorizationHandlers<CanCancelHandler>();
         services.AddAuthorizationCore(policies =>
         {
-            policies.AddPolicy(TaskLauncherPolicies.CanCancelAccount, p =>
+            policies.AddPolicy(Constants.Policies.CanCancelAccount, p =>
             {
-                p.AddAuthenticationSchemes(AuthorizationConstants.CookieAuth, AuthorizationConstants.BearerAuth);
+                p.AddAuthenticationSchemes(Constants.Authorization.CookieAuth, Constants.Authorization.BearerAuth);
                 p.Requirements.Add(new CanCancelRequirement());
             });
-            policies.AddPolicy(TaskLauncherPolicies.EmailNotConfirmed, p =>
+            policies.AddPolicy(Constants.Policies.EmailNotConfirmed, p =>
             {
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "false");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "false");
             });
-            policies.AddPolicy(TaskLauncherPolicies.UserNotRegistered, p =>
+            policies.AddPolicy(Constants.Policies.UserNotRegistered, p =>
             {
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "false");
+                p.RequireClaim(Constants.ClaimTypes.Registered, "false");
             });
-            policies.AddPolicy(TaskLauncherPolicies.AdminPolicy, p =>
+            policies.AddPolicy(Constants.Policies.AdminPolicy, p =>
             {
-                p.AddAuthenticationSchemes(AuthorizationConstants.CookieAuth, AuthorizationConstants.BearerAuth);
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
-                p.RequireRole(TaskLauncherRoles.Admin);
+                p.AddAuthenticationSchemes(Constants.Authorization.CookieAuth, Constants.Authorization.BearerAuth);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "true");
+                p.RequireRole(Constants.Roles.Admin);
             });
-            policies.AddPolicy(TaskLauncherPolicies.UserPolicy, p =>
+            policies.AddPolicy(Constants.Policies.UserPolicy, p =>
             {
-                p.AddAuthenticationSchemes(AuthorizationConstants.CookieAuth, AuthorizationConstants.BearerAuth);
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
+                p.AddAuthenticationSchemes(Constants.Authorization.CookieAuth, Constants.Authorization.BearerAuth);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
                 p.Requirements.Add(new UserEmailVerifiedRequirement()); //kvuli simulovanemu pristupu
-                p.RequireRole(TaskLauncherRoles.User);
+                p.RequireRole(Constants.Roles.User);
             });
-            policies.AddPolicy(TaskLauncherPolicies.LauncherPolicy, p =>
+            policies.AddPolicy(Constants.Policies.WorkerPolicy, p =>
             {
-                p.AddAuthenticationSchemes(AuthorizationConstants.BearerAuth);
-                p.RequireClaim("azp", "1MBhNBPqfSs8FYlaHoFLe2uRwa5BV5Qa");
+                p.AddAuthenticationSchemes(Constants.Authorization.BearerAuth);
+                p.RequireClaim("azp", configuration["ProtectedApiAzp"]);
                 p.RequireClaim("gty", "client-credentials");
             });
-            policies.AddPolicy(TaskLauncherPolicies.CanViewTaskPolicy, p =>
+            policies.AddPolicy(Constants.Policies.CanViewTaskPolicy, p =>
             {
-                p.AddAuthenticationSchemes(AuthorizationConstants.CookieAuth, AuthorizationConstants.BearerAuth);
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
-                p.RequireRole(TaskLauncherRoles.Admin, TaskLauncherRoles.User);
+                p.AddAuthenticationSchemes(Constants.Authorization.CookieAuth, Constants.Authorization.BearerAuth);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "true");
+                p.RequireRole(Constants.Roles.Admin, Constants.Roles.User);
             });
-            policies.AddPolicy(TaskLauncherPolicies.CanHaveProfilePolicy, p =>
+            policies.AddPolicy(Constants.Policies.CanHaveProfilePolicy, p =>
             {
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
-                p.RequireRole(TaskLauncherRoles.Admin, TaskLauncherRoles.User);
+                p.AddAuthenticationSchemes(Constants.Authorization.CookieAuth, Constants.Authorization.BearerAuth);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "true");
+                p.RequireRole(Constants.Roles.Admin, Constants.Roles.User);
             });
-            policies.AddPolicy(TaskLauncherPolicies.CanViewGraphsPolicy, p =>
+            policies.AddPolicy(Constants.Policies.CanViewGraphsPolicy, p =>
             {
-                p.RequireClaim(TaskLauncherClaimTypes.Registered, "true");
-                p.RequireClaim(TaskLauncherClaimTypes.EmailVerified, "true");
-                p.RequireRole(TaskLauncherRoles.Admin, TaskLauncherRoles.User);
+                p.AddAuthenticationSchemes(Constants.Authorization.CookieAuth, Constants.Authorization.BearerAuth);
+                p.RequireClaim(Constants.ClaimTypes.Registered, "true");
+                p.RequireClaim(Constants.ClaimTypes.EmailVerified, "true");
+                p.RequireRole(Constants.Roles.Admin, Constants.Roles.User);
             });
-            policies.AddPolicy(TaskLauncherPolicies.CanViewConfigPolicy, p =>
+            policies.AddPolicy(Constants.Policies.CanViewConfigPolicy, p =>
             {
-                p.AddAuthenticationSchemes(AuthorizationConstants.BearerAuth);
-                p.RequireClaim("azp", "1MBhNBPqfSs8FYlaHoFLe2uRwa5BV5Qa");
+                p.AddAuthenticationSchemes(Constants.Authorization.BearerAuth);
+                p.RequireClaim("azp", configuration["ProtectedApiAzp"]);
                 p.RequireClaim("gty", "client-credentials");
             });
         });

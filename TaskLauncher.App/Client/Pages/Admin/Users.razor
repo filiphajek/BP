@@ -1,10 +1,7 @@
 ﻿@page "/users"
+@using TaskLauncher.Common
 @using TaskLauncher.Common.Models
-@attribute [Authorize(Policy = "admin-policy")]
-
-<div style="margin-bottom: 20px;">
-    <a class="btn btn-primary" href="users/add">Add user</a>
-</div>
+@attribute [Authorize(Policy = Constants.Policies.AdminPolicy)]
 
 @if (task.IsCompleted)
 {

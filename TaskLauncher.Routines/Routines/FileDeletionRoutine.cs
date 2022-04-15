@@ -1,4 +1,5 @@
 ﻿using TaskLauncher.App.DAL;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Services;
 
 namespace TaskLauncher.Routines.Routines;
@@ -22,7 +23,7 @@ public class FileDeletionRoutine : IRoutine
     public void Perform()
     {
         logger.LogInformation("Starting file deletion routine");
-        var config = dbContext.Configs.Single(i => i.Key == "autofileremove");
+        var config = dbContext.Configs.Single(i => i.Key == Constants.Configuration.FileRemovalRoutine);
         fileStorageService.RemoveFilesIfOlderThanAsync(int.Parse(config.Value)).Wait();
         logger.LogInformation("End of file deletion routine");
     }

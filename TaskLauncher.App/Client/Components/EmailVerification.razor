@@ -1,6 +1,7 @@
-﻿@inject ApiClient httpClient
+﻿@using TaskLauncher.Common
+@inject ApiClient httpClient
 
-<AuthorizeView Policy="email-not-confirmed">
+<AuthorizeView Policy="@Constants.Policies.EmailNotConfirmed">
     <Authorized>
         <div class="display: block">
             <p>Potvrďte email. Po potvrzení emailu aktualizujte stránku</p>

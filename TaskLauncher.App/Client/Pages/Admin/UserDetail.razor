@@ -1,7 +1,8 @@
 ﻿@page "/users/{id}"
 @using TaskLauncher.Api.Contracts.Responses
 @using TaskLauncher.App.Client.Components.Graphs
-@attribute [Authorize(Policy = "admin-policy")]
+@using TaskLauncher.Common
+@attribute [Authorize(Policy = Constants.Policies.AdminPolicy)]
 
 <SpinLoader IsLoading="@(loading)" Spinner="SpinnerType.Circle">
     <ContentTemplate>

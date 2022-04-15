@@ -6,6 +6,7 @@ using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.Server.Controllers.Base;
+using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Controllers;
 
@@ -25,22 +26,25 @@ public class TokenController : BaseController
     }
 
     /// <summary>
-    /// Admin endpoint pro zobrazeni zustatku tokenu daneho uzivatele
+    /// Vrací zůstatek tokenů daného uživatele
     /// </summary>
-    [Authorize(Policy = "admin-policy")]
+    /// <param name="userId" example="auth0|622033411a44b70076f2790">Id uživatele</param>
+    [Produces("application/json")]
+    [Authorize(Policy = Constants.Policies.AdminPolicy)]
     [HttpGet("/api/admin/token")]
     public async Task<ActionResult<TokenBalanceResponse>> GetTokenBalanceAsync(string userId)
     {
         var tokenBalance = await context.TokenBalances.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.UserId == userId);
         if (tokenBalance is null)
-            return BadRequest();
+            return NotFound();
         return Ok(mapper.Map<TokenBalanceResponse>(tokenBalance));
     }
 
     /// <summary>
-    /// Pro uzivatele, vraci zustatek tokenu
+    /// Vrací zůstatek tokenů přihlášeného uživatele
     /// </summary>
-    [Authorize(Policy = "user-policy")]
+    [Produces("application/json")]
+    [Authorize(Policy = Constants.Policies.UserPolicy)]
     [HttpGet]
     public async Task<ActionResult<TokenBalanceResponse>> GetTokenBalanceAsync()
     {
@@ -49,16 +53,17 @@ public class TokenController : BaseController
     }
 
     /// <summary>
-    /// Aktualizace tokenu, pouze pro admina
+    /// Aktualizace zůstatku tokenů daného uživatele
     /// </summary>
-    [Authorize(Policy = "admin-policy")]
+    [Consumes("application/json")]
+    [Authorize(Policy = Constants.Policies.AdminPolicy)]
     [HttpPut("/api/admin/token")]
     public async Task<ActionResult> UpdateTokenBalanceAsync([FromBody] UpdateBalanceRequest request)
     {
         await semaphoreSlim.WaitAsync();
         var balance = await context.TokenBalances.IgnoreQueryFilters().SingleOrDefaultAsync(i => i.UserId == request.UserId);
         if (balance is null)
-            return BadRequest();
+            return NotFound();
 
         balance.CurrentAmount = request.Amount;
         context.Update(balance);
