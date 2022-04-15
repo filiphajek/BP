@@ -76,6 +76,7 @@ builder.Services.AddScoped<IMapper, ServiceMapper>();
 builder.Services.InstallServicesInAssemblyOf<DatabaseInstaller>(builder.Configuration);
 
 //auth config
+builder.Services.Configure<Auth0Roles>(builder.Configuration.GetSection(nameof(Auth0Roles)));
 builder.Services.Configure<Auth0ApiConfiguration>(builder.Configuration.GetSection(nameof(Auth0ApiConfiguration)));
 var auth0config = new Auth0ApiConfiguration();
 builder.Configuration.Bind(nameof(Auth0ApiConfiguration), auth0config);

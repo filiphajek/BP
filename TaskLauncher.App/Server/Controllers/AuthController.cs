@@ -38,14 +38,17 @@ public class AuthController : ControllerBase
     private readonly IClientFactory<AuthenticationApiClient> authApiClientFactory;
     private readonly IMapper mapper;
     private readonly Auth0ApiConfiguration config;
+    private readonly Auth0Roles roles;
 
     public AuthController(AppDbContext context,
+        IOptions<Auth0Roles> options,
         IHttpClientFactory clientFactory,
         IOptions<Auth0ApiConfiguration> config,
         IMapper mapper,
         IClientFactory<AuthenticationApiClient> authApiClientFactory, 
         IClientFactory<ManagementApiClient> apiClientFactory)
     {
+        roles = options.Value;
         this.context = context;
         this.clientFactory = clientFactory;
         this.mapper = mapper;
@@ -96,7 +99,7 @@ public class AuthController : ControllerBase
         var responsee = await authClient.ChangePasswordAsync(new()
         {
             ClientId = config.ClientId,
-            Connection = "Username-Password-Authentication",
+            Connection = Constants.Auth0.DefaultConnection,
             Email = email,
         });
         return Ok(new ResetPasswordResponse(responsee));
@@ -172,7 +175,7 @@ public class AuthController : ControllerBase
         var auth0client = await apiClientFactory.GetClient();
         var user = await auth0client.Users.CreateAsync(new()
         {
-            Connection = "Username-Password-Authentication",
+            Connection = Constants.Auth0.DefaultConnection,
             FirstName = request.FirstName,
             LastName = request.LastName,
             Email = request.Email,
@@ -182,7 +185,7 @@ public class AuthController : ControllerBase
         });
 
         //role
-        await auth0client.Roles.AssignUsersAsync("rol_6Vh7zpX3Z61sN307", new() { Users = new[] { user.UserId } });
+        await auth0client.Roles.AssignUsersAsync(roles.User, new() { Users = new[] { user.UserId } });
         //vip
         var resultUser = await auth0client.Users.UpdateAsync(user.UserId,
             new() { AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }") });
@@ -259,7 +262,7 @@ public class AuthController : ControllerBase
             return Unauthorized();
 
         //prirad roli
-        await auth0client.Users.AssignRolesAsync(userId, new AssignRolesRequest { Roles = new[] { "rol_6Vh7zpX3Z61sN307" } });
+        await auth0client.Users.AssignRolesAsync(userId, new AssignRolesRequest { Roles = new[] { roles.User } });
 
         //aktualizuj profil
         var updateRequest = mapper.Map<UserUpdateRequest>(request);

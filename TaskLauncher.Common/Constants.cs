@@ -66,4 +66,13 @@ public static class Constants
         public const string CookieAuth = "Cookies";
         public const string BearerAuth = "Bearer";
     }
+
+    /// <summary>
+    /// Auth0 konstanty
+    /// </summary>
+    public static class Auth0
+    {
+        public const string DefaultConnection = "Username-Password-Authentication";
+    }
+
 }

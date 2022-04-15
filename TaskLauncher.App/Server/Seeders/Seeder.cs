@@ -1,9 +1,11 @@
 ﻿using Auth0.ManagementApi;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using TaskLauncher.App.DAL;
 using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.Authorization.Auth0;
+using TaskLauncher.Common;
 using TaskLauncher.Common.Enums;
 using TaskLauncher.Common.Services;
 
@@ -25,13 +27,15 @@ public class Seeder
 
     private readonly AppDbContext dbContext;
     private readonly IFileStorageService fileStorageService;
+    private readonly Auth0Roles roles;
     private readonly IClientFactory<ManagementApiClient> clientFactory;
 
     private readonly List<string> seededEmails = new() { "tomashavel@test.com", "filipnovak@test.com", "stepannemec@test.com", "jakubstefacek@test.com", "vojtechbrychta@test.com" };
     private readonly Dictionary<UserType, string> seededUsers = new();
 
-    public Seeder(AppDbContext dbContext, IFileStorageService fileStorageService, IClientFactory<ManagementApiClient> clientFactory)
+    public Seeder(AppDbContext dbContext, IFileStorageService fileStorageService, IOptions<Auth0Roles> options, IClientFactory<ManagementApiClient> clientFactory)
     {
+        roles = options.Value;
         this.dbContext = dbContext;
         this.fileStorageService = fileStorageService;
         this.clientFactory = clientFactory;
@@ -75,7 +79,7 @@ public class Seeder
         //vip user
         var vipUser = await auth0client.Users.CreateAsync(new()
         {
-            Connection = "Username-Password-Authentication",
+            Connection = Constants.Auth0.DefaultConnection,
             FirstName = "Tomas",
             LastName = "Havel",
             Email = "tomashavel@test.com",
@@ -92,7 +96,7 @@ public class Seeder
         //normal user
         var normalUser = await auth0client.Users.CreateAsync(new()
         {
-            Connection = "Username-Password-Authentication",
+            Connection = Constants.Auth0.DefaultConnection,
             FirstName = "Filip",
             LastName = "Novak",
             Email = "filipnovak@test.com",
@@ -109,7 +113,7 @@ public class Seeder
         //user that received vip
         var assignedVipUser = await auth0client.Users.CreateAsync(new()
         {
-            Connection = "Username-Password-Authentication",
+            Connection = Constants.Auth0.DefaultConnection,
             FirstName = "Stepan",
             LastName = "Nemec",
             Email = "stepannemec@test.com",
@@ -126,7 +130,7 @@ public class Seeder
         //not registered user
         var notRegisteredUser = await auth0client.Users.CreateAsync(new()
         {
-            Connection = "Username-Password-Authentication",
+            Connection = Constants.Auth0.DefaultConnection,
             Email = "jakubstefacek@test.com",
             EmailVerified = false,
             Password = "Password123*",
@@ -140,7 +144,7 @@ public class Seeder
         //not verified user
         var notVerifiedUser = await auth0client.Users.CreateAsync(new()
         {
-            Connection = "Username-Password-Authentication",
+            Connection = Constants.Auth0.DefaultConnection,
             FirstName = "Vojtech",
             LastName = "Brychta",
             Email = "vojtechbrychta@test.com",
@@ -154,7 +158,7 @@ public class Seeder
             AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }")
         });
 
-        await auth0client.Roles.AssignUsersAsync("rol_6Vh7zpX3Z61sN307", 
+        await auth0client.Roles.AssignUsersAsync(roles.User, 
             new() { Users = new[] { vipUser.UserId, normalUser.UserId, assignedVipUser.UserId, notRegisteredUser.UserId, notVerifiedUser.UserId } });
     }
 
