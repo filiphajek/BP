@@ -136,5 +136,6 @@ mazat neaktivní uživatele apod. Lze rutinu naprogramovat a naplánovat ji do t
 
 ### Aplikace spouštějící výpočty - Worker
 Aplikace má za úkol spouštět výpočty. Jakmile do aplikace přijde zpráva (ze SignalR Hub, ze serveru) obsahující informaci o zahájení výpočtu, 
-aplikace zahájí výpočet. Z Google storage se stáhne soubor, ten se uloží do namontovaného volume a spustí se kontejner se stejným volume. Kontejner, který simuluje 
+aplikace zahájí výpočet. Z Google storage se stáhne soubor, ten se uloží do namontovaného volume a spustí se kontejner se stejným volume. Kontejner, který simuluje
 výpočet zapíše výsledek do souboru. Worker aplikace pak soubor zpátky nahraje na Google. Veškeré události worker zasílá na SignalR Hub nebo REST API. Pokud worker náhle ukončí spojení, Hub je o tom informován a úlohu znovu vloží do fronty na serveru. Worker implementuji i ochranu proti zacyklení úlohy. Pokud se úloha nesplní do určité doby, zasílá informaci na server. Události, které se posílají na server (úloha se dokončila úspěšně, neúspěšně apod.), vidí daný přihlášený uživatel v reálném čase (díky SignalR spojení).
+
