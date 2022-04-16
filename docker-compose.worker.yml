@@ -15,6 +15,10 @@ services:
       - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
       - ServiceAddresses__HubAddress=https://tasklauncher.app.server:443/WorkerHub
       - TaskLauncherConfig__Source=bp_worker-vol
+      - Auth0ApiConfiguration__Domain=bptasklauncher.eu.auth0.com
+      - Auth0ApiConfiguration__ClientId=SIDgxJgg3GVQ991W63sXZX03uJkhP2ji
+      - Auth0ApiConfiguration__ClientSecret=PLXdIuF2vg6E4xV01v90ZG4uDXJ6TcY7k5HmLfv6b_o2-6gE6F92AuwqKmUL0QtF
+      - Auth0ApiConfiguration__Audience=https://bptasklauncherapi.com
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - worker-vol:/app/tmp

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.App.DAL;
@@ -23,11 +24,14 @@ namespace TaskLauncher.App.Server.Controllers.User;
 /// </summary>
 public class UserController : BaseController
 {
+    private readonly Auth0Roles roles;
     private readonly AppDbContext context;
     private readonly IClientFactory<ManagementApiClient> apiClientFactory;
 
-    public UserController(ILogger<UserController> logger, AppDbContext context, IClientFactory<ManagementApiClient> apiClientFactory) : base(logger)
+    public UserController(ILogger<UserController> logger, IOptions<Auth0Roles> options, AppDbContext context, IClientFactory<ManagementApiClient> apiClientFactory) 
+        : base(logger)
     {
+        roles = options.Value;
         this.context = context;
         this.apiClientFactory = apiClientFactory;
     }
@@ -124,7 +128,7 @@ public class UserController : BaseController
     {
         Random random = new(DateTime.Now.Millisecond);
         var auth0client = await apiClientFactory.GetClient();
-        var admins = (await auth0client.Roles.GetUsersAsync("rol_biIw4J5bu8EQIReX")).ToList();
+        var admins = (await auth0client.Roles.GetUsersAsync(roles.Admin)).ToList();
         var next = random.Next(admins.Count);
         return Ok(admins.ElementAt(next));
     }
