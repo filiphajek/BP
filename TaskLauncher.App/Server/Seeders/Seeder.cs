@@ -74,6 +74,7 @@ public class Seeder
         foreach (var user in (await auth0client.Users.GetAllAsync(new())).Where(i => seededEmails.Contains(i.Email)))
         {
             await auth0client.Users.DeleteAsync(user.UserId);
+            await Task.Delay(1000);
         }
 
         //vip user

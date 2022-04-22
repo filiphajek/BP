@@ -1,4 +1,4 @@
-using Auth0.AspNetCore.Authentication;
+Ôªøusing Auth0.AspNetCore.Authentication;
 using Auth0.AuthenticationApi;
 using Auth0.ManagementApi;
 using Auth0.ManagementApi.Models;
@@ -45,7 +45,7 @@ public class AuthController : ControllerBase
         IHttpClientFactory clientFactory,
         IOptions<Auth0ApiConfiguration> config,
         IMapper mapper,
-        IClientFactory<AuthenticationApiClient> authApiClientFactory, 
+        IClientFactory<AuthenticationApiClient> authApiClientFactory,
         IClientFactory<ManagementApiClient> apiClientFactory)
     {
         roles = options.Value;
@@ -58,7 +58,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// P¯ihl·öenÌ p¯es sluûbu auth0, uûivatel je p¯esmÏrov·n na auth0, pouze z prohlÌûeËe (cookie autentizace)
+    /// P≈ôihl√°≈°en√≠ p≈ôes slu≈æbu auth0, u≈æivatel je p≈ôesmƒõrov√°n na auth0, pouze z prohl√≠≈æeƒçe (cookie autentizace)
     /// </summary>
     [HttpGet("login")]
     public async Task Login()
@@ -73,7 +73,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Odhl·öenÌ uzivatele (cookie autentizace)
+    /// Odhl√°≈°en√≠ uzivatele (cookie autentizace)
     /// </summary>
     [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     [HttpGet("logout")]
@@ -92,7 +92,7 @@ public class AuthController : ControllerBase
     [HttpPost("reset-password")]
     public async Task<ActionResult<ResetPasswordResponse>> ChangePassword()
     {
-        if(!User.TryGetAuth0Id(out _) || !User.TryGetClaimValue(ClaimTypes.Email, out var email))
+        if (!User.TryGetAuth0Id(out _) || !User.TryGetClaimValue(ClaimTypes.Email, out var email))
             return Unauthorized();
 
         var authClient = await authApiClientFactory.GetClient();
@@ -106,7 +106,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// ZÌsk·nÌ uûivatelsk˝ch dat p¯ihl·öenÈho uûivatele na z·kladÏ http kontextu
+    /// Z√≠sk√°n√≠ u≈æivatelsk√Ωch dat p≈ôihl√°≈°en√©ho u≈æivatele na z√°kladƒõ http kontextu
     /// </summary>
     [Produces("application/json")]
     [HttpGet("user")]
@@ -137,7 +137,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// SlouûÌ pro p¯Ìstup na API, pro desktopovÈ nebo mobilnÌ aplikace
+    /// Slou≈æ√≠ pro p≈ô√≠stup na API, pro desktopov√© nebo mobiln√≠ aplikace
     /// </summary>
     [Consumes("application/json")]
     [Produces("application/json")]
@@ -164,7 +164,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Registrace uûivatele, pro desktopovÈ nebo mobilnÌ aplikace
+    /// Registrace u≈æivatele, pro desktopov√© nebo mobiln√≠ aplikace
     /// </summary>
     [Consumes("application/json")]
     [Produces("application/json")]
@@ -202,7 +202,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Aktualizuje p¯Ìstupov˝ token, pro desktopovÈ nebo mobilnÌ aplikace
+    /// Aktualizuje p≈ô√≠stupov√Ω token, pro desktopov√© nebo mobiln√≠ aplikace
     /// </summary>
     [Produces("application/json")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -250,7 +250,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// DokonËenÌ registrace na webovÈ str·nce, pouze pro neregistrovanÈ uûivatele
+    /// Dokonƒçen√≠ registrace na webov√© str√°nce, pouze pro neregistrovan√© u≈æivatele
     /// </summary>
     [Consumes("application/json")]
     [Authorize(Policy = Constants.Policies.UserNotRegistered)]
@@ -280,10 +280,10 @@ public class AuthController : ControllerBase
         await context.Stats.AddAsync(new() { UserId = userId, IsVip = false });
         await context.SaveChangesAsync();
 
-        await AddClaimsToPrincipal(new Claim[] 
+        await AddClaimsToPrincipal(new Claim[]
         {
             new Claim(ClaimTypes.Role, "user"),
-            new Claim(Constants.ClaimTypes.Registered, "true"), 
+            new Claim(Constants.ClaimTypes.Registered, "true"),
             new Claim(Constants.ClaimTypes.TokenBalance, balanceConfig.Value)
         });
 
@@ -291,7 +291,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// PosÌl· verifikaËnÌ email
+    /// Pos√≠l√° verifikaƒçn√≠ email
     /// </summary>
     [Produces("application/json")]
     [Authorize(Policy = Constants.Policies.EmailNotConfirmed)]
