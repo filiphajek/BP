@@ -1,31 +1,21 @@
 version: '3.5'
 
-networks:
-  localdev:
-    name: localdev
-    
 services:
   tasklauncher.worker:
-    image: tasklauncher.worker
+    image: wutshot/worker:latest
     container_name: tasklauncher.worker
-    build:
-      context: .
-      dockerfile: TaskLauncher.Worker/Dockerfile
     environment:
-      - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
-      - ServiceAddresses__HubAddress=https://tasklauncher.app.server:443/WorkerHub
+      - ServiceAddresses__WebApiAddress=https://auth0blazorwasmserverapp.azurewebsites.net
+      - ServiceAddresses__HubAddress=https://auth0blazorwasmserverapp.azurewebsites.net/WorkerHub
       - TaskLauncherConfig__Source=bp_worker-vol
-      - Auth0ApiConfiguration__Domain=bptasklauncher.eu.auth0.com
-      - Auth0ApiConfiguration__ClientId=SIDgxJgg3GVQ991W63sXZX03uJkhP2ji
-      - Auth0ApiConfiguration__ClientSecret=PLXdIuF2vg6E4xV01v90ZG4uDXJ6TcY7k5HmLfv6b_o2-6gE6F92AuwqKmUL0QtF
-      - Auth0ApiConfiguration__Audience=https://bptasklauncherapi.com
+      - TaskLauncherConfig__ImageName=wutshot/testimage
+      - Auth0ApiConfiguration__Domain=bptasklauncher-test.eu.auth0.com
+      - Auth0ApiConfiguration__ClientId=H00nU96LrTvYskDdrsVgfReFmwk8ICbd
+      - Auth0ApiConfiguration__ClientSecret=pIRWtKz0eAo34XO-W9sUwuTyeF8Gt6twVcAlNmbt_ZC9ZEqeUHQvqiIkyODWoUlC
+      - Auth0ApiConfiguration__Audience=https://bptasklauncherapi-test.com
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - worker-vol:/app/tmp
-    depends_on:
-      - tasklauncher.app.server
-    networks:
-      - localdev
 
 volumes:
   worker-vol:
