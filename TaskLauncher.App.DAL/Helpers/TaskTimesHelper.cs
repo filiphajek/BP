@@ -1,7 +1,7 @@
 ﻿using TaskLauncher.App.DAL.Entities;
 using TaskLauncher.Common.Enums;
 
-namespace TaskLauncher.App.Server.Helpers;
+namespace TaskLauncher.App.DAL.Helpers;
 
 public static class TaskTimesHelper
 {

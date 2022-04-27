@@ -5,8 +5,8 @@ services:
     image: wutshot/worker:latest
     container_name: tasklauncher.worker
     environment:
-      - ServiceAddresses__WebApiAddress=https://auth0blazorwasmserverapp.azurewebsites.net
-      - ServiceAddresses__HubAddress=https://auth0blazorwasmserverapp.azurewebsites.net/WorkerHub
+      - ServiceAddresses__WebApiAddress=https://testauth0blazorwasmserverapp.azurewebsites.net
+      - ServiceAddresses__HubAddress=https://testauth0blazorwasmserverapp.azurewebsites.net/WorkerHub
       - TaskLauncherConfig__Source=bp_worker-vol
       - TaskLauncherConfig__ImageName=wutshot/testimage
       - Auth0ApiConfiguration__Domain=bptasklauncher-test.eu.auth0.com

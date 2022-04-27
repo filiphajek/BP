@@ -1,11 +1,16 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using TaskLauncher.Api.Contracts.Requests;
 using TaskLauncher.Api.Contracts.Responses;
+using TaskLauncher.App.DAL;
+using TaskLauncher.App.DAL.Helpers;
 using TaskLauncher.Common.Extensions;
 using TaskLauncher.Common.Models;
 
@@ -17,21 +22,25 @@ namespace TaskLauncher.Simulation;
 public class SimulationService : BackgroundService
 {
     private readonly UserFactory userFactory;
+    private readonly AppDbContext context;
     private readonly ILogger<SimulationService> logger;
     private readonly IHttpClientFactory httpClientFactory;
     private readonly HttpClient httpClient;
     private readonly SimulationConfig simulationOptions;
     private readonly Random random = new(Guid.NewGuid().GetHashCode());
+    private Stopwatch stopwatch;
 
     private readonly List<HttpClient> userHttpClients = new();
 
     public SimulationService(UserFactory userFactory, 
+        AppDbContext context,
         ILogger<SimulationService> logger, 
         IHttpClientFactory httpClientFactory,
         HttpClient httpClient,
         IOptions<SimulationConfig> simulationOptions)
     {
         this.userFactory = userFactory;
+        this.context = context;
         this.logger = logger;
         this.httpClientFactory = httpClientFactory;
         this.httpClient = httpClient;
@@ -82,7 +91,10 @@ public class SimulationService : BackgroundService
                 tasks.Add(tmp);
             }
 
+            stopwatch = Stopwatch.StartNew();
             await Task.WhenAll(tasks);
+            stopwatch.Stop();
+            Console.WriteLine($"Elapsed Milliseconds: {stopwatch.ElapsedMilliseconds}");
         }
         catch (Exception ex)
         {
@@ -95,14 +107,37 @@ public class SimulationService : BackgroundService
     /// </summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
+        logger.LogInformation("Saving stats to /stats/stat.json");
+        await SaveStats();
         logger.LogInformation("Deleting users");
         foreach (var client in userHttpClients)
         {
             await client.DeleteAsync("api/user", cancellationToken);
             client.Dispose();
         }
-        
         await base.StopAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Ulozeni statistik z databaze do souboru
+    /// </summary>
+    private async Task SaveStats()
+    {
+        var tmpFile = File.Create("/stats/stat.json");
+        tmpFile.Dispose();
+        await File.AppendAllTextAsync("/stats/stat.json", 
+            JsonConvert.SerializeObject(new {TimeInSeconds = stopwatch.Elapsed.TotalSeconds}, Formatting.Indented) + "," + Environment.NewLine);
+
+        foreach (var task in await context.Tasks
+            .IgnoreQueryFilters()
+            .Include(i => i.Events)
+            .OrderByDescending(i => i.CreationDate)
+            .ToListAsync())
+        {
+            var (TimeInQueue, CpuTime) = TaskTimesHelper.GetTimeStats(task);
+            TaskStatResponse tmp = new(task.IsPriority, task.Name, TimeInQueue, CpuTime);
+            await File.AppendAllTextAsync("/stats/stat.json", JsonConvert.SerializeObject(tmp, Formatting.Indented) + "," + Environment.NewLine);
+        }
     }
 
     /// <summary>
@@ -115,11 +150,13 @@ public class SimulationService : BackgroundService
         {
             var user = await userFactory.CreateUser(false);
             tmp.Add(user);
+            await Task.Delay(2000); //at se nenarazi na rate limit auth0
         }
         for (int i = 0; i < simulationOptions.VipUsers; i++)
         {
             var user = await userFactory.CreateUser(true);
             tmp.Add(user);
+            await Task.Delay(2000); //at se nenarazi na rate limit auth0
         }
         return tmp;
     }

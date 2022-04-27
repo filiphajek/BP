@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using TaskLauncher.App.DAL.Installers;
 using TaskLauncher.Authorization.Auth0;
 using TaskLauncher.Common.Configuration;
 using TaskLauncher.Simulation;
@@ -8,6 +10,10 @@ using TaskLauncher.Simulation;
 await Host.CreateDefaultBuilder()
     .ConfigureServices((context, services) =>
     {
+        //databaze pro stazeni vysledku
+        new DatabaseInstaller().Install(services, context.Configuration);
+        services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
         //konfigurace
         services.Configure<SimulationConfig>(context.Configuration.GetSection(nameof(SimulationConfig)));
         services.Configure<Auth0ApiConfiguration>(context.Configuration.GetSection(nameof(Auth0ApiConfiguration)));

@@ -31,6 +31,8 @@ services:
       - Auth0Roles__Admin=rol_cDKoADlupHulvZx6
       - Auth0Roles__User=rol_PJPCkVrqDEqg5K7c
       - ReverseProxy__Clusters__auth0managmentapi__Destinations__destination1__Address=https://bptasklauncher-sim.eu.auth0.com/
+      - PriorityQueues__Queues__vip=4
+      - PriorityQueues__Queues__nonvip=1
     volumes:
       - ./https/aspnetapp.pfx:/https/aspnetapp.pfx:ro
     depends_on:
@@ -58,6 +60,12 @@ services:
       dockerfile: TaskLauncher.Simulation/Dockerfile
     environment:
       - ServiceAddresses__WebApiAddress=https://tasklauncher.app.server:443
+      - ConnectionStrings__Default=Server=db-server;Database=TaskLauncherApi;User=sa;Password=Pass1234
+      - SimulationConfig__TaskCount=15
+      - SimulationConfig__VipUsers=1
+      - SimulationConfig__NormalUsers=1
+    volumes:
+      - ./stats:/stats
     depends_on:
       - tasklauncher.app.server
     networks:
@@ -77,6 +85,8 @@ services:
       - Auth0ApiConfiguration__ClientId=t2EIRM8MzJljcKQDy7lYkVsTsZpm4SDN
       - Auth0ApiConfiguration__ClientSecret=29fNR34UnZ88ZIVKlEaiT6rHTKBP6dRn0nREJWDeLih8bCbVZrEcJWSN5xY03Ayu
       - Auth0ApiConfiguration__Audience=https://bptasklauncherapi-sim.com
+      - TaskLauncherConfig__ContainerArguments__Min=20
+      - TaskLauncherConfig__ContainerArguments__Max=30
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - worker1-vol:/app/tmp
@@ -99,6 +109,8 @@ services:
       - Auth0ApiConfiguration__ClientId=t2EIRM8MzJljcKQDy7lYkVsTsZpm4SDN
       - Auth0ApiConfiguration__ClientSecret=29fNR34UnZ88ZIVKlEaiT6rHTKBP6dRn0nREJWDeLih8bCbVZrEcJWSN5xY03Ayu
       - Auth0ApiConfiguration__Audience=https://bptasklauncherapi-sim.com
+      - TaskLauncherConfig__ContainerArguments__Min=22
+      - TaskLauncherConfig__ContainerArguments__Max=32
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - worker2-vol:/app/tmp

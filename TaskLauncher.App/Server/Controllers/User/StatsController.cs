@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskLauncher.Api.Contracts.Responses;
 using TaskLauncher.App.DAL;
+using TaskLauncher.App.DAL.Helpers;
 using TaskLauncher.App.Server.Controllers.Base;
-using TaskLauncher.App.Server.Helpers;
 using TaskLauncher.Common;
 
 namespace TaskLauncher.App.Server.Controllers.User;
