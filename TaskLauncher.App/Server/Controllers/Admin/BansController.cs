@@ -33,7 +33,7 @@ public class BansController : AdminODataController<BanResponse>
     }
 
     /// <summary>
-    /// Vrací všechny bany v systému, dotazuje se přes odata
+    /// Vrací všechny blokace v systému, dotazuje se přes odata
     /// </summary>
     [ProducesResponseType(typeof(List<BanResponse>), 200)]
     [Produces("application/json")]
@@ -45,7 +45,7 @@ public class BansController : AdminODataController<BanResponse>
     }
 
     /// <summary>
-    /// Vrací detail banu
+    /// Vrací detail blokace
     /// </summary>
     /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id banu</param>
     [ProducesResponseType(typeof(BanResponse), 200)]
@@ -61,7 +61,7 @@ public class BansController : AdminODataController<BanResponse>
     }
 
     /// <summary>
-    /// Vytvoření nového banu
+    /// Vytvoření nové blokace
     /// </summary>
     [Consumes("application/json")]
     [ProducesResponseType(typeof(BanResponse), 200)]
@@ -90,7 +90,7 @@ public class BansController : AdminODataController<BanResponse>
     }
 
     /// <summary>
-    /// Zrušení banu
+    /// Zrušení blokace
     /// </summary>
     /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id banu</param>
     [ProducesResponseType(typeof(BanResponse), 200)]
@@ -127,7 +127,7 @@ public class BansController : AdminODataController<BanResponse>
     }
 
     /// <summary>
-    /// Smazání banu ze systému (ban musí být nejdříve zrušené)
+    /// Smazání záznamu blokace ze systému (blokace musí být nejdříve zrušená)
     /// </summary>
     /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id banu</param>
     [ProducesResponseType(typeof(ErrorMessageResponse), 400)]

@@ -22,7 +22,7 @@ public class TasksController : AdminODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Vrací všechny úlohy v systému, dotazuje přes odata
+    /// Vrací všechny úlohy v systému, dotazuje se přes odata
     /// </summary>
     [ProducesResponseType(typeof(List<TaskResponse>), 200)]
     [Produces("application/json")]
@@ -58,7 +58,7 @@ public class TasksController : AdminODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Smazaní úlohy
+    /// Smazání úlohy
     /// </summary>
     /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
     [ProducesResponseType(404)]

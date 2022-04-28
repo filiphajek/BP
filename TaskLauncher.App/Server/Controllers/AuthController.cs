@@ -58,7 +58,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Přihlášení přes službu auth0, uživatel je přesměrován na auth0, pouze z prohlížeče (cookie autentizace)
+    /// Přihlášení přes službu Auth0, uživatel je přesměrován na Auth0, pouze z prohlížeče (cookie autentizace)
     /// </summary>
     [HttpGet("login")]
     public async Task Login()
@@ -73,7 +73,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Odhlášení uzivatele (cookie autentizace)
+    /// Odhlášení uživatele (cookie autentizace)
     /// </summary>
     [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
     [HttpGet("logout")]
@@ -85,7 +85,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Reset hesla (cookie autentizace)
+    /// Resetování hesla (cookie autentizace)
     /// </summary>
     [Produces("application/json")]
     [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]
@@ -137,7 +137,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Slouží pro přístup na API, pro desktopové nebo mobilní aplikace
+    /// Přihlašování pro desktopové nebo mobilní aplikace
     /// </summary>
     [Consumes("application/json")]
     [Produces("application/json")]

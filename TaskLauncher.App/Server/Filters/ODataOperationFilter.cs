@@ -94,7 +94,7 @@ public class ODataOperationFilter : IOperationFilter
             operation.Parameters.Add(new OpenApiParameter()
             {
                 Name = "$count",
-                Description = "Pokud je nastaven na true, vrací se kolik objektů je v kolekci",
+                Description = "Pokud je nastaven na true, vrací se, kolik objektů je v kolekci",
                 In = ParameterLocation.Query,
                 Schema = new OpenApiSchema
                 {

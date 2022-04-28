@@ -9,7 +9,7 @@ public record BanUserRequest
     public string UserId { get; set; }
 
     /// <summary>
-    /// Důvod udělení banu
+    /// Důvod udělení blokace
     /// </summary>
     /// <example>Podezřelé chování</example>
     public string Reason { get; set; }

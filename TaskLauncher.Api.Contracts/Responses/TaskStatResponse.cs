@@ -11,7 +11,7 @@ public record TaskStatResponse
     }
 
     /// <summary>
-    /// Určuje zda byla úloha prioritní
+    /// Určuje, zda byla úloha prioritní
     /// </summary>
     /// <example>true</example>
     public bool IsVip { get; }

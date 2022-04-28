@@ -39,7 +39,7 @@ public record UserStatResponse
     public int CrashedTasks { get; set; }
 
     /// <summary>
-    /// Určuje zda jsou statistiky určeny z prioritních úloh
+    /// Určuje, zda jsou statistiky určeny z prioritních úloh
     /// </summary>
     /// <example>true</example>
     public bool IsVip { get; set; }

@@ -27,7 +27,7 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vrací obecne seskupené statistiky od všech uživatelů nebo obecné statistiky zadaného uživatele pres parametr userId
+    /// Vrací obecné seskupené statistiky od všech uživatelů nebo obecné statistiky zadaného uživatele pres parametr userId
     /// </summary>
     /// <param name="userId" example="auth0|622033411a44b70076f2790">Id uživatele</param>
     [ProducesResponseType(typeof(List<UserStatResponse>), 200)]
@@ -59,9 +59,9 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vrací se kolekce statistik posledních 30 úloh za poslední den od zadaného uživatele
-    /// Pokud se přes parametr userId nespecifikuje uživatel, vrací se kolekce statistik posledních 50 úloh celého systému za poslední den
-    /// Statistiky udávají kolik času daná úloha strávila ve frontě a ve worker aplikaci
+    /// Vrací se kolekce statistik posledních 30 úloh za poslední den od zadaného uživatele.
+    /// Pokud se přes parametr userId nespecifikuje uživatel, vrací se kolekce statistik posledních 50 úloh celého systému za poslední den.
+    /// Statistiky udávají, kolik času daná úloha strávila ve frontě a ve worker aplikaci
     /// </summary>
     /// <param name="userId" example="auth0|622033411a44b70076f2790">Id uživatele</param>
     [Produces("application/json")]
@@ -102,8 +102,8 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vrací se kolekce, kde položka je počet založených úloh za den
-    /// Vrací se založené úlohy za posledních 30 dni od zadaného uživatele, pokud není specifikován, vratí se od úlohy od všech uživatelů
+    /// Vrací se kolekce, kde položka je počet založených úloh za den.
+    /// Vrací se založené úlohy za posledních 30 dní od zadaného uživatele, pokud není specifikován, vrátí se úlohy od všech uživatelů za posledních 30 dní.
     /// Musí se specifikovat, zda se budou vracet vip nebo normalní úlohy
     /// </summary>
     /// <param name="vip" example="true">Vip</param>

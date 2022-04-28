@@ -214,13 +214,14 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
     app.UseWebAssemblyDebugging();
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.DefaultModelsExpandDepth(-1);
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskLauncherDocumentation");
-    });
 }
+
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.DefaultModelsExpandDepth(-1);
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskLauncherDocumentation");
+});
 
 //pouzivani vestavenych middlewaru, middlewary jsou volany presne v tomto poradi
 app.UseHealthChecks("/health");

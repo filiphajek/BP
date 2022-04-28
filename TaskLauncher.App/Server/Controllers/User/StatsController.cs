@@ -40,8 +40,8 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vrací se kolekce statistik posledních 30 úloh za poslední den od přihlášeného uživatele
-    /// Statistiky udaávají kolik času daná úloha strávila ve workeru a jak dlouho se počítala
+    /// Vrací se kolekce statistik posledních 30 úloh za poslední den od přihlášeného uživatele.
+    /// Statistiky udávají, kolik času daná úloha strávila ve workeru a jak dlouho se počítala
     /// </summary>
     [Produces("application/json")]
     [HttpGet("times")]
@@ -64,7 +64,7 @@ public class StatsController : BaseController
     }
 
     /// <summary>
-    /// Vrací kolekci kde položka je počet úloh spuštěných za den, jsou to úlohy za posledních 30 dní
+    /// Vrací kolekci, kde položka je počet úloh spuštěných za den, jsou to úlohy za posledních 30 dní.
     /// Musí se specifikovat, zda se budou vracet vip nebo normalní úlohy
     /// </summary>
     /// <param name="vip" example="true">Vip</param>

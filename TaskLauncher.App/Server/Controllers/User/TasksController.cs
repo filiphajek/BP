@@ -40,7 +40,7 @@ public class TasksController : UserODataController<TaskResponse>
     /// Zpřístupňuje dotazovaní přes odata nad celou kolekcí úloh přihlášeného uživatele
     /// </summary>
     [EnableQuery]
-    [ProducesResponseType(typeof(List<PaymentResponse>), 200)]
+    [ProducesResponseType(typeof(List<TaskResponse>), 200)]
     [Produces("application/json")]
     [HttpGet]
     public ActionResult<List<TaskResponse>> Get()
@@ -201,6 +201,7 @@ public class TasksController : UserODataController<TaskResponse>
 
         return Ok(mapper.Map<TaskResponse>(taskEntity));
     }
+
     /// <summary>
     /// Aktualizace informací úlohy
     /// </summary>
@@ -308,7 +309,7 @@ public class TasksController : UserODataController<TaskResponse>
     }
 
     /// <summary>
-    /// Restartuje úlohu pokud je ve stavu Vypršel, úloha ve stavu Zhavarováno se restartuje automaticky, zrušená úloha nemůže být restartována
+    /// Restartuje úlohu, pokud je ve stavu Nedokončeno, úloha ve stavu Zhavarováno se restartuje automaticky, zrušená úloha nemůže být restartována
     /// </summary>
     /// <param name="id" example="f6195afa-168d-4a30-902e-f4c93af06acd">Id úlohy</param>
     [ProducesResponseType(404)]

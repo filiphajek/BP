@@ -65,7 +65,7 @@ public class ConfigController : BaseController
     }
 
     /// <summary>
-    /// Aktualizuje sysémovou konfigurační proměnnou
+    /// Aktualizuje systémovou konfigurační proměnnou
     /// </summary>
     [Consumes("application/json")]
     [ProducesResponseType(typeof(ConfigResponse), 200)]
