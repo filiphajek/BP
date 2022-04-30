@@ -21,8 +21,7 @@ public class Seeder
         VipUser,
         NormalUser,
         NormalVipUser,
-        NotRegisteredUser,
-        NotVerifiedUser
+        NotRegisteredUser
     }
 
     private readonly AppDbContext dbContext;
@@ -30,7 +29,7 @@ public class Seeder
     private readonly Auth0Roles roles;
     private readonly IClientFactory<ManagementApiClient> clientFactory;
 
-    private readonly List<string> seededEmails = new() { "tomashavel@test.com", "filipnovak@test.com", "stepannemec@test.com", "jakubstefacek@test.com", "vojtechbrychta@test.com" };
+    private readonly List<string> seededEmails = new() { "tomashavel@test.com", "filipnovak@test.com", "stepannemec@test.com", "jakubstefacek@test.com" };
     private readonly Dictionary<UserType, string> seededUsers = new();
 
     public Seeder(AppDbContext dbContext, IFileStorageService fileStorageService, IOptions<Auth0Roles> options, IClientFactory<ManagementApiClient> clientFactory)
@@ -57,7 +56,7 @@ public class Seeder
         await EnsureCreatedUsersAsync();
 
         // seed uzivatelskych uloh, plateb, statistik apod.
-        foreach (var user in seededUsers.Where(i => i.Key != UserType.NotRegisteredUser).Where(i => i.Key != UserType.NotVerifiedUser))
+        foreach (var user in seededUsers.Where(i => i.Key != UserType.NotRegisteredUser))
         {
             await SeedUser(user.Value, user.Key);
         }
@@ -142,25 +141,8 @@ public class Seeder
             AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': false, 'isadmin': false }")
         });
 
-        //not verified user
-        var notVerifiedUser = await auth0client.Users.CreateAsync(new()
-        {
-            Connection = Constants.Auth0.DefaultConnection,
-            FirstName = "Vojtech",
-            LastName = "Brychta",
-            Email = "vojtechbrychta@test.com",
-            EmailVerified = false,
-            NickName = "vojta",
-            Password = "Password123*",
-        });
-        seededUsers.Add(UserType.NotVerifiedUser, notVerifiedUser.UserId);
-        await auth0client.Users.UpdateAsync(notVerifiedUser!.UserId, new()
-        {
-            AppMetadata = JsonConvert.DeserializeObject("{ 'vip': false, 'registered': true, 'isadmin': false }")
-        });
-
         await auth0client.Roles.AssignUsersAsync(roles.User, 
-            new() { Users = new[] { vipUser.UserId, normalUser.UserId, assignedVipUser.UserId, notRegisteredUser.UserId, notVerifiedUser.UserId } });
+            new() { Users = new[] { vipUser.UserId, normalUser.UserId, assignedVipUser.UserId, notRegisteredUser.UserId } });
     }
 
     /// <summary>
