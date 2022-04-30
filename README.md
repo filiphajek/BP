@@ -1,6 +1,6 @@
 ## Spuštění projektu
 Před spuštěním projektu je nutné mít HTTPS certifikát ve složce ```https```, odkud se
-montuje do kontejneru.
+montuje do kontejneru. Lze vytvořit vývojářský cerifikát přes:
 
 * Stažení .NET 6 SDK https://dotnet.microsoft.com/download/dotnet/6.0.
 * V kořenovém adresáři zadat příkaz ```dotnet dev-certs https -ep https/aspnetapp.pfx -p mypass123```
@@ -33,7 +33,7 @@ Detaily konfigurace služby jsou v příloze textu.
 ## Spuštění simulace
 Simulace se spouští přes ```docker-compose -f .\docker-compose.simulation.yml up --build -d```.
 Opět je třeba mít certifikát a testovací image.\
-Další detaily jsou v příloze textu.
+Další informace jsou v příloze textu.
 
 ## Nasazení workera
 Pokud se služba nasadila na Azure pod jménem ```testauth0blazorwasmserverapp```, stačí 
