@@ -1,6 +1,6 @@
 ## Spuštění projektu
 Před spuštěním projektu je nutné mít HTTPS certifikát ve složce ```https```, odkud se
-montuje do kontejneru. Lze vytvořit vývojářský cerifikát přes:
+montuje do kontejneru. Vývojářský cerifikát lze vytvořit přes:
 
 * Stažení .NET 6 SDK https://dotnet.microsoft.com/download/dotnet/6.0.
 * V kořenovém adresáři zadat příkaz ```dotnet dev-certs https -ep https/aspnetapp.pfx -p mypass123```
@@ -15,7 +15,7 @@ Na této adrese <https://localhost:5001/> je dostupná webová aplikace.\
 Na této adrese <https://localhost:5001/swagger/index.html> je dostupná OpenApi dokumentace.
 Přes ```docker-compose -f docker-compose.yml down``` se kontejnery vypnou a smažou.
 
-Spuštění projektu vytvoří tyto uživatelé. Heslo je u všech účtů ```Password123*```.
+Spuštění projektu vytvoří tyto uživatele. Heslo je u všech účtů ```Password123*```.
 
 | Uživatelský email            | Popis                                                          |
 |------------------------------|----------------------------------------------------------------|
