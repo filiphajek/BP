@@ -13,7 +13,7 @@ Celý projekt se spustí přes ```docker-compose -f docker-compose.yml up --buil
 Výsledkem by měly být čtyři spuštěné docker kontejnery.\
 Na této adrese <https://localhost:5001/> je dostupná webová aplikace.\
 Na této adrese <https://localhost:5001/swagger/index.html> je dostupná OpenApi dokumentace.
-Přes ```docker-compose -f docker-compose.yml up down``` se kontejnery vypnou a smažou.
+Přes ```docker-compose -f docker-compose.yml down``` se kontejnery vypnou a smažou.
 
 Spuštění projektu vytvoří tyto uživatelé. Heslo je u všech účtů ```Password123*```.
 
@@ -31,7 +31,7 @@ Spuštění projektu vytvoří tyto uživatelé. Heslo je u všech účtů ```Pa
 Detaily konfigurace služby jsou v příloze textu.
 
 ## Spuštění simulace
-Simulace se spouští přes ```docker-compose -f .\docker-compose.simulation.yml up --build -d```.
+Simulace se spouští přes ```docker-compose -f docker-compose.simulation.yml up --build -d```.
 Opět je třeba mít certifikát a testovací image.\
 Další informace jsou v příloze textu.
 
