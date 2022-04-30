@@ -37,5 +37,5 @@ Další informace jsou v příloze textu.
 
 ## Nasazení workera
 Pokud se služba nasadila na Azure pod jménem ```testauth0blazorwasmserverapp```, stačí 
-workera spustit přes ```docker-compose -f .\docker-compose.worker.yml up -d```. Worker a testovací
+workera spustit přes ```docker-compose -f docker-compose.worker.yml up -d```. Worker a testovací
 image se stáhnou z Docker Hub.
