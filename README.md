@@ -1,5 +1,6 @@
 ## Spuštění projektu
 Předpokádá se, že kořenovým adresářem je adresář ```BP``` vytvořený podle přílohy práce.
+V tomto adresáři se spouští další příkazy.\
 Před spuštěním projektu je nutné mít HTTPS certifikát ve složce ```https```, odkud se
 montuje do kontejneru. Vývojářský cerifikát lze vytvořit přes:
 
